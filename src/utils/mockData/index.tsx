@@ -1,0 +1,86 @@
+export const MOCK_CITIES = [
+  { id: 1, name: 'Mumbai', stateId: 1, stateName: 'Maharashtra', latitude: 19.0760, longitude: 72.8777 },
+  { id: 2, name: 'Delhi', stateId: 2, stateName: 'Delhi', latitude: 28.7041, longitude: 77.1025 },
+  { id: 3, name: 'Bangalore', stateId: 3, stateName: 'Karnataka', latitude: 12.9716, longitude: 77.5946 },
+  { id: 4, name: 'Hyderabad', stateId: 4, stateName: 'Telangana', latitude: 17.3850, longitude: 78.4867 },
+  { id: 5, name: 'Chennai', stateId: 5, stateName: 'Tamil Nadu', latitude: 13.0827, longitude: 80.2707 },
+  { id: 6, name: 'Kolkata', stateId: 6, stateName: 'West Bengal', latitude: 22.5726, longitude: 88.3639 },
+  { id: 7, name: 'Pune', stateId: 1, stateName: 'Maharashtra', latitude: 18.5204, longitude: 73.8567 },
+  { id: 8, name: 'Ahmedabad', stateId: 7, stateName: 'Gujarat', latitude: 23.0225, longitude: 72.5714 },
+];
+
+export const MOCK_LOCALITIES = {
+  1: [ // Mumbai
+    { id: 101, name: 'Andheri West', cityId: 1, latitude: 19.1136, longitude: 72.8697 },
+    { id: 102, name: 'Bandra', cityId: 1, latitude: 19.0596, longitude: 72.8295 },
+    { id: 103, name: 'Powai', cityId: 1, latitude: 19.1176, longitude: 72.9060 },
+    { id: 104, name: 'Goregaon', cityId: 1, latitude: 19.1552, longitude: 72.8490 },
+  ],
+  3: [ // Bangalore
+    { id: 301, name: 'Koramangala', cityId: 3, latitude: 12.9352, longitude: 77.6245 },
+    { id: 302, name: 'Whitefield', cityId: 3, latitude: 12.9698, longitude: 77.7499 },
+    { id: 303, name: 'Indiranagar', cityId: 3, latitude: 12.9716, longitude: 77.6412 },
+  ],
+};
+
+export const MOCK_PROPERTIES = [
+  {
+    id: 1,
+    title: '3 BHK Luxury Apartment',
+    listingType: 'SALE',
+    price: 12500000,
+    city: 'Mumbai',
+    locality: 'Andheri West',
+    bedrooms: 3,
+    bathrooms: 2,
+    furnishedStatus: 'FURNISHED',
+    primaryImageUrl: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00',
+    verified: true,
+    premium: true,
+    carpetArea: 1200,
+    description: 'Spacious 3BHK with modern amenities...',
+  },
+  {
+    id: 2,
+    title: '2 BHK Cozy Flat',
+    listingType: 'RENT',
+    price: 65000,
+    city: 'Mumbai',
+    locality: 'Bandra',
+    bedrooms: 2,
+    bathrooms: 2,
+    furnishedStatus: 'SEMI_FURNISHED',
+    primaryImageUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688',
+    verified: true,
+    premium: false,
+    carpetArea: 950,
+    description: 'Well-maintained apartment...',
+  },
+  {
+    id: 3,
+    title: '4 BHK Penthouse',
+    listingType: 'SALE',
+    price: 25000000,
+    city: 'Bangalore',
+    locality: 'Koramangala',
+    bedrooms: 4,
+    bathrooms: 3,
+    furnishedStatus: 'FURNISHED',
+    primaryImageUrl: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2',
+    verified: true,
+    premium: true,
+    carpetArea: 2500,
+    description: 'Luxurious penthouse...',
+  },
+];
+
+export const MOCK_USER = {
+  id: 1,
+  email: 'user@example.com',
+  phone: '+91 9876543210',
+  firstName: 'John',
+  lastName: 'Doe',
+  emailVerified: true,
+  phoneVerified: true,
+  roles: ['BUYER'],
+};
