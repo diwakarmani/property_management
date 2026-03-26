@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import { colors } from '@/theme';
 
 interface OptimizedImageProps {
@@ -21,33 +21,34 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
   return (
     <View style={[styles.container, style]}>
-      <FastImage
-        source={{
-          uri,
-          priority: FastImage.priority.normal,
-          cache: FastImage.cacheControl.immutable,
-        }}
-        style={[StyleSheet.absoluteFill, style]}
-        resizeMode={FastImage.resizeMode[resizeMode]}
+      <Image
+        source={{ uri }}
+        style={[StyleSheet.absoluteFillObject, style]}
+        contentFit={resizeMode} // equivalent to resizeMode
+        cachePolicy="memory-disk"
         onLoadStart={() => setLoading(true)}
-        onLoadEnd={() => setLoading(false)}
+        onLoad={() => setLoading(false)}
         onError={() => {
           setLoading(false);
           setError(true);
         }}
       />
+
       {loading && placeholder && (
         <View style={styles.placeholder}>
           <ActivityIndicator size="small" color={colors.primary} />
         </View>
       )}
+
       {error && <View style={styles.errorPlaceholder} />}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: colors.backgroundSecondary },
+  container: {
+    backgroundColor: colors.backgroundSecondary,
+  },
   placeholder: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',

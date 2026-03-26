@@ -8,14 +8,11 @@ import ViewMoreScreen from '@/screens/property/ViewMoreScreen';
 import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
 import SearchScreen from '@/screens/search/SearchScreen';
 import FavoritesScreen from '@/screens/favorites/FavoritesScreen';
-import ProfileScreen from '@/screens/profile/ProfileScreen';
-import EditProfileScreen from '@/screens/profile/EditProfileScreen';
-import NotificationsScreen from '@/screens/profile/NotificationsScreen';
 import { withLayout } from '@/utils/withLayout';
+import ProfileStackNavigator from './ProfileStackNavigator';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createStackNavigator();
-const ProfileStack = createStackNavigator();
 
 const HomeStackScreen = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
@@ -23,14 +20,6 @@ const HomeStackScreen = () => (
     <HomeStack.Screen name="ViewMore" component={withLayout(ViewMoreScreen)} />
     <HomeStack.Screen name="PropertyDetail" component={withLayout(PropertyDetailScreen)} />
   </HomeStack.Navigator>
-);
-
-const ProfileStackScreen = () => (
-  <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
-    <ProfileStack.Screen name="ProfileMain" component={withLayout(ProfileScreen)} />
-    <ProfileStack.Screen name="EditProfile" component={withLayout(EditProfileScreen)} />
-    <ProfileStack.Screen name="Notifications" component={withLayout(NotificationsScreen)} />
-  </ProfileStack.Navigator>
 );
 
 const MainTabNavigator = () => (
@@ -59,7 +48,7 @@ const MainTabNavigator = () => (
     <Tab.Screen name="Home" component={HomeStackScreen} />
     <Tab.Screen name="Search" component={withLayout(SearchScreen)} />
     <Tab.Screen name="Favorites" component={withLayout(FavoritesScreen)} />
-    <Tab.Screen name="Profile" component={ProfileStackScreen} />
+    <Tab.Screen name="Profile" component={ProfileStackNavigator} />
   </Tab.Navigator>
 );
 

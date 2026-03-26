@@ -6,6 +6,7 @@ import { colors, spacing } from '@/theme';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
 import type { RootState } from '@/store';
+import { UserService } from '@/api/services/user.service';
 
 const EditProfileScreen = ({ navigation }: any) => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -21,12 +22,16 @@ const EditProfileScreen = ({ navigation }: any) => {
 
   const onSubmit = async (data: any) => {
     setLoading(true);
-    // API call: PUT /api/users/me
-    setTimeout(() => {
+    try {
+      await UserService.updateMe(data);
       Alert.alert('Success', 'Profile updated successfully');
-      setLoading(false);
       navigation.goBack();
-    }, 1000);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || 'Failed to update profile';
+      Alert.alert('Error', message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,6 +65,7 @@ const EditProfileScreen = ({ navigation }: any) => {
     </ScrollView>
   );
 };
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   form: { padding: spacing.lg },

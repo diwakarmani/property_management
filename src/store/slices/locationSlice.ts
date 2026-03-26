@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { LocationService } from '@/api/services/location.service';
-import type { City, Locality } from '@/api/types/location.types';
+import type { City, Locality } from '@/api/types/location.type';
 import { set, get } from '@/utils/helpers/storage';
 
 interface LocationState {

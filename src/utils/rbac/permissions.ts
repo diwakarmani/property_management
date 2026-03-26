@@ -68,7 +68,7 @@ export const ROLE_PERMISSIONS = {
 
 export const hasPermission = (userRoles: string[], permission: string) => {
   return userRoles.some(role => 
-    ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS]?.includes(permission)
+    (ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] as readonly string[])?.includes(permission)
   );
 };
 

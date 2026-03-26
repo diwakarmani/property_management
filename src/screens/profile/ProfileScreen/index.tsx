@@ -43,8 +43,9 @@ const ProfileScreen = ({ navigation }: any) => {
 
       <View style={styles.section}>
         <MenuItem icon="create-outline" title="Edit Profile" onPress={() => navigation.navigate('EditProfile')} />
+        <MenuItem icon="lock-closed-outline" title="Change Password" onPress={() => navigation.navigate('ChangePassword')} />
+        <MenuItem icon="location-outline" title="My Addresses" onPress={() => navigation.navigate('Addresses')} />
         <MenuItem icon="notifications-outline" title="Notifications" onPress={() => navigation.navigate('Notifications')} />
-        <MenuItem icon="settings-outline" title="Settings" onPress={() => {}} />
         <MenuItem icon="help-circle-outline" title="Help & Support" onPress={() => {}} />
         <MenuItem icon="log-out-outline" title="Logout" onPress={handleLogout} color={colors.error} />
       </View>

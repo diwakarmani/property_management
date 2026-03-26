@@ -72,7 +72,7 @@ const HomeScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-   safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   section: { marginBottom: spacing.lg },
   sectionHeader: {
     flexDirection: 'row',

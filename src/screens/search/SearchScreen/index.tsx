@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,13 @@ import {
   StyleSheet,
   FlatList,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
-import { MOCK_PROPERTIES } from '@/utils/mockData';
+import { PropertyService } from '@/api/services/property.service';
+import type { PropertyDTO } from '@/api/types/property.types';
 import PropertyCard from '@/components/property/PropertyCard';
-import Header from '@/components/common/Header';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SearchScreen = ({ navigation }: any) => {
@@ -24,34 +25,29 @@ const SearchScreen = ({ navigation }: any) => {
     bhk: [] as number[],
     furnishing: '',
   });
-  const [results, setResults] = useState(MOCK_PROPERTIES);
+  const [results, setResults] = useState<PropertyDTO[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
 
-  const handleSearch = () => {
-    // API call: GET /api/properties with filters
-    let filtered = MOCK_PROPERTIES;
-
-    if (searchText) {
-      filtered = filtered.filter(p =>
-        p.title.toLowerCase().includes(searchText.toLowerCase()) ||
-        p.locality.toLowerCase().includes(searchText.toLowerCase())
-      );
-    }
-
-    if (filters.minPrice) {
-      filtered = filtered.filter(p => p.price >= parseInt(filters.minPrice));
-    }
-
-    if (filters.maxPrice) {
-      filtered = filtered.filter(p => p.price <= parseInt(filters.maxPrice));
-    }
-
-    if (filters.bhk.length > 0) {
-      filtered = filtered.filter(p => filters.bhk.includes(p.bedrooms));
-    }
-
-    setResults(filtered);
+  const handleSearch = useCallback(() => {
     setShowFilters(false);
-  };
+    setLoading(true);
+    setSearched(true);
+
+    const params: Record<string, any> = {};
+    if (searchText.trim()) params.city = searchText.trim();
+    if (filters.minPrice) params.minPrice = Number(filters.minPrice);
+    if (filters.maxPrice) params.maxPrice = Number(filters.maxPrice);
+    if (filters.bhk.length > 0) params.minBedrooms = Math.min(...filters.bhk);
+    if (filters.furnishing) params.furnishedStatus = filters.furnishing;
+    params.page = 0;
+    params.size = 20;
+
+    PropertyService.search(params)
+      .then(res => setResults(res.data.data?.content ?? []))
+      .catch(() => setResults([]))
+      .finally(() => setLoading(false));
+  }, [searchText, filters]);
 
   const toggleBHK = (bhk: number) => {
     setFilters(prev => ({
@@ -80,23 +76,33 @@ const SearchScreen = ({ navigation }: any) => {
       </View>
 
       {/* Results */}
-      <FlatList
-        data={results}
-        renderItem={({ item }) => (
-          <PropertyCard
-            property={item}
-            onPress={() => navigation.navigate('PropertyDetail', { id: item.id })}
-            style={styles.card}
-          />
-        )}
-        keyExtractor={item => item.id.toString()}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No properties found</Text>
-        }
-      />
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={results}
+          renderItem={({ item }) => (
+            <PropertyCard
+              property={item as any}
+              onPress={() => navigation.navigate('PropertyDetail', { id: item.id })}
+              style={styles.card}
+            />
+          )}
+          keyExtractor={item => item.id.toString()}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            searched ? (
+              <Text style={styles.emptyText}>No properties found</Text>
+            ) : (
+              <Text style={styles.emptyText}>Search by city, type or filter by price</Text>
+            )
+          }
+        />
+      )}
 
       {/* Filter Modal */}
       <Modal visible={showFilters} animationType="slide" transparent>
@@ -163,6 +169,7 @@ const SearchScreen = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
    safeArea: { flex: 1, backgroundColor: colors.background },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
   searchContainer: {
     flexDirection: 'row',
     padding: spacing.md,

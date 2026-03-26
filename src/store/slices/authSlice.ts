@@ -4,10 +4,11 @@ import { saveTokens, clearTokens } from '@/utils/helpers/storage';
 import type { LoginRequest, RegisterRequest, OtpSendRequest, OtpVerifyRequest } from '@/api/types/auth.types';
 
 interface User {
-  email: string;
-  firstName: string;
-  lastName: string;
-  roles: string[];
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+    roles: string[];
 }
 
 interface AuthState {
@@ -38,6 +39,18 @@ export const login = createAsyncThunk(
       return authData;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Login failed');
+    }
+  }
+);
+
+export const fetchUser = createAsyncThunk(
+  'auth/fetchUser',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await AuthService.getCurrentUser(); // GET /api/users/me
+      return response.data.data; // Returns user with roles
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch user');
     }
   }
 );
@@ -108,11 +121,12 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
-        state.user = {
+        state.user =  {
+          ...action.payload,
           email: action.payload.email,
           firstName: action.payload.firstName,
           lastName: action.payload.lastName,
-          roles: action.payload.roles,
+          roles: action.payload.roles  || ['BUYER'],
         };
       })
       .addCase(login.rejected, (state, action) => {

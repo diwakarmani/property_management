@@ -33,5 +33,7 @@ export const AuthService = {
 
   getCurrentUser: () =>
     axiosClient.get<ApiResponse<any>>(AUTH_ENDPOINTS.ME),
-  
+
+  verifyEmail: (token: string) =>
+    axiosClient.get<ApiResponse<void>>(`/api/auth/verify-email?token=${encodeURIComponent(token)}`),
 };

@@ -1,49 +1,52 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity, Linking, Share, SafeAreaView } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity, Linking, Share, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
-import { MOCK_PROPERTIES } from '@/utils/mockData';
-import Header from '@/components/common/Header';
+import { PropertyService } from '@/api/services/property.service';
+import { FavoriteService } from '@/api/services/favorite.service';
+import type { PropertyDTO } from '@/api/types/property.types';
 
 const PropertyDetailScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { id } = route.params as any;
-  const [property, setProperty] = useState<any>(null);
+  const [property, setProperty] = useState<PropertyDTO | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mock API call - replace with: await PropertyService.getById(id)
-    const mockProperty = MOCK_PROPERTIES.find(p => p.id === id) || {
-      ...MOCK_PROPERTIES[0],
-      id,
-      amenities: ['Swimming Pool', 'Gym', 'Parking', 'Security', 'Garden', 'Power Backup'],
-      ownerName: 'John Doe',
-      ownerPhone: '+91 98765 43210',
-      images: [
-        'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800',
-        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-      ],
-    };
-    setProperty(mockProperty);
+    PropertyService.getById(id)
+      .then(res => setProperty(res.data.data))
+      .catch(err => console.error('Failed to load property', err))
+      .finally(() => setLoading(false));
+    FavoriteService.checkFavorite(id)
+      .then(res => setIsFavorite(res.data.data ?? false))
+      .catch(() => {/* not authenticated or not a buyer — ignore */});
   }, [id]);
 
   const handleShare = async () => {
+    if (!property) return;
     await Share.share({ message: `Check out this property: ${property.title}` });
   };
 
   const handleContact = () => {
+    if (!property?.ownerPhone) return;
     Linking.openURL(`tel:${property.ownerPhone}`);
   };
 
   const toggleFavorite = () => {
-    // API call: POST/DELETE /api/favorites
-    setIsFavorite(!isFavorite);
+    if (favoriteLoading) return;
+    setFavoriteLoading(true);
+    const action = isFavorite
+      ? FavoriteService.removeFavorite(id)
+      : FavoriteService.addFavorite(id);
+    action
+      .then(() => setIsFavorite(prev => !prev))
+      .catch(() => {/* silently ignore — user may not be logged in */})
+      .finally(() => setFavoriteLoading(false));
   };
-
-  if (!property) return null;
 
   const formatPrice = (price: number) => {
     if (price >= 10000000) return `₹${(price / 10000000).toFixed(2)} Cr`;
@@ -51,9 +54,21 @@ const PropertyDetailScreen = () => {
     return `₹${price.toLocaleString('en-IN')}`;
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, styles.center]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!property) return null;
+
+  const imageUrls = property.images?.map(img => img.imageUrl) ?? (property.primaryImageUrl ? [property.primaryImageUrl] : []);
+  const amenityNames = property.amenities?.map(a => a.name) ?? [];
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -74,21 +89,21 @@ const PropertyDetailScreen = () => {
       </View>
 
       <ScrollView style={styles.container}>
-        {/* Image Gallery */}
-        <ScrollView horizontal pagingEnabled style={styles.imageGallery}>
-          {property.images?.map((img: string, idx: number) => (
-            <Image key={idx} source={{ uri: img }} style={styles.image} />
-          ))}
-        </ScrollView>
+        {imageUrls.length > 0 && (
+          <ScrollView horizontal pagingEnabled style={styles.imageGallery}>
+            {imageUrls.map((url, idx) => (
+              <Image key={idx} source={{ uri: url }} style={styles.image} />
+            ))}
+          </ScrollView>
+        )}
 
-        {/* Price & Title */}
         <View style={styles.content}>
           <View style={styles.priceRow}>
             <View>
               <Text style={styles.price}>{formatPrice(property.price)}</Text>
               {property.listingType === 'RENT' && <Text style={styles.priceSubtext}>/month</Text>}
             </View>
-            {property.verified && (
+            {property.isVerified && (
               <View style={styles.verifiedBadge}>
                 <Ionicons name="checkmark-circle" size={16} color={colors.success} />
                 <Text style={styles.badgeText}>Verified</Text>
@@ -105,68 +120,56 @@ const PropertyDetailScreen = () => {
             </Text>
           </View>
 
-          {/* Key Details */}
           <View style={styles.detailsGrid}>
-            <View style={styles.detailBox}>
-              <Ionicons name="bed-outline" size={24} color={colors.primary} />
-              <Text style={styles.detailLabel}>{property.bedrooms} Bedrooms</Text>
-            </View>
-            <View style={styles.detailBox}>
-              <Ionicons name="water-outline" size={24} color={colors.primary} />
-              <Text style={styles.detailLabel}>{property.bathrooms} Bathrooms</Text>
-            </View>
-            <View style={styles.detailBox}>
-              <Ionicons name="resize-outline" size={24} color={colors.primary} />
-              <Text style={styles.detailLabel}>{property.carpetArea} sqft</Text>
-            </View>
-            <View style={styles.detailBox}>
-              <Ionicons name="cube-outline" size={24} color={colors.primary} />
-              <Text style={styles.detailLabel}>{property.furnishedStatus}</Text>
-            </View>
+            {property.bedrooms != null && (
+              <View style={styles.detailBox}>
+                <Ionicons name="bed-outline" size={24} color={colors.primary} />
+                <Text style={styles.detailLabel}>{property.bedrooms} Bedrooms</Text>
+              </View>
+            )}
+            {property.bathrooms != null && (
+              <View style={styles.detailBox}>
+                <Ionicons name="water-outline" size={24} color={colors.primary} />
+                <Text style={styles.detailLabel}>{property.bathrooms} Bathrooms</Text>
+              </View>
+            )}
+            {property.carpetArea != null && (
+              <View style={styles.detailBox}>
+                <Ionicons name="resize-outline" size={24} color={colors.primary} />
+                <Text style={styles.detailLabel}>{property.carpetArea} sqft</Text>
+              </View>
+            )}
+            {property.furnishedStatus && (
+              <View style={styles.detailBox}>
+                <Ionicons name="cube-outline" size={24} color={colors.primary} />
+                <Text style={styles.detailLabel}>{property.furnishedStatus}</Text>
+              </View>
+            )}
           </View>
 
-          {/* Description */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{property.description}</Text>
-          </View>
+          {property.description && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Description</Text>
+              <Text style={styles.description}>{property.description}</Text>
+            </View>
+          )}
 
-          {/* Amenities */}
-          {property.amenities && (
+          {amenityNames.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Amenities</Text>
               <View style={styles.amenitiesGrid}>
-                {property.amenities.map((amenity: string, idx: number) => (
+                {amenityNames.map((name, idx) => (
                   <View key={idx} style={styles.amenityChip}>
                     <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-                    <Text style={styles.amenityText}>{amenity}</Text>
+                    <Text style={styles.amenityText}>{name}</Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
-
-          {/* Similar Properties */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Similar Properties</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {MOCK_PROPERTIES.slice(0, 3).map(p => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={styles.similarCard}
-                  onPress={() => navigation.push('PropertyDetail', { id: p.id })}
-                >
-                  <Image source={{ uri: p.primaryImageUrl }} style={styles.similarImage} />
-                  <Text style={styles.similarTitle} numberOfLines={1}>{p.title}</Text>
-                  <Text style={styles.similarPrice}>{formatPrice(p.price)}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
         </View>
       </ScrollView>
 
-      {/* Contact Button */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
           <Ionicons name="call" size={20} color={colors.white} />
@@ -178,7 +181,8 @@ const PropertyDetailScreen = () => {
 };
 
 const styles = StyleSheet.create({
-   safeArea: { flex: 1, backgroundColor: colors.white },
+  safeArea: { flex: 1, backgroundColor: colors.white },
+  center: { justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -211,12 +215,7 @@ const styles = StyleSheet.create({
   title: { fontSize: typography.fontSize.xl, fontWeight: '600', marginTop: spacing.sm },
   location: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm, gap: 4 },
   locationText: { fontSize: typography.fontSize.md, color: colors.textSecondary },
-  detailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: spacing.lg,
-    gap: spacing.md,
-  },
+  detailsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.lg, gap: spacing.md },
   detailBox: {
     width: '47%',
     backgroundColor: colors.backgroundSecondary,
@@ -240,26 +239,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   amenityText: { fontSize: typography.fontSize.sm, color: colors.text },
-  similarCard: {
-    width: 150,
-    marginRight: spacing.md,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: colors.backgroundSecondary,
-  },
-  similarImage: { width: '100%', height: 100 },
-  similarTitle: {
-    fontSize: typography.fontSize.sm,
-    padding: spacing.sm,
-    fontWeight: '500',
-  },
-  similarPrice: {
-    fontSize: typography.fontSize.sm,
-    color: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.sm,
-    fontWeight: '600',
-  },
   footer: {
     padding: spacing.md,
     borderTopWidth: 1,
@@ -275,11 +254,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: spacing.sm,
   },
-  contactButtonText: {
-    color: colors.white,
-    fontSize: typography.fontSize.md,
-    fontWeight: '600',
-  },
+  contactButtonText: { color: colors.white, fontSize: typography.fontSize.md, fontWeight: '600' },
 });
 
 export default PropertyDetailScreen;
