@@ -10,6 +10,8 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  icon?: React.ReactNode;
+  textStyle?: TextStyle;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -19,6 +21,8 @@ const Button: React.FC<ButtonProps> = ({
   loading = false,
   disabled = false,
   style,
+  icon,
+  textStyle
 }) => {
   return (
     variant === 'primary' ?
@@ -41,9 +45,12 @@ const Button: React.FC<ButtonProps> = ({
           {loading ? (
             <ActivityIndicator color={colors.white} />
           ) : (
-            <Text style={styles.text}>
+            <>
+            <Text style={[styles.text,textStyle]}>
               {children}
             </Text>
+            {icon}
+            </>
           )}
         </TouchableOpacity>
       </LinearGradient>
@@ -63,9 +70,12 @@ const Button: React.FC<ButtonProps> = ({
         {loading ? (
           <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.white} />
         ) : (
-          <Text style={[styles.text, variant === 'outline' && styles.outlineText]}>
+          <>
+          <Text style={[styles.text,textStyle, variant === 'outline' && styles.outlineText]}>
             {children}
           </Text>
+          {icon}
+          </>
         )}
       </TouchableOpacity>
 
@@ -89,7 +99,7 @@ const styles = StyleSheet.create({
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: colors.gray,
   },
   disabled: {
     opacity: 0.5,
@@ -100,7 +110,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
   },
   outlineText: {
-    color: colors.primary,
+    color: colors.text,
   },
 });
 

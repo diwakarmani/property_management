@@ -10,12 +10,12 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
-import { PhoneOutline } from '@solar-icons/react-native';
+import { PhoneOutline, UserOutline } from '@solar-icons/react-native';
 import { LockLinear } from '@solar-icons/react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useDispatch, useSelector } from 'react-redux';
-import { login, sendOtp, clearError } from '@/store/slices/authSlice';
+import { login, sendOtp, clearError, verifyOtp } from '@/store/slices/authSlice';
 import { loginSchema, otpSchema } from '@/utils/validation/authValidation';
 import { colors, typography, spacing } from '@/theme';
 import Button from '@/components/common/Button';
@@ -25,9 +25,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '@/navigation/types';
 import reactotron from 'ReactotronConfig.js';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {LinearGradient} from 'expo-linear-gradient';
+import { LinearGradient } from 'expo-linear-gradient';
 import GradientHeader from '@/components/common/GradientHeader';
 import { Ionicons } from '@expo/vector-icons';
+import OTPInput from '@/components/forms/OTPInput';
 type LoginScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
   'Login'
@@ -38,7 +39,7 @@ interface Props {
 }
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const [loginMode, setLoginMode] = useState<'phone' | 'email'>('phone');
+  const [loginMode, setLoginMode] = useState<'otp' | 'email'>('email');
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
   type FormData = {
@@ -46,13 +47,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     password?: string;
   };
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
-    resolver: yupResolver(loginMode === 'phone' ? loginSchema : otpSchema),
+    resolver: yupResolver(loginMode === 'email' ? loginSchema : otpSchema),
   });
+
 
   const onSubmit = async (data: any) => {
     dispatch(clearError());
-    
-    if (loginMode === 'phone') {
+
+    if (loginMode === 'email') {
       const result = await dispatch(login(data));
       if (login.fulfilled.match(result)) {
         // Navigation will be handled by App.tsx based on auth state
@@ -68,127 +70,131 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       }
     }
   };
-
+  const handleLoginWithOTP = () => {
+    setLoginMode('otp');
+  };
   return (
-     <View style={styles.safeArea}>
-      
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      
+    <View style={styles.safeArea}>
+
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+
         {/* Header Gradient Section */}
         <GradientHeader title="Welcome Back" subtitle="Sign in to continue" />
-<View style={styles.card}>
-      <View style={styles.toggleContainer}>
-        <TouchableOpacity
-          style={[
-            styles.toggleButton,
-            loginMode === 'phone' && styles.toggleButtonActive,
-          ]}
-          onPress={() => setLoginMode('phone')}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              loginMode === 'phone' && styles.toggleTextActive,
-            ]}
-          >
-            Phone
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.toggleButton,
-            loginMode === 'email' && styles.toggleButtonActive,
-          ]}
-          onPress={() => setLoginMode('email')}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              loginMode === 'email' && styles.toggleTextActive,
-            ]}
-          >
-            Email
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.form}>
-        <Controller
-          control={control}
-          name="identifier"
-          
-          render={({ field: { onChange, value } }) => (
-            <>
-            
-            <Input
-              label="Phone Number"
-              placeholder="+91 1234567890"
-              icon={
-              <PhoneOutline  size={20}  color={colors.textSecondary} />
-
-              }
-              maxLength={10}
-              value={value}
-              onChangeText={onChange}
-              error={errors.identifier?.message}
-              keyboardType="phone-pad"
-              autoCapitalize="none"
-            />
-            </>
-          )}
-        />
-
-        {loginMode === 'phone' && (
-          <>
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, value } }) => (
-                <Input
-                  label="Password"
-                  placeholder="********"
-                  value={value}
-                  onChangeText={onChange}
-                  error={errors.password?.message}
-                  secureTextEntry
-                  icon={<LockLinear  size={20}  color={colors.textSecondary} />}
-                />
-              )}
-            />
-<View style={styles.secondaryActionsContainer}>
-   <TouchableOpacity
-              onPress={() => console.log('Login with OTP Clicked')}
-              style={styles.forgotPassword}
+        <View style={styles.card}>
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                loginMode === 'otp' && styles.toggleButtonActive,
+              ]}
+              disabled={loading}
+              onPress={() => setLoginMode('otp')}
             >
-              <Text style={[styles.forgotPasswordText, {color:colors.linkText}]}>Login with OTP</Text>
+              <Text
+                style={[
+                  styles.toggleText,
+                  loginMode === 'otp' && styles.toggleTextActive,
+                ]}
+              >
+                OTP
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => navigation.navigate('ForgotPassword')}
-              style={styles.forgotPassword}
+              style={[
+                styles.toggleButton,
+                loginMode === 'email' && styles.toggleButtonActive,
+              ]}
+              disabled={loading}
+
+              onPress={() => setLoginMode('email')}
             >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              <Text
+                style={[
+                  styles.toggleText,
+                  loginMode === 'email' && styles.toggleTextActive,
+                ]}
+              >
+                Email
+              </Text>
             </TouchableOpacity>
+          </View>
+
+          <View style={styles.form}>
+            <Controller
+              control={control}
+              name="identifier"
+
+              render={({ field: { onChange, value } }) => (
+                <>
+                  <Input
+                    label="Email or Phone Number"
+                    placeholder="john.doe@company.com"
+                    icon={
+                      <UserOutline size={20} color={colors.textSecondary} />
+
+                    }
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.identifier?.message}
+
+                    autoCapitalize="none"
+                  />
+                </>
+              )}
+            />
+
+            {loginMode === 'email' && (
+              <>
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, value } }) => (
+                    <Input
+                      label="Password"
+                      placeholder="********"
+                      value={value}
+                      onChangeText={onChange}
+                      error={errors.password?.message}
+                      secureTextEntry
+                      icon={<LockLinear size={20} color={colors.textSecondary} />}
+                    />
+                  )}
+                />
+                <View style={styles.secondaryActionsContainer}>
+                  <TouchableOpacity
+                    onPress={() => handleLoginWithOTP()}
+                    style={styles.forgotPassword}
+                  >
+                    <Text style={[styles.forgotPasswordText, { color: colors.linkText }]}>Login with OTP</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('ForgotPassword')}
+                    style={styles.forgotPassword}
+                  >
+                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+
+            )}
+
+            <Button
+              onPress={handleSubmit(onSubmit)}
+              loading={loading}
+              style={styles.loginButton}
+            >
+              {loginMode === 'email' ? 'Sign In' : 'Send OTP'}
+            </Button>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                <Text style={styles.signupText}>Sign Up</Text>
+              </TouchableOpacity>
             </View>
-          </>
-        )}
-
-        <Button
-          onPress={handleSubmit(onSubmit)}
-          loading={loading}
-          style={styles.loginButton}
-        >
-          {loginMode === 'phone' ? 'Sign In' : 'Send OTP'}
-        </Button>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.signupText}>Sign Up</Text>
-          </TouchableOpacity>
+          </View>
         </View>
-      </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
     </View>
   );
 };
@@ -270,11 +276,11 @@ const styles = StyleSheet.create({
     color: colors.linkText,
     fontWeight: typography.fontWeight.bold,
   },
-   safeArea: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#F4F4F8',
   },
-  card:{
+  card: {
     backgroundColor: colors.white,
     marginHorizontal: spacing.lg,
     borderRadius: 16,
@@ -286,12 +292,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  secondaryActionsContainer:{
+  secondaryActionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-     marginBottom: spacing.lg,
+    marginBottom: spacing.lg,
   }
-  
+
 });
 
 export default LoginScreen;

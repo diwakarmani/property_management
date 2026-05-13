@@ -29,7 +29,7 @@ interface Props {
 }
 
 const OTPVerificationScreen: React.FC<Props> = ({ route }) => {
-  const { identifier } = route.params;
+  const { identifier } = route.params|| { identifier: 'phone' };
   const [timer, setTimer] = useState(60);
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);

@@ -20,8 +20,8 @@ const AuthNavigator = () => {
     >
       <Stack.Screen options={{ headerShown: false, headerStyle:{backgroundColor: colors.primary}, headerTitleStyle:{display:'none'} }} name="Login" component={LoginScreen}  />
       <Stack.Screen name="Register" component={RegisterScreen} />
-      <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen options={{ headerShown: true,  headerTitleStyle:{display:'none'}, headerBackTitle: 'Back' }} name="OTPVerification" component={OTPVerificationScreen} />
+      <Stack.Screen name="ForgotPassword" options={{ headerShown: true,  headerTitleStyle:{display:'none'}, headerBackTitle: 'Back' }} component={ForgotPasswordScreen} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
     </Stack.Navigator>

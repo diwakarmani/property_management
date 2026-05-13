@@ -3,6 +3,7 @@ const colors = {
   secondary:'#3562C3',
   linkText:'#467DF4',
   gray:'#D9D9D9',
+  lightGray:'#F5F4F4',
   background: '#FFFFFF',
   backgroundSecondary: '#F8F9FA',
   text: '#212529',
