@@ -7,6 +7,7 @@ import ForgotPasswordScreen from '@/screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '@/screens/auth/ResetPasswordScreen';
 import VerifyEmailScreen from '@/screens/auth/VerifyEmailScreen';
 import type { AuthStackParamList } from './types';
+import colors from '@/theme/colors';
 
 const Stack = createStackNavigator<AuthStackParamList>();
 
@@ -17,7 +18,7 @@ const AuthNavigator = () => {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen options={{ headerShown: false, headerStyle:{backgroundColor: colors.primary}, headerTitleStyle:{display:'none'} }} name="Login" component={LoginScreen}  />
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />

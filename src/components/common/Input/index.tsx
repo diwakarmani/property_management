@@ -7,19 +7,21 @@ import {
   TextInputProps,
   TouchableOpacity,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
   secureTextEntry?: boolean;
+  icon?:React.ReactNode;
 }
 
 const Input: React.FC<InputProps> = ({
   label,
   error,
   secureTextEntry,
+  icon,
   ...props
 }) => {
   const [isSecure, setIsSecure] = useState(secureTextEntry);
@@ -28,16 +30,20 @@ const Input: React.FC<InputProps> = ({
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
       <View style={styles.inputContainer}>
-        <TextInput
-          style={[
+        <View style={[
             styles.input,
             ...(error ? [styles.inputError] : []),
             ...(secureTextEntry ? [styles.inputWithIcon] : []),
-          ]}
+          ]}>
+            {icon}
+        <TextInput
+          style={styles.inputText}
           placeholderTextColor={colors.textSecondary}
           secureTextEntry={isSecure}
           {...props}
+          
         />
+        
         {secureTextEntry && (
           <TouchableOpacity
             style={styles.iconButton}
@@ -50,6 +56,7 @@ const Input: React.FC<InputProps> = ({
             />
           </TouchableOpacity>
         )}
+        </View>
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
@@ -75,9 +82,14 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.gray,
+  },
+  inputText:{
     fontSize: typography.fontSize.md,
     color: colors.text,
-    backgroundColor: colors.white,
   },
   inputWithIcon: {
     paddingRight: 50,

@@ -1,5 +1,8 @@
 const colors = {
-  primary: '#6C5CE7',
+  primary: '#9C29E4',
+  secondary:'#3562C3',
+  linkText:'#467DF4',
+  gray:'#D9D9D9',
   background: '#FFFFFF',
   backgroundSecondary: '#F8F9FA',
   text: '#212529',

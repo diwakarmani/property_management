@@ -33,6 +33,7 @@ export const login = createAsyncThunk(
   'auth/login',
   async (data: LoginRequest, { rejectWithValue }) => {
     try {
+
       const response = await AuthService.login(data);
       const authData = response.data.data;
       await saveTokens(authData.accessToken, authData.refreshToken);
@@ -60,6 +61,7 @@ export const register = createAsyncThunk(
   async (data: RegisterRequest, { rejectWithValue }) => {
     try {
       const response = await AuthService.register(data);
+       
       const authData = response.data.data;
       await saveTokens(authData.accessToken, authData.refreshToken);
       return authData;

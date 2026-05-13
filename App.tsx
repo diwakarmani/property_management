@@ -1,3 +1,6 @@
+if (__DEV__) {
+  require("./ReactotronConfig");
+}
 import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider, useDispatch } from 'react-redux';
