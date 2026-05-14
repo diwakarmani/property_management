@@ -7,6 +7,7 @@ import type {
   OtpVerifyRequest,
   AuthResponse,
   ApiResponse,
+  AuthRegisterResponse,
 } from '../types/auth.types';
 
 export const AuthService = {
@@ -14,7 +15,7 @@ export const AuthService = {
     axiosClient.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.LOGIN, data),
 
   register: (data: RegisterRequest) =>
-    axiosClient.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.REGISTER, data),
+    axiosClient.post<ApiResponse<AuthRegisterResponse>>(AUTH_ENDPOINTS.REGISTER, data),
 
   sendOtp: (data: OtpSendRequest) =>
     axiosClient.post<ApiResponse<{ expiresIn: number }>>(AUTH_ENDPOINTS.OTP_SEND, data),

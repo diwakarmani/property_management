@@ -28,8 +28,8 @@ interface Props {
   route: OTPScreenRouteProp;
 }
 
-const OTPVerificationScreen: React.FC<Props> = ({ route }) => {
-  const { identifier } = route.params|| { identifier: 'phone' };
+const OTPVerificationScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { identifier } = route.params || { identifier: 'phone' };
   const [timer, setTimer] = useState(60);
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
@@ -45,15 +45,21 @@ const OTPVerificationScreen: React.FC<Props> = ({ route }) => {
   const handleOTPComplete = async (otp: string) => {
     dispatch(clearError());
     const result = await dispatch(verifyOtp({ identifier, otpCode: otp }));
-    
+
     if (!verifyOtp.fulfilled.match(result)) {
       Alert.alert('Error', error || 'Invalid OTP');
+      navigation.goBack()
+
     }
+    else {
+      navigation.navigate('Login')
+    }
+
   };
 
   const handleResend = async () => {
     if (timer > 0) return;
-    
+
     const result = await dispatch(sendOtp({ identifier }));
     if (sendOtp.fulfilled.match(result)) {
       setTimer(60);

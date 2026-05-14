@@ -8,7 +8,7 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
-  phone?: string;
+  phone: string;
 }
 
 export interface OtpSendRequest {
@@ -29,6 +29,9 @@ export interface AuthResponse {
   firstName: string;
   lastName: string;
   roles: string[];
+}
+export interface AuthRegisterResponse {
+  email: string;
 }
 
 export interface ApiResponse<T> {

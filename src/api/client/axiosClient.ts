@@ -2,6 +2,7 @@ import axios from 'axios';
 import { ENV } from '@/config/env';
 import { getAccessToken, saveTokens, clearTokens } from '@/utils/helpers/storage';
 import { toast } from '@/utils/toast';
+import { ApiResponse, AuthResponse } from '../types/auth.types';
 
 const axiosClient = axios.create({
   baseURL: ENV.API_URL,
@@ -37,7 +38,6 @@ axiosClient.interceptors.response.use(
     }
 
     const message = response.data?.message || 'Something went wrong';
-
     const originalRequest = error.config;
 
     const isAuthRoute = originalRequest?.url?.startsWith('/api/auth/');

@@ -63,9 +63,11 @@ export const register = createAsyncThunk(
       const response = await AuthService.register(data);
        
       const authData = response.data.data;
-      await saveTokens(authData.accessToken, authData.refreshToken);
+      console.log(authData)
+      // await saveTokens(authData.accessToken, authData.refreshToken);
       return authData;
     } catch (error: any) {
+      console.log("Error in slice",error)
       return rejectWithValue(error.response?.data?.message || 'Registration failed');
     }
   }
@@ -107,6 +109,7 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+      console.log("reached here")
     },
     resetOtpState: (state) => {
       state.otpSent = false;
@@ -142,13 +145,6 @@ const authSlice = createSlice({
       })
       .addCase(register.fulfilled, (state, action) => {
         state.loading = false;
-        state.isAuthenticated = true;
-        state.user = {
-          email: action.payload.email,
-          firstName: action.payload.firstName,
-          lastName: action.payload.lastName,
-          roles: action.payload.roles,
-        };
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;

@@ -26,6 +26,13 @@ const Button: React.FC<ButtonProps> = ({
 }) => {
   return (
     variant === 'primary' ?
+      <TouchableOpacity
+          onPress={onPress}
+          disabled={disabled || loading}
+
+          activeOpacity={0.7}
+          style={{width:'100%'}}
+        >
       <LinearGradient
         colors={[colors.secondary, colors.primary]}
         start={{ x: 0, y: 0.5 }}
@@ -35,13 +42,9 @@ const Button: React.FC<ButtonProps> = ({
           variant === 'primary' && styles.primary,
           (disabled || loading) && styles.disabled,
           style,
-        ]}>
-        <TouchableOpacity
-          onPress={onPress}
-          disabled={disabled || loading}
-
-          activeOpacity={0.7}
+        ]}
         >
+        
           {loading ? (
             <ActivityIndicator color={colors.white} />
           ) : (
@@ -52,8 +55,9 @@ const Button: React.FC<ButtonProps> = ({
             {icon}
             </>
           )}
-        </TouchableOpacity>
       </LinearGradient>
+        </TouchableOpacity>
+
       :
       <TouchableOpacity
         onPress={onPress}

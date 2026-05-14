@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, FieldErrors } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useDispatch, useSelector } from 'react-redux';
-import { register as registerUser, clearError } from '@/store/slices/authSlice';
-import { registerSchema } from '@/utils/validation/authValidation';
+import { register as registerUser, clearError, sendOtp } from '@/store/slices/authSlice';
+import { agencyDetailsSchema, registerSchema } from '@/utils/validation/authValidation';
 import { colors, typography, spacing } from '@/theme';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
@@ -19,12 +19,13 @@ import type { AppDispatch, RootState } from '@/store';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '@/navigation/types';
 import GradientHeader from '@/components/common/GradientHeader';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import DocumentPickerInput from '@/components/common/DocumentPicker';
 
 const roles = [
   { label: 'Buyer/Renter', value: 'buyer', description: 'I want to find proper properties' },
   { label: 'Seller/Owner', value: 'owner', description: 'I want to list properties' },
-  { label: 'Realtor/Agent', value: 'landlord', description: 'Manage clients and listing' },
+  { label: 'Realtor/Agent', value: 'group_admin', description: 'Manage clients and listing' },
 ]
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -34,22 +35,48 @@ type RegisterScreenNavigationProp = NativeStackNavigationProp<
 interface Props {
   navigation: RegisterScreenNavigationProp;
 }
-type RoleType = 'buyer' | 'seller' | 'landlord';
-type StageType = 'chooseRole' | 'form' | 'otp';
+type RoleType = 'buyer' | 'seller' | 'group_admin';
+type StageType = 'chooseRole' | 'form' | 'otp' | 'agency_form';
 type RegisterationFormProps = {
+  watch: any,
   control: any;
   handleSubmit: any;
   formState: {
-    errors: any;
+    errors: FieldErrors<{ phone: string | undefined; firstName: string; lastName: string; email: string; password: string; }>;
   };
   loading: boolean;
   onSubmit: any;
   navigation: RegisterScreenNavigationProp;
-  setStage:(stage:StageType)=>void
+  setStage: (stage: StageType) => void
+  role: RoleType
+}
+type AgencyFormProps = {
+  control: any;
+  handleSubmit: any;
+  formState: {
+    errors: FieldErrors<{ agencyName: string; licenseNumber: string; experience: number; certificationDocument: any }>;
+  };
+  loading: boolean;
+  onSubmit: any;
+  navigation: RegisterScreenNavigationProp;
+  setStage: (stage: StageType) => void
 }
 type StageProcessorProps = {
   stage: StageType;
-  setStage: React.Dispatch<React.SetStateAction<StageType>>;
+  selectedRole: RoleType;
+}
+type OTPIdentifierSelectProps = {
+  role: RoleType,
+  setStage: (stage: StageType) => void,
+  loading: boolean,
+  navigation: RegisterScreenNavigationProp
+  data: {
+    email: string;
+    phoneNumber: string
+  },
+  handleSendOTP: (data: {
+    identifier: string
+  }) => void
 }
 type RoleFormProps = {
   selectedRole: RoleType;
@@ -71,7 +98,7 @@ const RoleForm: React.FC<RoleFormProps> = ({ selectedRole, setSelectedRole, setS
     </>
   )
 }
-const RegisterationForm = ({ control, handleSubmit, formState: { errors }, loading, onSubmit, navigation,setStage }: RegisterationFormProps) => {
+const RegisterationForm = ({ watch, control, handleSubmit, formState: { errors }, loading, onSubmit, navigation, setStage, role }: RegisterationFormProps) => {
 
   return (
 
@@ -86,7 +113,7 @@ const RegisterationForm = ({ control, handleSubmit, formState: { errors }, loadi
             value={value}
             onChangeText={onChange}
             error={errors.firstName?.message}
-            icon={<MaterialIcons name='person' color={colors.textSecondary} size={20}/>}
+            icon={<MaterialIcons name='person' color={colors.textSecondary} size={20} />}
           />
         )}
       />
@@ -101,7 +128,7 @@ const RegisterationForm = ({ control, handleSubmit, formState: { errors }, loadi
             value={value}
             onChangeText={onChange}
             error={errors.lastName?.message}
-            icon={<MaterialIcons name='person' color={colors.textSecondary} size={20}/>}
+            icon={<MaterialIcons name='person' color={colors.textSecondary} size={20} />}
 
           />
         )}
@@ -119,7 +146,7 @@ const RegisterationForm = ({ control, handleSubmit, formState: { errors }, loadi
             error={errors.email?.message}
             keyboardType="email-address"
             autoCapitalize="none"
-            icon={<MaterialIcons name='mail' color={colors.textSecondary} size={20}/>}
+            icon={<MaterialIcons name='mail' color={colors.textSecondary} size={20} />}
 
           />
         )}
@@ -130,13 +157,14 @@ const RegisterationForm = ({ control, handleSubmit, formState: { errors }, loadi
         name="phone"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Phone (Optional)"
+            label="Phone"
             placeholder="Enter phone number"
             value={value}
+            maxLength={10}
             onChangeText={onChange}
             error={errors.phone?.message}
             keyboardType="phone-pad"
-            icon={<MaterialIcons name='call' color={colors.textSecondary} size={20}/>}
+            icon={<MaterialIcons name='call' color={colors.textSecondary} size={20} />}
 
           />
         )}
@@ -153,36 +181,35 @@ const RegisterationForm = ({ control, handleSubmit, formState: { errors }, loadi
             onChangeText={onChange}
             error={errors.password?.message}
             secureTextEntry
-            icon={<MaterialIcons name='lock' color={colors.textSecondary} size={20}/>}
+            icon={<MaterialIcons name='lock' color={colors.textSecondary} size={20} />}
 
           />
         )}
       />
-<View style={styles.buttonContainer}>
-  <Button
-        onPress={()=>setStage('chooseRole')}
-        loading={loading}
-        style={styles.registerButton}
-        variant='outline'
-        textStyle={styles.buttonText}
-      >
-        Back
-      </Button>
-      <Button
-        onPress={()=>setStage('otp')}
-        loading={loading}
-        style={styles.registerButton}
-        textStyle={styles.buttonText}
+      <View style={styles.buttonContainer}>
+        <Button
+          onPress={() => setStage('chooseRole')}
+          style={styles.registerButton}
+          variant='outline'
+          textStyle={styles.buttonText}
+        >
+          Back
+        </Button>
+        <Button
+          onPress={handleSubmit(onSubmit)}
+          loading={loading}
+          style={styles.registerButton}
+          textStyle={styles.buttonText}
 
-      >
-        Next
-      </Button>
-</View>
+        >
+          Next
+        </Button>
+      </View>
 
     </View>
   )
 }
-const RolesCardList: React.FC<{ onSelectRole: (role: any) => void, selectedRole: 'buyer' | 'seller' | 'landlord' }> = ({ onSelectRole, selectedRole }) => {
+const RolesCardList: React.FC<{ onSelectRole: (role: any) => void, selectedRole: 'buyer' | 'seller' | 'group_admin' }> = ({ onSelectRole, selectedRole }) => {
   return (
     roles.map(role => (
       <TouchableOpacity key={role.value} style={styles.roleCard} onPress={() => onSelectRole(role.value)} activeOpacity={0.8}>
@@ -196,62 +223,216 @@ const RolesCardList: React.FC<{ onSelectRole: (role: any) => void, selectedRole:
     ))
   );
 }
-const StageProcessor = ({ stage, setStage }: StageProcessorProps) => {
+const AgencyForm = ({ control, handleSubmit, formState: { errors }, loading, onSubmit, navigation, setStage }: AgencyFormProps) => {
+  return (
+    <View style={styles.form}>
+      <Controller
+        control={control}
+        name="firstName"
+        render={({ field: { onChange, value } }) => (
+          <Input
+            label="Agency Name"
+            placeholder="Prime Group"
+            value={value}
+            onChangeText={onChange}
+            error={errors.agencyName?.message}
+            icon={<MaterialIcons name='business-center' color={colors.textSecondary} size={20} />}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="licenseNumber"
+        render={({ field: { onChange, value } }) => (
+          <Input
+            label="License Number"
+            placeholder="Enter license number"
+            value={value}
+            onChangeText={onChange}
+            error={errors.licenseNumber?.message}
+            icon={<FontAwesome name='drivers-license-o' color={colors.textSecondary} size={20} />}
+
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="experience"
+        render={({ field: { onChange, value } }) => (
+          <Input
+            label="Years of Experience"
+            placeholder="Enter experience"
+            value={value}
+            onChangeText={onChange}
+            error={errors.experience?.message}
+            keyboardType='numeric'
+            autoCapitalize="none"
+            icon={<FontAwesome name='calendar' color={colors.textSecondary} size={20} />}
+
+          />
+        )}
+      />
+
+
+
+      <DocumentPickerInput
+        label='Upload Certification'
+        control={control}
+        errors={errors}
+      />
+      <View style={styles.buttonContainer}>
+        <Button
+          onPress={() => setStage('chooseRole')}
+          style={styles.registerButton}
+          variant='outline'
+          textStyle={styles.buttonText}
+        >
+          Back
+        </Button>
+        <Button
+          onPress={() => setStage('otp')}
+          loading={loading}
+          style={styles.registerButton}
+          textStyle={styles.buttonText}
+
+        >
+          Next
+        </Button>
+      </View>
+
+    </View>
+  );
+}
+const StageProcessor = ({ stage, selectedRole }: StageProcessorProps) => {
   const stages: { id: StageType; label: string; number: number }[] = [
     { id: 'chooseRole', label: 'Choose Your Role', number: 1 },
     { id: 'form', label: 'Enter your details', number: 2 },
     { id: 'otp', label: '', number: 3 },
   ];
 
-  const getStageIndex = (stageId: string) => stages.findIndex(s => s.id === stageId);
+  const agencyStages: { id: StageType; label: string; number: number }[] = [
+    { id: 'chooseRole', label: 'Choose Your Role', number: 1 },
+    { id: 'form', label: 'Enter your details', number: 2 },
+    { id: 'agency_form', label: 'Enter Agency Details', number: 3 },
+    { id: 'otp', label: '', number: 4 },
+  ];
+
+  const getStageIndex = (stageId: string) => selectedRole === 'group_admin' ? agencyStages.findIndex(s => s.id === stageId) : stages.findIndex(s => s.id === stageId);
   const currentStageIndex = getStageIndex(stage);
 
   return (
     <View style={{ marginBottom: spacing.lg, flexDirection: 'column', alignItems: 'center', gap: 20 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-        {stages.map((s, index) => (
-          <View key={s.id} style={{ alignItems: 'center', flexDirection: 'row' }}>
-            {/* Stage Circle */}
-            <View
-              style={[
-                styles.stageCircle,
-                currentStageIndex >= index && styles.stageCircleActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.stageNumber,
-                  currentStageIndex >= index && styles.stageNumberActive,
-                ]}
-              >
-                {s.number}
-              </Text>
-            </View>
+        {
+          (() => {
+            const renderStages = selectedRole === 'group_admin' ? agencyStages : stages;
 
-            {/* Connector Line (between circles) */}
-            {index < stages.length - 1 && (
-              <View
-                style={[
-                  styles.connectorLine,
-                  currentStageIndex > index && styles.connectorLineActive,
-                ]}
-              />
-            )}
-          </View>
-        ))}
+            return renderStages.map((s, index) => (
+              <View key={s.id} style={{ alignItems: 'center', flexDirection: 'row' }}>
+                {/* Stage Circle */}
+                <View
+                  style={[
+                    styles.stageCircle,
+                    currentStageIndex >= index && styles.stageCircleActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.stageNumber,
+                      currentStageIndex >= index && styles.stageNumberActive,
+                    ]}
+                  >
+                    {s.number}
+                  </Text>
+                </View>
+
+                {/* Connector Line (between circles) */}
+                {index < renderStages.length - 1 && (
+                  <View
+                    style={[
+                      styles.connectorLine,
+                      currentStageIndex > index && styles.connectorLineActive,
+                    ]}
+                  />
+                )}
+              </View>
+            ));
+          })()
+        }
+
       </View>
-      <Text style={styles.stageLabel}>{stages[currentStageIndex]?.label}</Text>
+      <Text style={styles.stageLabel}>{selectedRole === 'group_admin' ? agencyStages[currentStageIndex]?.label : stages[currentStageIndex]?.label}</Text>
 
     </View>
   );
 };
+const OTPIdentifierSelect = ({ role, setStage, loading, data, handleSendOTP }: OTPIdentifierSelectProps) => {
+  const [activeOption, setActiveOption] = useState<'phone' | 'email'>('email')
+  return (
+    <>
+      <View style={styles.otpSelectTopContainer}>
+        <View style={styles.verifyIconContainer}>
+          <View style={styles.verifyIconInnerContainer} >
+            <MaterialIcons name='check' color={colors.white} size={20} />
+          </View>
+        </View>
+        <Text>Verify Your Details</Text>
+        <Text style={{ color: colors.textSecondary, fontSize: typography.fontSize.xs }}>Where would you like to recieve the OTP?</Text>
+      </View>
+      <View style={styles.otpOptionSelectContainer}>
+
+        <TouchableOpacity style={[styles.otpOptionSelect, activeOption === 'email' && styles.otpActiveOptionSelect]} onPress={() => setActiveOption('email')}>
+          <View style={[styles.verifyIconContainer, { backgroundColor: colors.lightGray, borderColor: colors.darkGray, borderWidth: 1 }]}><MaterialIcons name='email' color={colors.darkGray} size={20} /></View>
+          <Text>On your registered email address</Text>
+          <View><MaterialIcons name='chevron-right' color={colors.darkGray} size={20} /></View>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.otpOptionSelect, activeOption === 'phone' && styles.otpActiveOptionSelect]} onPress={() => setActiveOption('phone')}>
+          <View style={[styles.verifyIconContainer, { backgroundColor: colors.lightGray, borderColor: colors.darkGray, borderWidth: 1 }]}><MaterialIcons name='call' color={colors.darkGray} size={20} /></View>
+          <Text>On your registered phone number</Text>
+          <View><MaterialIcons name='chevron-right' color={colors.darkGray} size={20} /></View>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.buttonContainer}>
+        <Button
+          onPress={() => role === 'group_admin' ? setStage('agency_form') : setStage('form')}
+          style={styles.registerButton}
+          variant='outline'
+          textStyle={styles.buttonText}
+        >
+          Back
+        </Button>
+        <Button style={styles.registerButton} loading={loading} onPress={() => handleSendOTP({ identifier: activeOption === 'phone' ? data.phoneNumber : data.email })}>
+          Verify
+        </Button>
+      </View>
+    </>
+  )
+}
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
   const [stage, setStage] = React.useState<StageType>('chooseRole');
   const [selectedRole, setSelectedRole] = React.useState<RoleType>('buyer');
-  const { control, handleSubmit, formState: { errors } } = useForm({
+  // First form
+  const {
+    control: registerControl,
+    watch,
+    handleSubmit: handleRegisterSubmit,
+    formState: { errors: registerErrors },
+  } = useForm({
     resolver: yupResolver(registerSchema),
+  });
+
+  // Second form
+  const {
+    control: agencyControl,
+    handleSubmit: handleAgencySubmit,
+    formState: { errors: agencyErrors },
+  } = useForm({
+    resolver: yupResolver(agencyDetailsSchema),
   });
 
   const onSubmit = async (data: any) => {
@@ -259,29 +440,43 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     const result = await dispatch(registerUser(data));
 
     if (registerUser.fulfilled.match(result)) {
-      // Navigation handled by App.tsx
+      selectedRole==='group_admin'?setStage('agency_form'):setStage('otp')
     } else {
-      Alert.alert('Error', error || 'Registration failed');
+      const errorMessage =
+        (result.payload as string) || // if rejectWithValue(...) was used
+        result.error?.message ||      // default Redux Toolkit error
+        'Registration failed';
+
+      console.log('error', errorMessage);
+      Alert.alert('Error', errorMessage);
     }
   };
-
+  const handleSendOTP = async (data: { identifier: string }) => {
+    const result = await dispatch(sendOtp({ identifier: data.identifier }));
+    if (sendOtp.fulfilled.match(result)) {
+      navigation.navigate('OTPVerification', { identifier: data.identifier });
+    } else {
+      Alert.alert('Error', error || 'Failed to send OTP');
+    }
+  }
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <GradientHeader title='Create Account' subtitle='Join Company today' />
       <View style={styles.card}>
-        <StageProcessor stage={stage} setStage={setStage} />
+        <StageProcessor stage={stage} selectedRole={selectedRole} />
         {stage === 'chooseRole' &&
           <RoleForm selectedRole={selectedRole} setSelectedRole={setSelectedRole} setStage={setStage} loading={loading} />}
 
 
         {stage === 'form' && (
-          <RegisterationForm setStage={setStage} control={control} handleSubmit={handleSubmit} formState={{ errors }} loading={loading} onSubmit={onSubmit} navigation={navigation} />
+          <RegisterationForm watch={watch} setStage={setStage} control={registerControl} handleSubmit={handleRegisterSubmit} formState={{ errors: registerErrors }} loading={loading} onSubmit={onSubmit} navigation={navigation} role={selectedRole} />
         )}
-
+        {selectedRole === 'group_admin' && stage === 'agency_form' && <AgencyForm setStage={setStage} control={agencyControl} handleSubmit={handleAgencySubmit} formState={{ errors: agencyErrors }} loading={loading} onSubmit={onSubmit} navigation={navigation} />}
+        {stage == 'otp' && <OTPIdentifierSelect role={selectedRole} setStage={setStage} loading={loading} handleSendOTP={handleSendOTP} navigation={navigation} data={{ email: watch('email'), phoneNumber: watch('phone') }} />}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account? </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.signupText}>Login</Text>
+            <Text style={styles.signupText}>Sign in</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -318,7 +513,7 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     marginTop: spacing.lg,
-    width:'50%'
+    width: '50%',
   },
   footer: {
     flexDirection: 'row',
@@ -339,7 +534,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     borderRadius: 16,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     marginTop: -40,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 7 },
@@ -427,8 +622,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: spacing.lg,
     justifyContent: 'space-between',
-    gap:10
+    gap: 10
   },
+  otpSelectTopContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 4
+  },
+  verifyIconContainer:
+  {
+    backgroundColor: colors.successLight,
+    borderRadius: 50, height: 50, width: 50, justifyContent: 'center', alignItems: 'center'
+  },
+  verifyIconInnerContainer: {
+    backgroundColor: colors.success, borderRadius: 50, width: 25, height: 25, justifyContent: 'center', alignItems: 'center'
+  },
+  otpOptionSelect: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    flexDirection: 'row',
+    paddingVertical: 15,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    gap: 5,
+  },
+  otpOptionSelectContainer: {
+    gap: 20,
+    marginTop: 50,
+    marginBottom: 20
+  },
+  otpActiveOptionSelect: {
+    backgroundColor: colors.linkLight,
+    borderColor: colors.linkText
+  }
 });
 
 export default RegisterScreen;

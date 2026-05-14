@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.gray,
+    backgroundColor: colors.lightGray,
   },
   inputText:{
     fontSize: typography.fontSize.md,
