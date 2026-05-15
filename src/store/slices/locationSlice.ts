@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { LocationService } from '@/api/services/location.service';
 import type { City, Locality } from '@/api/types/location.type';
 import { set, get } from '@/utils/helpers/storage';
+import { MOCK_CITIES } from '@/utils/mockData';
 
 interface LocationState {
   hasSelected: boolean;
@@ -33,6 +34,8 @@ const initialState: LocationState = {
 export const fetchCities = createAsyncThunk(
   'location/fetchCities',
   async (_, { rejectWithValue }) => {
+    if (process.env.EXPO_PUBLIC_HAS_MOCK_DATA) return MOCK_CITIES;
+
     try {
       const response = await LocationService.getCities();
       return response.data.data;
@@ -162,10 +165,10 @@ const locationSlice = createSlice({
        */
       .addCase(loadSavedLocation.fulfilled, (state, action) => {
         const saved = action.payload;
-
         if (saved) {
           state.hasSelected = true;
           state.selectedCity = saved.city;
+
           state.selectedLocality = saved.locality;
           state.coordinates = saved.coordinates;
         }

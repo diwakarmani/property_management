@@ -34,7 +34,7 @@ const MainTabNavigator = () => (
         else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
         return <Ionicons name={iconName} size={size} color={color} />;
       },
-      tabBarActiveTintColor: colors.primary,
+      tabBarActiveTintColor: colors.secondary,
       tabBarInactiveTintColor: colors.textSecondary,
       tabBarStyle: {
         borderTopWidth: 1,

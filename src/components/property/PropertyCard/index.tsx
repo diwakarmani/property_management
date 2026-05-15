@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   ViewStyle,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import type { PropertyCardDTO } from '@/api/types/discovery.types';
 import OptimizedImage from '@/components/common/OptimizedImage';
@@ -35,8 +35,11 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style })
     >
       {/* Image */}
       <View style={styles.imageContainer}>
-         <OptimizedImage uri={property.primaryImageUrl} style={styles.image} />
-        
+        <OptimizedImage uri={property.primaryImageUrl} style={styles.image} />
+        {/* Listing Type */}
+        <View style={styles.listingTypeBadge}>
+          <Text style={styles.listingTypeText}>{property.listingType}</Text>
+        </View>
         {/* Badges */}
         <View style={styles.badges}>
           {property.verified && (
@@ -53,25 +56,26 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style })
           )}
         </View>
 
-        {/* Listing Type */}
-        <View style={styles.listingTypeBadge}>
-          <Text style={styles.listingTypeText}>{property.listingType}</Text>
-        </View>
+
       </View>
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.price}>{formatPrice(property.price)}</Text>
-        {property.listingType === 'RENT' && (
-          <Text style={styles.priceSubtext}>/month</Text>
-        )}
+        <View style={styles.cardHeaderContainer}>
+          <Text style={styles.price}>{formatPrice(property.price)}  {property.listingType === 'RENT' && (
+            <Text style={styles.priceSubtext}>/month</Text>
+          )}</Text>
+          <TouchableOpacity style={styles.saveButton}><MaterialIcons name='bookmark-outline' color={colors.white} size={20} /></TouchableOpacity>
+
+        </View>
+
 
         <Text style={styles.title} numberOfLines={2}>
           {property.title}
         </Text>
 
         <View style={styles.location}>
-          <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+          <Ionicons name="location-outline" size={14} color={colors.text} />
           <Text style={styles.locationText} numberOfLines={1}>
             {property.locality}, {property.city}
           </Text>
@@ -84,7 +88,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style })
               <Text style={styles.detailText}>{property.bedrooms} BHK</Text>
             </View>
           )}
-          
+
           <View style={styles.detailItem}>
             <Ionicons name="cube-outline" size={16} color={colors.textSecondary} />
             <Text style={styles.detailText}>{property.furnishedStatus}</Text>
@@ -108,26 +112,33 @@ const styles = StyleSheet.create({
   container: {
     width: 280,
     backgroundColor: colors.white,
-    borderRadius: 12,
-    overflow: 'hidden',
+    borderRadius: 20,
+    borderWidth: 1,
     elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 1, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 3,
+    borderColor: 'transparent',
+    marginVertical: 6
   },
   imageContainer: {
     position: 'relative',
     height: 180,
+
+
   },
   image: {
     width: '100%',
     height: '100%',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'transparent'
   },
   badges: {
     position: 'absolute',
     top: spacing.sm,
-    left: spacing.sm,
+    right: spacing.sm,
     flexDirection: 'row',
     gap: spacing.xs,
   },
@@ -157,24 +168,26 @@ const styles = StyleSheet.create({
   listingTypeBadge: {
     position: 'absolute',
     top: spacing.sm,
-    right: spacing.sm,
-    backgroundColor: colors.overlay,
-    paddingHorizontal: spacing.sm,
+    left: spacing.sm,
+    backgroundColor: colors.overlayLight,
+    paddingHorizontal: spacing.md,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 10,
   },
   listingTypeText: {
     color: colors.white,
-    fontSize: 10,
+    fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
   },
   content: {
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
   },
   price: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.text,
+    color: colors.secondary,
   },
   priceSubtext: {
     fontSize: typography.fontSize.sm,
@@ -182,7 +195,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   title: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.medium,
     color: colors.text,
     marginTop: spacing.xs,
@@ -196,7 +209,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: colors.text,
     flex: 1,
   },
   details: {
@@ -209,15 +222,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    borderRadius: 50,
+    borderColor: colors.borderDark,
+    borderWidth: 1,
+    padding: 4
   },
   detailText: {
-    fontSize: typography.fontSize.sm,
+    fontSize: typography.fontSize.xs,
     color: colors.textSecondary,
   },
   distance: {
     color: colors.primary,
     fontWeight: typography.fontWeight.medium,
   },
+  cardHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 4,
+    alignItems: 'center'
+  }, saveButton: {
+    width: 30,
+    height: 30,
+    backgroundColor: colors.secondary,
+    borderRadius: 50,
+    borderWidth: 1,
+    padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: 'transparent'
+  }
 });
 
 export default PropertyCard;

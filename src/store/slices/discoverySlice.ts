@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { DiscoveryService } from '@/api/services/discovery.service';
 import type { PropertyCardDTO, ViewMoreRequest } from '@/api/types/discovery.types';
+import { MOCK_PROPERTIES } from '@/utils/mockData';
 
 interface DiscoveryState {
   home: {
@@ -37,6 +38,11 @@ const initialState: DiscoveryState = {
 export const fetchHomeFeed = createAsyncThunk(
   'discovery/fetchHomeFeed',
   async (params: { city?: string; lat?: number; lng?: number }, { rejectWithValue }) => {
+    if(process.env.EXPO_PUBLIC_HAS_MOCK_DATA) return {
+      popular:MOCK_PROPERTIES,
+      recommended:MOCK_PROPERTIES,
+      nearest:MOCK_PROPERTIES
+    }
     try {
       const response = await DiscoveryService.getHomeFeed(params.city, params.lat, params.lng);
       return response.data.data;

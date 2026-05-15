@@ -1,14 +1,15 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthService } from '@/api/services/auth.service';
-import { saveTokens, clearTokens } from '@/utils/helpers/storage';
+import { saveTokens, clearTokens, getAccessToken } from '@/utils/helpers/storage';
 import type { LoginRequest, RegisterRequest, OtpSendRequest, OtpVerifyRequest } from '@/api/types/auth.types';
 
 interface User {
-    email: string;
-    firstName: string;
-    lastName: string;
-    phone?: string;
-    roles: string[];
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  roles: string[];
+
 }
 
 interface AuthState {
@@ -18,6 +19,7 @@ interface AuthState {
   error: string | null;
   otpSent: boolean;
   otpIdentifier: string | null;
+  isInitialized: boolean
 }
 
 const initialState: AuthState = {
@@ -27,6 +29,7 @@ const initialState: AuthState = {
   error: null,
   otpSent: false,
   otpIdentifier: null,
+  isInitialized: false
 };
 
 export const login = createAsyncThunk(
@@ -61,13 +64,13 @@ export const register = createAsyncThunk(
   async (data: RegisterRequest, { rejectWithValue }) => {
     try {
       const response = await AuthService.register(data);
-       
+
       const authData = response.data.data;
       console.log(authData)
       // await saveTokens(authData.accessToken, authData.refreshToken);
       return authData;
     } catch (error: any) {
-      console.log("Error in slice",error)
+      console.log("Error in slice", error)
       return rejectWithValue(error.response?.data?.message || 'Registration failed');
     }
   }
@@ -103,13 +106,19 @@ export const logout = createAsyncThunk('auth/logout', async () => {
   await clearTokens();
 });
 
+export const loadSavedAuth = createAsyncThunk(
+  'auth/loadSavedAuth',
+  async () => {
+    const saved = await getAccessToken();
+    return saved;
+  }
+);
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
     clearError: (state) => {
       state.error = null;
-      console.log("reached here")
     },
     resetOtpState: (state) => {
       state.otpSent = false;
@@ -126,12 +135,12 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
-        state.user =  {
+        state.user = {
           ...action.payload,
           email: action.payload.email,
           firstName: action.payload.firstName,
           lastName: action.payload.lastName,
-          roles: action.payload.roles  || ['BUYER'],
+          roles: action.payload.roles || ['BUYER'],
         };
       })
       .addCase(login.rejected, (state, action) => {
@@ -190,6 +199,20 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         state.error = null;
+      })
+
+      //Load saved auth state
+      .addCase(loadSavedAuth.fulfilled, (state, action) => {
+        const saved = action.payload;
+
+        if (saved) {
+          state.isAuthenticated = true;
+          state.isInitialized = true;
+
+        }
+        else {
+          state.isInitialized = true;
+        }
       });
   },
 });

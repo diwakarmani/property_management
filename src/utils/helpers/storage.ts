@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MOCK_CITIES } from '../mockData';
 
 // Secure storage for tokens
 const KEYS = {

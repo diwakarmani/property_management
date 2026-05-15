@@ -13,7 +13,7 @@ interface LayoutConfig {
 }
 
 const SCREEN_CONFIGS: Record<string, LayoutConfig> = {
-  HomeMain: { showLocation: true, showActions: true },
+  HomeMain: { title:'Current Location',showLocation: true, showActions: true },
   ViewMore: { showBack: true, showActions: true },
   PropertyDetail: { showBack: true, showActions: true },
   SearchScreen: { title: 'Search Properties', showActions: true },
@@ -31,7 +31,6 @@ interface AppLayoutProps {
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const route = useRoute();
   const config = SCREEN_CONFIGS[route.name] || { showLocation: true, showActions: true };
-console.log('colors:', colors);
   return (
      <SafeAreaView style={styles.safeArea}>
       {!config.hideHeader && <Header {...config} />}

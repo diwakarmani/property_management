@@ -10,6 +10,7 @@ import AdminNavigator from './AdminNavigator';
 import GroupAdminNavigator from './GroupAdminNavigator'; 
 import RealtorNavigator from './RealtorNavigator';
 import type { RootState, AppDispatch } from '@/store';
+import { loadSavedAuth } from '@/store/slices/authSlice';
 
 const Stack = createStackNavigator();
 
@@ -31,13 +32,16 @@ const linking: LinkingOptions<any> = {
 
 const AppNavigator = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, isInitialized, user } = useSelector((state: RootState) => state.auth);
   const { hasSelected } = useSelector((state: RootState) => state.location);
 
   useEffect(() => {
     dispatch(loadSavedLocation());
-  }, []);
-
+    dispatch(loadSavedAuth())
+  }, [dispatch]);
+ if (!isInitialized) {
+  return null; // Splash screen
+}
   // Role-based routing
   const getMainFlow = () => {
     if (!user || !user.roles || user.roles.length === 0) return <MainTabNavigator />;
@@ -74,9 +78,12 @@ const AppNavigator = () => {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
-        ) : !hasSelected ? (
+        ) 
+        : 
+        !hasSelected ? (
           <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} />
-        ) : (
+        ) : 
+        (
           <Stack.Screen name="MainApp">{() => getMainFlow()}</Stack.Screen>
         )}
       </Stack.Navigator>

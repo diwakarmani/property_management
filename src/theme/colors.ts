@@ -18,8 +18,10 @@ const colors = {
   white: '#FFFFFF',
   black: '#000000',
   border: '#DEE2E6',
+  borderDark: '#5f5f60',
   borderLight: '#E9ECEF',
   overlay: 'rgba(0, 0, 0, 0.6)',
+  overlayLight: 'rgba(255, 255, 255, 0.3)',
 };
 
 export default colors;
