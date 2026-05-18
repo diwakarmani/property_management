@@ -10,7 +10,7 @@ import AdminNavigator from './AdminNavigator';
 import GroupAdminNavigator from './GroupAdminNavigator'; 
 import RealtorNavigator from './RealtorNavigator';
 import type { RootState, AppDispatch } from '@/store';
-import { loadSavedAuth } from '@/store/slices/authSlice';
+import { fetchUser, loadSavedAuth } from '@/store/slices/authSlice';
 
 const Stack = createStackNavigator();
 
@@ -37,7 +37,7 @@ const AppNavigator = () => {
 
   useEffect(() => {
     dispatch(loadSavedLocation());
-    dispatch(loadSavedAuth())
+    dispatch(fetchUser())
   }, [dispatch]);
  if (!isInitialized) {
   return null; // Splash screen

@@ -51,9 +51,11 @@ export const fetchUser = createAsyncThunk(
   'auth/fetchUser',
   async (_, { rejectWithValue }) => {
     try {
+      console.log("reached here")
       const response = await AuthService.getCurrentUser(); // GET /api/users/me
       return response.data.data; // Returns user with roles
     } catch (error: any) {
+      console.log('got error')
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch user');
     }
   }
@@ -110,6 +112,7 @@ export const loadSavedAuth = createAsyncThunk(
   'auth/loadSavedAuth',
   async () => {
     const saved = await getAccessToken();
+    
     return saved;
   }
 );
@@ -213,7 +216,26 @@ const authSlice = createSlice({
         else {
           state.isInitialized = true;
         }
-      });
+      })
+      .addCase(fetchUser.pending,(state)=>{
+        state.loading=true;
+      })
+      .addCase(fetchUser.fulfilled,(state,action)=>{
+        state.loading=false;
+        state.user= {
+          email: action.payload.email,
+          firstName: action.payload.firstName,
+          lastName: action.payload.lastName,
+          roles: action.payload.roles,
+        };
+        state.isAuthenticated = true;
+          state.isInitialized = true;
+      })
+      .addCase(fetchUser.rejected,(state,action)=>{
+        state.loading=false;
+        state.error=action.payload as string;
+        state.isInitialized=true;
+      })
   },
 });
 

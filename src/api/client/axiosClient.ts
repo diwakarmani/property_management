@@ -14,7 +14,7 @@ const axiosClient = axios.create({
 axiosClient.interceptors.request.use(
   async (config) => {
     const token = await getAccessToken();
-
+console.log(config)
     const isAuthRoute = config.url?.startsWith('/api/auth/');
 
     if (token && !isAuthRoute) {
