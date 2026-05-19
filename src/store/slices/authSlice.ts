@@ -55,7 +55,7 @@ export const fetchUser = createAsyncThunk(
       const response = await AuthService.getCurrentUser(); // GET /api/users/me
       return response.data.data; // Returns user with roles
     } catch (error: any) {
-      console.log('got error')
+      console.log('got error', error)
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch user');
     }
   }

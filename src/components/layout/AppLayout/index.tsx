@@ -16,7 +16,7 @@ const SCREEN_CONFIGS: Record<string, LayoutConfig> = {
   HomeMain: { title:'Current Location',showLocation: true, showActions: true },
   ViewMore: { showBack: true, showActions: true },
   PropertyDetail: { showBack: true, showActions: true },
-  SearchScreen: { title: 'Search Properties', showActions: true },
+  Search: { title: 'Search', showLocation: false, showActions: true },
   FavoritesScreen: { title: 'Favorites', showActions: true },
   ProfileMain: { title: 'Profile', showLocation: false, showActions: false },
   EditProfile: { title: 'Edit Profile', showBack: true, showActions: false },

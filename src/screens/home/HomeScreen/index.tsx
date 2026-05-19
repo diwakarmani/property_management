@@ -8,6 +8,7 @@ import PropertyCard from '@/components/property/PropertyCard';
 import type { AppDispatch, RootState } from '@/store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PropertyCardDTO } from '@/api/types/discovery.types';
+import { fetchCities } from '@/store/slices/locationSlice';
 type FiltersTypeProps = { filter: 'All' | 'Rent' | 'Sale', activeFilter: 'All' | 'Rent' | 'Sale', onPress: (setActiveFilter: any) => void };
 const HomeScreen = ({ navigation }: any) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -17,7 +18,9 @@ const HomeScreen = ({ navigation }: any) => {
   useEffect(() => {
     loadFeed();
   }, [selectedCity]);
-
+  useEffect(() => {
+    dispatch(fetchCities())
+  }, [])
   const loadFeed = () => {
     if (selectedCity) {
       dispatch(fetchHomeFeed({
