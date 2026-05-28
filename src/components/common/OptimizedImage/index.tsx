@@ -21,12 +21,17 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  // No URI — skip network load entirely, render placeholder directly.
+  if (!uri || uri.trim() === '') {
+    return <View style={[styles.container, style, styles.errorPlaceholder]} />;
+  }
+
   return (
     <View style={[styles.container, style]}>
       <Image
         source={{ uri }}
         style={[StyleSheet.absoluteFillObject, style]}
-        contentFit={resizeMode} // equivalent to resizeMode
+        contentFit={resizeMode}
         cachePolicy="memory-disk"
         onLoadStart={() => setLoading(true)}
         onLoad={() => setLoading(false)}

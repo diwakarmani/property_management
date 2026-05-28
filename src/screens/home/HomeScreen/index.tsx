@@ -38,9 +38,10 @@ const HomeScreen = ({ navigation }: any) => {
   const { ids: favoriteIds, isLoading: idsLoading } = useFavoriteIdsSet(isBuyer);
   const addFavorite = useAddFavoriteMutation();
   const removeFavorite = useRemoveFavoriteMutation();
+  const isToggling = addFavorite.isPending || removeFavorite.isPending;
 
   const toggleFavorite = (id: number) => {
-    if (idsLoading) return;
+    if (idsLoading || isToggling) return;
     if (favoriteIds.has(id)) removeFavorite.mutate(id);
     else addFavorite.mutate(id);
   };
@@ -139,7 +140,7 @@ const HomeScreen = ({ navigation }: any) => {
           </View>
           {data.length > 0 && (
             <TouchableOpacity
-              onPress={() => navigation.navigate('ViewMore', { category: key, title })}
+              onPress={() => navigation.navigate('ViewMore', { category: key, title, city: selectedCity?.name })}
               style={styles.viewAllBtn}
             >
               <Text style={styles.viewMore}>View all</Text>

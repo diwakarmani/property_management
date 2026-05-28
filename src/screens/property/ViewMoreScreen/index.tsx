@@ -18,7 +18,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const ViewMoreScreen = ({ navigation }: any) => {
   const route = useRoute();
-  const { category } = route.params as any;
+  const { category, city } = route.params as any;
   const { coordinates } = useSelector((state: RootState) => state.location);
   const isBuyer = useSelector((state: RootState) =>
     state.auth.user?.roles.includes('BUYER') ?? false
@@ -45,6 +45,7 @@ const ViewMoreScreen = ({ navigation }: any) => {
     hasNextPage,
   } = useViewMoreInfiniteQuery({
     category,
+    city: city || undefined,
     lat: coordinates.latitude || undefined,
     lng: coordinates.longitude || undefined,
     size: 20,

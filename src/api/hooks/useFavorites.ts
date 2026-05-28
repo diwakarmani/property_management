@@ -45,6 +45,7 @@ export const useFavoritesQuery = (page = 0, size = 50) => {
       return items;
     },
     staleTime: STALE_TIME.MEDIUM,
+    retry: false,
   });
 };
 
@@ -99,6 +100,11 @@ export const useAddFavoriteMutation = () => {
     mutationFn: (propertyId: number) => FavoriteService.addFavorite(propertyId),
 
     onMutate: async (propertyId) => {
+      // Cancel any in-flight refetches before applying optimistic updates to
+      // prevent a stale response from overwriting the optimistic state.
+      await qc.cancelQueries({ queryKey: queryKeys.favorites });
+      await qc.cancelQueries({ queryKey: queryKeys.favoriteIds });
+
       // Flip the per-property check immediately.
       qc.setQueryData(queryKeys.favoritesCheck(propertyId), true);
 
@@ -107,7 +113,6 @@ export const useAddFavoriteMutation = () => {
       patchIds(qc, prev => (prev.includes(propertyId) ? prev : [propertyId, ...prev]));
 
       // Prepend full PropertyDTO to list cache if it's already in the property cache.
-      await qc.cancelQueries({ queryKey: queryKeys.favorites });
       const previousLists = qc.getQueriesData<PropertyDTO[]>({ queryKey: queryKeys.favorites });
       const property = qc.getQueryData<PropertyDTO>(queryKeys.property(propertyId));
       if (property) {
@@ -143,6 +148,7 @@ export const useRemoveFavoriteMutation = () => {
 
     onMutate: async (propertyId) => {
       await qc.cancelQueries({ queryKey: queryKeys.favorites });
+      await qc.cancelQueries({ queryKey: queryKeys.favoriteIds });
       const previousLists = qc.getQueriesData<PropertyDTO[]>({ queryKey: queryKeys.favorites });
       const previousCheck = qc.getQueryData<boolean>(queryKeys.favoritesCheck(propertyId));
       const previousIds = qc.getQueryData<number[]>(queryKeys.favoriteIds);

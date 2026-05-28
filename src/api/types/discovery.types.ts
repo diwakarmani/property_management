@@ -21,6 +21,7 @@ export interface HomeDiscoveryResponse {
 
 export interface ViewMoreRequest {
   category: 'POPULAR' | 'RECOMMENDED' | 'NEAREST';
+  city?: string;
   lat?: number;
   lng?: number;
   page?: number;

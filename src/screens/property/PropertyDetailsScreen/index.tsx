@@ -81,8 +81,10 @@ const PropertyDetailScreen = () => {
     );
   }
 
-  const imageUrls = property.images?.map(img => img.imageUrl)
-    ?? (property.primaryImageUrl ? [property.primaryImageUrl] : []);
+  const rawImages = property.images?.length
+    ? (property.images.map((img: any) => img.imageUrl).filter(Boolean) as string[])
+    : null;
+  const imageUrls: string[] = rawImages ?? (property.primaryImageUrl ? [property.primaryImageUrl] : []);
   const amenityNames = property.amenities?.map(a => a.name) ?? [];
 
   const detailItems = [
@@ -131,7 +133,7 @@ const PropertyDetailScreen = () => {
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Image Gallery */}
-        {imageUrls.length > 0 && (
+        {imageUrls.length > 0 ? (
           <View style={styles.galleryWrap}>
             <ScrollView
               horizontal
@@ -158,7 +160,17 @@ const PropertyDetailScreen = () => {
               colors={['transparent', 'rgba(26,26,46,0.4)']}
               style={styles.galleryGradient}
             />
-            {/* Listing type badge */}
+            <View style={[
+              styles.listingTypeBadge,
+              property.listingType === 'RENT' ? styles.rentBadge : styles.saleBadge,
+            ]}>
+              <Text style={styles.listingTypeText}>{property.listingType}</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.noImageWrap}>
+            <Ionicons name="image-outline" size={52} color={colors.border} />
+            <Text style={styles.noImageLabel}>No photos available</Text>
             <View style={[
               styles.listingTypeBadge,
               property.listingType === 'RENT' ? styles.rentBadge : styles.saleBadge,
@@ -324,6 +336,19 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
 
   galleryWrap: { position: 'relative', height: 280 },
+  noImageWrap: {
+    height: 280,
+    backgroundColor: colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    position: 'relative',
+  },
+  noImageLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textLight,
+    fontWeight: '500' as any,
+  },
   imageGallery: { height: 280 },
   image: { width: SCREEN_WIDTH, height: 280, resizeMode: 'cover' },
   galleryGradient: {

@@ -37,7 +37,7 @@ export const useViewMoreInfiniteQuery = (
   params: Omit<ViewMoreRequest, 'page'>
 ) =>
   useInfiniteQuery({
-    queryKey: ['discovery', 'view-more', params.category, params.lat, params.lng] as const,
+    queryKey: ['discovery', 'view-more', params.category, params.city, params.lat, params.lng] as const,
     initialPageParam: 0,
     staleTime: STALE_TIME.SLOW,
     queryFn: async ({ pageParam }) => {

@@ -115,9 +115,10 @@ const SearchScreen = ({ navigation }: any) => {
   const { ids: favoriteIds, isLoading: idsLoading } = useFavoriteIdsSet(isBuyer);
   const addFavorite = useAddFavoriteMutation();
   const removeFavorite = useRemoveFavoriteMutation();
+  const isToggling = addFavorite.isPending || removeFavorite.isPending;
 
   const toggleFavorite = (id: number) => {
-    if (idsLoading) return;
+    if (idsLoading || isToggling) return;
     if (favoriteIds.has(id)) removeFavorite.mutate(id);
     else addFavorite.mutate(id);
   };

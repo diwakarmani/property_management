@@ -35,7 +35,14 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, i
     >
       {/* Image with gradient overlay */}
       <View style={styles.imageContainer}>
-        <OptimizedImage uri={property.primaryImageUrl} style={styles.image} />
+        {property.primaryImageUrl ? (
+          <OptimizedImage uri={property.primaryImageUrl} style={styles.image} />
+        ) : (
+          <View style={styles.noImage}>
+            <Ionicons name="home-outline" size={30} color={colors.border} />
+            <Text style={styles.noImageText}>No Photo</Text>
+          </View>
+        )}
 
         {/* Bottom gradient for readability */}
         <LinearGradient
@@ -157,6 +164,19 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  noImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  noImageText: {
+    fontSize: 10,
+    color: colors.textLight,
+    fontWeight: '500' as any,
   },
   imageGradient: {
     position: 'absolute',

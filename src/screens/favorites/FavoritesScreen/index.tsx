@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -25,9 +25,16 @@ const formatPrice = (price: number) => {
 
 const FavoritesScreen = () => {
   const navigation = useNavigation<any>();
-  const { data: favorites = [], isLoading, isError, error, refetch, isFetching } =
+  const { data: favorites = [], isLoading, isError, error, refetch } =
     useFavoritesQuery(0, 50);
   const removeFavorite = useRemoveFavoriteMutation();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  };
 
   const handleRemove = (property: PropertyDTO) => {
     Alert.alert(
@@ -80,8 +87,8 @@ const FavoritesScreen = () => {
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={() => refetch()}
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
               tintColor={colors.primary}
             />
           }
