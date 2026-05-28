@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+.expo-shared/
+
+# Native build outputs
+ios/
+android/
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+logs/
+
+# Environment / Secrets
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+
+# TypeScript
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+*.pem
+
+# Markdown docs (kept locally, not in git)
+*.md
+
+# Junk
+n/

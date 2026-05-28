@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "PropertyApp",
+    "slug": "PropertyApp",
+    "version": "1.0.0",
+    "scheme": "propertyapp",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mithilasoftech.propertyapp",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "PropertyApp uses your location to show properties near you."
+      }
+    },
+    "android": {
+      "package": "com.mithilasoftech.propertyapp",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PropertyApp uses your location to show properties near you."
+        }
+      ]
+    ],
+    "experiments": {
+      "tsconfigPaths": true
+    }
+  }
+}
