@@ -11,6 +11,8 @@ export interface PropertyCardDTO {
   verified: boolean;
   premium: boolean;
   distanceInKm?: number;
+  ownerName?: string;
+  status?: string;
 }
 
 export interface HomeDiscoveryResponse {

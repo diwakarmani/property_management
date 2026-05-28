@@ -1,6 +1,6 @@
 import axiosClient from '../client/axiosClient';
 import type { ApiResponse } from '../types/auth.types';
-import type { GroupDashboardStatsDTO, GroupMemberDTO, RealtorGroupDTO, AddMemberRequest, CreateGroupRequest } from '../types/group.types';
+import type { GroupDashboardStatsDTO, GroupMemberDTO, RealtorGroupDTO, AddMemberRequest, CreateGroupRequest, CreateRealtorRequest } from '../types/group.types';
 import type { PageResponse } from '../types/property.types';
 import type { PropertyCardDTO } from '../types/discovery.types';
 
@@ -39,9 +39,20 @@ export const GroupService = {
   updateMemberSettings: (userId: number, request: Partial<AddMemberRequest>) =>
     axiosClient.patch<ApiResponse<GroupMemberDTO>>(`/api/group-admin/members/${userId}/settings`, request),
 
+  createRealtor: (request: CreateRealtorRequest) =>
+    axiosClient.post<ApiResponse<GroupMemberDTO>>('/api/group-admin/realtors', request),
+
+  activateMember: (userId: number) =>
+    axiosClient.patch<ApiResponse<GroupMemberDTO>>(`/api/group-admin/members/${userId}/activate`),
+
   // ── Listings ────────────────────────────────────────────────────────────
   getPendingListings: (page = 0, size = 20) =>
     axiosClient.get<ApiResponse<PageResponse<PropertyCardDTO>>>('/api/group-admin/listings/pending', {
+      params: { page, size },
+    }),
+
+  getAllListings: (page = 0, size = 20) =>
+    axiosClient.get<ApiResponse<PageResponse<PropertyCardDTO>>>('/api/group-admin/listings', {
       params: { page, size },
     }),
 

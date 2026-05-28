@@ -49,6 +49,16 @@ export interface AddMemberRequest {
   monthlyTarget?: number;
 }
 
+export interface CreateRealtorRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  password: string;
+  commissionPercent?: number;
+  monthlyTarget?: number;
+}
+
 export interface CreateGroupRequest {
   name: string;
   companyName?: string;
