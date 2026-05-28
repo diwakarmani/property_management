@@ -85,13 +85,14 @@ describe('authSlice', () => {
       expect(state.user).toBeNull();
     });
 
-    it('flags bootstrapFailed (and stays NOT bootstrapped) when retries are exhausted', () => {
+    it('flags bootstrapFailed and marks bootstrapped when retries are exhausted (routes to Login)', () => {
       const state = authReducer(
         initialState,
         { type: bootstrapSession.rejected.type, payload: 'bootstrap-failed' } as any
       );
       expect(state.bootstrapFailed).toBe(true);
-      expect(state.bootstrapped).toBe(false); // keeps BootScreen up with a Retry button
+      expect(state.bootstrapped).toBe(true); // routes to Login so user is never stuck on BootScreen
+      expect(state.isAuthenticated).toBe(false);
     });
   });
 
