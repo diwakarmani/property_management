@@ -42,8 +42,10 @@ export const GroupService = {
       params: { email },
     }),
 
-  addMember: (request: AddMemberRequest & { groupId?: number }) =>
-    axiosClient.post<ApiResponse<GroupMemberDTO>>('/api/group-admin/members', request),
+  addMember: (request: AddMemberRequest, groupId?: number) =>
+    axiosClient.post<ApiResponse<GroupMemberDTO>>('/api/group-admin/members', request, {
+      params: groupId ? { groupId } : undefined,
+    }),
 
   removeMember: (userId: number, groupId?: number) =>
     axiosClient.delete<ApiResponse<string>>(`/api/group-admin/members/${userId}`, {
@@ -55,8 +57,10 @@ export const GroupService = {
       params: groupId ? { groupId } : undefined,
     }),
 
-  createRealtor: (request: CreateRealtorRequest & { groupId?: number }) =>
-    axiosClient.post<ApiResponse<GroupMemberDTO>>('/api/group-admin/realtors', request),
+  createRealtor: (request: CreateRealtorRequest, groupId?: number) =>
+    axiosClient.post<ApiResponse<GroupMemberDTO>>('/api/group-admin/realtors', request, {
+      params: groupId ? { groupId } : undefined,
+    }),
 
   activateMember: (userId: number, groupId?: number) =>
     axiosClient.patch<ApiResponse<GroupMemberDTO>>(`/api/group-admin/members/${userId}/activate`, null, {

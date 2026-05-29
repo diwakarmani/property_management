@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Linking,
+  Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import { GroupService } from '@/api/services/group.service';
@@ -17,43 +18,32 @@ import type { RealtorGroupDTO } from '@/api/types/group.types';
 type GroupStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'REJECTED' | 'SUSPENDED';
 
 const STATUS_CONFIG: Record<GroupStatus, { color: string; bg: string; icon: string; label: string }> = {
-  ACTIVE: { color: '#27AE60', bg: '#27AE6015', icon: 'checkmark-circle', label: 'Active' },
-  PENDING_APPROVAL: { color: '#F39C12', bg: '#F39C1215', icon: 'time', label: 'Pending Approval' },
-  REJECTED: { color: '#E74C3C', bg: '#E74C3C15', icon: 'close-circle', label: 'Rejected' },
-  SUSPENDED: { color: '#7F8C8D', bg: '#7F8C8D15', icon: 'ban', label: 'Suspended' },
+  ACTIVE:           { color: colors.success,  bg: colors.successSurface,  icon: 'checkmark-circle', label: 'Active' },
+  PENDING_APPROVAL: { color: colors.warning,  bg: colors.warningSurface,  icon: 'time',             label: 'Pending Approval' },
+  REJECTED:         { color: colors.error,    bg: colors.errorSurface,    icon: 'close-circle',     label: 'Rejected' },
+  SUSPENDED:        { color: colors.textSecondary, bg: colors.backgroundSecondary, icon: 'ban',     label: 'Suspended' },
 };
 
 const MyGroupScreen = ({ navigation }: any) => {
-  const [group, setGroup] = useState<RealtorGroupDTO | null>(null);
+  const [groups, setGroups] = useState<RealtorGroupDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [noGroup, setNoGroup] = useState(false);
 
-  const loadGroup = useCallback((isRefresh = false) => {
+  const loadGroups = useCallback((isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    GroupService.getMyGroup()
-      .then(res => {
-        setGroup(res.data.data);
-        setNoGroup(false);
-      })
-      .catch(err => {
-        const status = err?.response?.status;
-        if (status === 404 || status === 400) {
-          setNoGroup(true);
-          setGroup(null);
-        } else {
-          console.error('Failed to load group', err);
-        }
-      })
-      .finally(() => {
-        setLoading(false);
-        setRefreshing(false);
-      });
+    GroupService.getMyGroups()
+      .then(res => setGroups(res.data.data ?? []))
+      .catch(err => console.error('Failed to load groups', err))
+      .finally(() => { setLoading(false); setRefreshing(false); });
   }, []);
 
+  useEffect(() => { loadGroups(); }, [loadGroups]);
+
+  // Refresh when screen comes back into focus (e.g. after creating/editing)
   useEffect(() => {
-    loadGroup();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => loadGroups());
+    return unsubscribe;
+  }, [navigation, loadGroups]);
 
   if (loading) {
     return (
@@ -63,139 +53,262 @@ const MyGroupScreen = ({ navigation }: any) => {
     );
   }
 
-  if (noGroup) {
+  const GroupCard = ({ group }: { group: RealtorGroupDTO }) => {
+    const statusKey = (group.status ?? 'PENDING_APPROVAL') as GroupStatus;
+    const cfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.PENDING_APPROVAL;
+
     return (
-      <View style={styles.centered}>
-        <Ionicons name="business-outline" size={64} color={colors.textSecondary} />
-        <Text style={styles.noGroupTitle}>No Group Yet</Text>
-        <Text style={styles.noGroupSubtitle}>
-          Create a group to start managing realtors and listings.
-        </Text>
-        <TouchableOpacity
-          style={styles.createBtn}
-          onPress={() => navigation.navigate('CreateGroup')}
-        >
-          <Ionicons name="add-circle-outline" size={20} color={colors.white} />
-          <Text style={styles.createBtnText}>Create Group</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  if (!group) return null;
-
-  const statusKey = group.status as GroupStatus;
-  const statusCfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.PENDING_APPROVAL;
-
-  const InfoRow = ({ icon, label, value }: { icon: string; label: string; value?: string | null }) => {
-    if (!value) return null;
-    return (
-      <View style={styles.infoRow}>
-        <Ionicons name={icon as any} size={18} color={colors.textSecondary} style={styles.infoIcon} />
-        <View style={styles.infoContent}>
-          <Text style={styles.infoLabel}>{label}</Text>
-          <Text style={styles.infoValue}>{value}</Text>
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate('EditGroup', { groupId: group.id, group })}
+      >
+        {/* Card header row */}
+        <View style={styles.cardHeader}>
+          <View style={styles.groupIcon}>
+            <Ionicons name="business" size={24} color={colors.primary} />
+          </View>
+          <View style={styles.cardMeta}>
+            <Text style={styles.groupName} numberOfLines={1}>{group.name}</Text>
+            {group.companyName ? (
+              <Text style={styles.companyName} numberOfLines={1}>{group.companyName}</Text>
+            ) : null}
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: cfg.bg }]}>
+            <Ionicons name={cfg.icon as any} size={12} color={cfg.color} />
+            <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
+          </View>
         </View>
-      </View>
+
+        {/* Stats row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statChip}>
+            <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
+            <Text style={styles.statChipText}>{group.memberCount ?? 0} members</Text>
+          </View>
+          {group.rejectionReason ? (
+            <View style={[styles.statChip, { backgroundColor: colors.errorSurface }]}>
+              <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
+              <Text style={[styles.statChipText, { color: colors.error }]} numberOfLines={1}>
+                {group.rejectionReason}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Action row */}
+        <View style={styles.cardActions}>
+          <TouchableOpacity
+            style={styles.actionChip}
+            onPress={() => navigation.navigate('EditGroup', { groupId: group.id, group })}
+          >
+            <Ionicons name="create-outline" size={14} color={colors.primary} />
+            <Text style={styles.actionChipText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionChip}
+            onPress={() => navigation.navigate('Team', {
+              screen: 'ManageRealtors',
+              params: { groupId: group.id, groupName: group.name },
+            })}
+          >
+            <Ionicons name="people-outline" size={14} color={colors.primary} />
+            <Text style={styles.actionChipText}>Team</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionChip}
+            onPress={() => navigation.navigate('Listings', { groupId: group.id, groupName: group.name })}
+          >
+            <Ionicons name="list-outline" size={14} color={colors.primary} />
+            <Text style={styles.actionChipText}>Listings</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
     );
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadGroup(true)} />}
-    >
-      {/* Header card */}
-      <View style={styles.headerCard}>
-        <View style={styles.groupIconWrapper}>
-          <Ionicons name="business" size={36} color={colors.primary} />
+    <View style={styles.container}>
+      {/* Hero */}
+      <LinearGradient
+        colors={[colors.primary, colors.gradientMid, colors.gradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.hero}
+      >
+        <View style={styles.heroLeft}>
+          <Text style={styles.heroLabel}>Manage</Text>
+          <Text style={styles.heroTitle}>My Groups</Text>
+          <Text style={styles.heroSub}>
+            {groups.length === 0
+              ? 'No groups yet — create one below'
+              : `${groups.length} group${groups.length !== 1 ? 's' : ''}`}
+          </Text>
         </View>
-        <Text style={styles.groupName}>{group.name}</Text>
-        {group.companyName ? (
-          <Text style={styles.companyName}>{group.companyName}</Text>
-        ) : null}
-
-        {/* Status badge */}
-        <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg, borderColor: statusCfg.color }]}>
-          <Ionicons name={statusCfg.icon as any} size={14} color={statusCfg.color} />
-          <Text style={[styles.statusText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
-        </View>
-
-        {/* Status-specific messages */}
-        {(statusKey === 'REJECTED' || statusKey === 'SUSPENDED') && group.rejectionReason && (
-          <View style={[styles.infoAlert, styles.errorAlert]}>
-            <Ionicons name="alert-circle-outline" size={16} color="#E74C3C" />
-            <Text style={[styles.infoAlertText, styles.errorAlertText]}>
-              {group.rejectionReason}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Details */}
-      <View style={styles.detailsCard}>
-        <Text style={styles.sectionTitle}>Group Details</Text>
-
-        <InfoRow icon="person-outline" label="Admin" value={group.groupAdminName} />
-        <InfoRow icon="mail-outline" label="Admin Email" value={group.groupAdminEmail} />
-        <InfoRow icon="document-text-outline" label="Business License" value={group.businessLicense} />
-        <InfoRow icon="location-outline" label="Address" value={group.address} />
-        {group.website ? (
-          <TouchableOpacity
-            style={styles.infoRow}
-            onPress={() => group.website && Linking.openURL(
-              group.website!.startsWith('http') ? group.website! : `https://${group.website}`
-            )}
-          >
-            <Ionicons name="globe-outline" size={18} color={colors.textSecondary} style={styles.infoIcon} />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Website</Text>
-              <Text style={[styles.infoValue, styles.linkText]}>{group.website}</Text>
-            </View>
-            <Ionicons name="open-outline" size={14} color={colors.primary} />
-          </TouchableOpacity>
-        ) : null}
-        <InfoRow icon="people-outline" label="Members" value={String(group.memberCount ?? 0)} />
-        {group.description ? (
-          <View style={styles.descriptionBlock}>
-            <Text style={styles.infoLabel}>Description</Text>
-            <Text style={styles.descriptionText}>{group.description}</Text>
-          </View>
-        ) : null}
-      </View>
-
-      {/* Actions */}
-      <View style={styles.actionsCard}>
-        <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('EditGroup')}>
-          <Ionicons name="create-outline" size={20} color={colors.white} />
-          <Text style={styles.editBtnText}>Edit Group Info</Text>
+        <TouchableOpacity
+          style={styles.createHeroBtn}
+          onPress={() => navigation.navigate('CreateGroup')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="add" size={22} color={colors.primary} />
         </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </LinearGradient>
+
+      <ScrollView
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => loadGroups(true)} tintColor={colors.primary} />
+        }
+      >
+        {groups.length === 0 ? (
+          <View style={styles.empty}>
+            <Ionicons name="business-outline" size={72} color={colors.border} />
+            <Text style={styles.emptyTitle}>No Groups Yet</Text>
+            <Text style={styles.emptySub}>Create a group to start managing realtors and listings.</Text>
+            <TouchableOpacity
+              style={styles.createBtn}
+              onPress={() => navigation.navigate('CreateGroup')}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={colors.white} />
+              <Text style={styles.createBtnText}>Create Group</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {groups.map(g => <GroupCard key={g.id} group={g} />)}
+            <TouchableOpacity
+              style={styles.addMoreBtn}
+              onPress={() => navigation.navigate('CreateGroup')}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+              <Text style={styles.addMoreText}>Create Another Group</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  centered: {
-    flex: 1,
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  heroLeft: { flex: 1 },
+  heroLabel: { fontSize: typography.fontSize.sm, color: 'rgba(255,255,255,0.75)', fontWeight: typography.fontWeight.medium },
+  heroTitle: { fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.extrabold, color: colors.white, letterSpacing: -0.3 },
+  heroSub: { fontSize: typography.fontSize.xs, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
+  createHeroBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    gap: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  noGroupTitle: {
-    fontSize: typography.fontSize.xl,
+
+  list: { padding: spacing.md, paddingBottom: spacing.xl },
+
+  // Group card
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  groupIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    backgroundColor: colors.primarySurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  cardMeta: { flex: 1 },
+  groupName: {
+    fontSize: typography.fontSize.md,
     fontWeight: typography.fontWeight.bold,
     color: colors.text,
-    marginTop: spacing.sm,
   },
-  noGroupSubtitle: {
-    fontSize: typography.fontSize.md,
+  companyName: {
+    fontSize: typography.fontSize.sm,
     color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
+    marginTop: 2,
   },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    flexShrink: 0,
+  },
+  statusText: { fontSize: 11, fontWeight: typography.fontWeight.bold },
+
+  statsRow: { flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap', marginBottom: spacing.sm },
+  statChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.background,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    maxWidth: '100%',
+  },
+  statChipText: { fontSize: 12, color: colors.textSecondary, fontWeight: typography.fontWeight.medium },
+
+  cardActions: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+    paddingTop: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  actionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primarySurface,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  actionChipText: { fontSize: 13, color: colors.primary, fontWeight: typography.fontWeight.semibold },
+
+  // Empty state
+  empty: { alignItems: 'center', paddingTop: spacing.xl * 2, gap: spacing.md },
+  emptyTitle: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.text },
+  emptySub: { fontSize: typography.fontSize.md, color: colors.textSecondary, textAlign: 'center', lineHeight: 22 },
   createBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -213,138 +326,19 @@ const styles = StyleSheet.create({
   },
   createBtnText: { color: colors.white, fontWeight: typography.fontWeight.bold, fontSize: typography.fontSize.md },
 
-  headerCard: {
-    backgroundColor: colors.surface,
-    margin: spacing.md,
-    borderRadius: 20,
-    padding: spacing.lg,
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  groupIconWrapper: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: colors.primarySurface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  groupName: {
-    fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text,
-    textAlign: 'center',
-  },
-  companyName: {
-    fontSize: typography.fontSize.md,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginTop: spacing.xs,
-  },
-  statusText: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold },
-  infoAlert: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.warningSurface,
-    borderRadius: 12,
-    padding: spacing.md,
-    gap: spacing.sm,
-    width: '100%',
-    marginTop: spacing.xs,
-    borderWidth: 1,
-    borderColor: '#F6E05E',
-  },
-  infoAlertText: {
-    flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: colors.warning,
-    lineHeight: 18,
-  },
-  errorAlert: { backgroundColor: colors.errorSurface, borderColor: '#FEB2B2' },
-  errorAlertText: { color: colors.error },
-
-  detailsCard: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
-    borderRadius: 20,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  infoIcon: { marginRight: spacing.md },
-  infoContent: { flex: 1 },
-  infoLabel: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  infoValue: { fontSize: typography.fontSize.md, color: colors.text, marginTop: 2 },
-  linkText: { color: colors.primary },
-  descriptionBlock: { paddingVertical: spacing.md },
-  descriptionText: {
-    fontSize: typography.fontSize.md,
-    color: colors.text,
-    lineHeight: 22,
-    marginTop: spacing.xs,
-  },
-
-  actionsCard: {
-    margin: spacing.md,
-    marginTop: spacing.xs,
-    marginBottom: spacing.xl,
-  },
-  editBtn: {
+  addMoreBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary,
-    height: 52,
+    gap: spacing.sm,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
     borderRadius: 14,
-    gap: spacing.sm,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
+    paddingVertical: spacing.md,
+    marginTop: spacing.xs,
   },
-  editBtnText: { color: colors.white, fontWeight: typography.fontWeight.bold, fontSize: typography.fontSize.md },
+  addMoreText: { color: colors.primary, fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.md },
 });
 
 export default MyGroupScreen;

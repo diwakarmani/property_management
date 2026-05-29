@@ -14,19 +14,24 @@ import { colors, typography, spacing } from '@/theme';
 import { GroupService } from '@/api/services/group.service';
 import type { RealtorGroupDTO } from '@/api/types/group.types';
 
-const EditGroupScreen = ({ navigation }: any) => {
-  const [group, setGroup] = useState<RealtorGroupDTO | null>(null);
-  const [loading, setLoading] = useState(true);
+const EditGroupScreen = ({ navigation, route }: any) => {
+  // Group data can arrive via route.params.group (from GroupsList),
+  // or we fall back to getMyGroup() for the legacy single-group flow.
+  const routeGroup: RealtorGroupDTO | undefined = route?.params?.group;
+
+  const [group, setGroup] = useState<RealtorGroupDTO | null>(routeGroup ?? null);
+  const [loading, setLoading] = useState(!routeGroup);
   const [saving, setSaving] = useState(false);
 
-  const [name, setName] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [businessLicense, setBusinessLicense] = useState('');
-  const [address, setAddress] = useState('');
-  const [website, setWebsite] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState(routeGroup?.name ?? '');
+  const [companyName, setCompanyName] = useState(routeGroup?.companyName ?? '');
+  const [businessLicense, setBusinessLicense] = useState(routeGroup?.businessLicense ?? '');
+  const [address, setAddress] = useState(routeGroup?.address ?? '');
+  const [website, setWebsite] = useState(routeGroup?.website ?? '');
+  const [description, setDescription] = useState(routeGroup?.description ?? '');
 
   useEffect(() => {
+    if (routeGroup) return; // already have data from params
     GroupService.getMyGroup()
       .then(res => {
         const g = res.data.data;

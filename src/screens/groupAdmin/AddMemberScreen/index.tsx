@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,17 +8,24 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import { GroupService } from '@/api/services/group.service';
-import type { GroupMemberDTO } from '@/api/types/group.types';
+import type { GroupMemberDTO, RealtorGroupDTO } from '@/api/types/group.types';
 
 type Mode = 'search' | 'create';
 
 const AddMemberScreen = ({ navigation, route }: any) => {
   const initialMode: Mode = route?.params?.mode === 'create' ? 'create' : 'search';
   const [mode, setMode] = useState<Mode>(initialMode);
+
+  // Group selection — passed from ManageRealtorsScreen or resolved here
+  const [groups, setGroups] = useState<RealtorGroupDTO[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | undefined>(route?.params?.groupId);
+  const [selectedGroupName, setSelectedGroupName] = useState<string>(route?.params?.groupName ?? '');
+  const [groupPickerVisible, setGroupPickerVisible] = useState(false);
 
   // ── Find-existing state
   const [email, setEmail] = useState('');
@@ -44,13 +51,25 @@ const AddMemberScreen = ({ navigation, route }: any) => {
     if (route?.params?.mode) setMode(route.params.mode);
   }, [route?.params?.mode]);
 
+  // Load groups for the picker
+  useEffect(() => {
+    GroupService.getMyGroups()
+      .then(res => {
+        const gs = res.data.data ?? [];
+        setGroups(gs);
+        // Auto-select if only one group and no groupId passed via params
+        if (!selectedGroupId && gs.length === 1) {
+          setSelectedGroupId(gs[0].id);
+          setSelectedGroupName(gs[0].name);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // ── Find-existing handlers
   const handleSearch = () => {
     const trimmed = email.trim().toLowerCase();
-    if (!trimmed || !trimmed.includes('@')) {
-      setSearchError('Enter a valid email address');
-      return;
-    }
+    if (!trimmed || !trimmed.includes('@')) { setSearchError('Enter a valid email address'); return; }
     setSearchError('');
     setFound(null);
     setSearching(true);
@@ -70,20 +89,27 @@ const AddMemberScreen = ({ navigation, route }: any) => {
 
   const handleAdd = () => {
     if (!found) return;
+    if (!selectedGroupId && groups.length > 1) {
+      Alert.alert('Select Group', 'Please select which group to add this realtor to.');
+      return;
+    }
     setAdding(true);
-    GroupService.addMember({
-      userId: found.userId,
-      ...(addCommission && { commissionPercent: parseFloat(addCommission) }),
-      ...(addTarget && { monthlyTarget: parseInt(addTarget, 10) }),
-    })
+    GroupService.addMember(
+      {
+        userId: found.userId,
+        ...(addCommission && { commissionPercent: parseFloat(addCommission) }),
+        ...(addTarget && { monthlyTarget: parseInt(addTarget, 10) }),
+      },
+      selectedGroupId,
+    )
       .then(() => {
         Alert.alert(
-          'Member Added',
-          `${found.firstName} ${found.lastName} has been added to your group.`,
+          'Realtor Added',
+          `${found.firstName} ${found.lastName} has been added to${selectedGroupName ? ` ${selectedGroupName}` : ' your group'}.`,
           [{ text: 'OK', onPress: () => navigation.goBack() }]
         );
       })
-      .catch(err => Alert.alert('Error', err?.response?.data?.message ?? 'Failed to add member'))
+      .catch(err => Alert.alert('Error', err?.response?.data?.message ?? 'Failed to add realtor'))
       .finally(() => setAdding(false));
   };
 
@@ -93,26 +119,51 @@ const AddMemberScreen = ({ navigation, route }: any) => {
     if (!lastName.trim()) { Alert.alert('Validation', 'Last name is required'); return; }
     if (!newEmail.trim() || !newEmail.includes('@')) { Alert.alert('Validation', 'Valid email is required'); return; }
     if (!password.trim() || password.length < 6) { Alert.alert('Validation', 'Password must be at least 6 characters'); return; }
+    if (!selectedGroupId && groups.length > 1) {
+      Alert.alert('Select Group', 'Please select which group to add this realtor to.');
+      return;
+    }
 
     setCreating(true);
-    GroupService.createRealtor({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: newEmail.trim().toLowerCase(),
-      phone: phone.trim() || undefined,
-      password,
-      commissionPercent: createCommission ? parseFloat(createCommission) : undefined,
-      monthlyTarget: createTarget ? parseInt(createTarget, 10) : undefined,
-    })
+    GroupService.createRealtor(
+      {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: newEmail.trim().toLowerCase(),
+        phone: phone.trim() || undefined,
+        password,
+        commissionPercent: createCommission ? parseFloat(createCommission) : undefined,
+        monthlyTarget: createTarget ? parseInt(createTarget, 10) : undefined,
+      },
+      selectedGroupId,
+    )
       .then(() => {
         Alert.alert(
           'Realtor Created',
-          `${firstName} ${lastName} account created and added to your group. They can now log in with their email and password.`,
+          `${firstName} ${lastName} has been created and added to${selectedGroupName ? ` ${selectedGroupName}` : ' your group'}. They can log in with their email and password.`,
           [{ text: 'OK', onPress: () => navigation.goBack() }]
         );
       })
       .catch(err => Alert.alert('Error', err?.response?.data?.message ?? 'Failed to create realtor'))
       .finally(() => setCreating(false));
+  };
+
+  // ── Group picker
+  const GroupSelector = () => {
+    if (groups.length <= 1) return null; // only show when multiple groups exist
+    return (
+      <TouchableOpacity
+        style={styles.groupSelector}
+        onPress={() => setGroupPickerVisible(true)}
+        activeOpacity={0.75}
+      >
+        <Ionicons name="business-outline" size={18} color={colors.primary} />
+        <Text style={styles.groupSelectorText} numberOfLines={1}>
+          {selectedGroupName || 'Select group to add to…'}
+        </Text>
+        <Ionicons name="chevron-down" size={16} color={colors.primary} />
+      </TouchableOpacity>
+    );
   };
 
   const TabBar = () => (
@@ -136,6 +187,45 @@ const AddMemberScreen = ({ navigation, route }: any) => {
 
   return (
     <View style={styles.container}>
+      {/* Group picker modal */}
+      <Modal
+        visible={groupPickerVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setGroupPickerVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Select Group</Text>
+            <Text style={styles.modalDesc}>Choose which group this realtor will be added to.</Text>
+            {groups.map(g => (
+              <TouchableOpacity
+                key={g.id}
+                style={[styles.groupPickerRow, selectedGroupId === g.id && styles.groupPickerRowActive]}
+                onPress={() => {
+                  setSelectedGroupId(g.id);
+                  setSelectedGroupName(g.name);
+                  setGroupPickerVisible(false);
+                }}
+              >
+                <Ionicons
+                  name={selectedGroupId === g.id ? 'radio-button-on' : 'radio-button-off'}
+                  size={20}
+                  color={selectedGroupId === g.id ? colors.primary : colors.textSecondary}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.groupPickerName, selectedGroupId === g.id && { color: colors.primary }]}>{g.name}</Text>
+                  <Text style={styles.groupPickerSub}>{g.memberCount ?? 0} realtors</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setGroupPickerVisible(false)}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.text} />
@@ -146,6 +236,13 @@ const AddMemberScreen = ({ navigation, route }: any) => {
 
       <TabBar />
 
+      {/* Group selector — shown below tabs when multiple groups */}
+      {groups.length > 1 && (
+        <View style={styles.groupSelectorBar}>
+          <GroupSelector />
+        </View>
+      )}
+
       {mode === 'search' ? (
         <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
           {/* Step 1 — search */}
@@ -154,9 +251,7 @@ const AddMemberScreen = ({ navigation, route }: any) => {
               <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
               <Text style={styles.stepTitle}>Find Realtor by Email</Text>
             </View>
-            <Text style={styles.stepDesc}>
-              Enter the registered email of an existing REALTOR account.
-            </Text>
+            <Text style={styles.stepDesc}>Enter the registered email of an existing Realtor account.</Text>
 
             <View style={styles.searchRow}>
               <TextInput
@@ -211,7 +306,6 @@ const AddMemberScreen = ({ navigation, route }: any) => {
               </View>
 
               <Text style={styles.sectionLabel}>Optional Settings</Text>
-
               <Text style={styles.label}>Commission (%)</Text>
               <TextInput
                 style={styles.input}
@@ -238,7 +332,9 @@ const AddMemberScreen = ({ navigation, route }: any) => {
                   ? <ActivityIndicator color={colors.white} />
                   : <>
                       <Ionicons name="person-add-outline" size={18} color={colors.white} />
-                      <Text style={styles.primaryBtnText}>Add to Group</Text>
+                      <Text style={styles.primaryBtnText}>
+                        Add to {selectedGroupName || 'Group'}
+                      </Text>
                     </>
                 }
               </TouchableOpacity>
@@ -253,7 +349,7 @@ const AddMemberScreen = ({ navigation, route }: any) => {
               <Text style={styles.stepTitle}>Create Realtor Account</Text>
             </View>
             <Text style={styles.stepDesc}>
-              Create a new REALTOR account. They can log in immediately with their email and password.
+              Create a new Realtor account. They can log in immediately with their email and password.
             </Text>
 
             <Text style={styles.label}>First Name *</Text>
@@ -278,7 +374,7 @@ const AddMemberScreen = ({ navigation, route }: any) => {
               style={styles.input}
               value={phone}
               onChangeText={setPhone}
-              placeholder="+91 98765 43210"
+              placeholder="+1 555 000 0000"
               keyboardType="phone-pad"
             />
 
@@ -299,7 +395,6 @@ const AddMemberScreen = ({ navigation, route }: any) => {
             </View>
 
             <Text style={styles.sectionLabel}>Optional Settings</Text>
-
             <Text style={styles.label}>Commission (%)</Text>
             <TextInput
               style={styles.input}
@@ -326,7 +421,9 @@ const AddMemberScreen = ({ navigation, route }: any) => {
                 ? <ActivityIndicator color={colors.white} />
                 : <>
                     <Ionicons name="checkmark-circle-outline" size={18} color={colors.white} />
-                    <Text style={styles.primaryBtnText}>Create & Add to Group</Text>
+                    <Text style={styles.primaryBtnText}>
+                      Create & Add to {selectedGroupName || 'Group'}
+                    </Text>
                   </>
               }
             </TouchableOpacity>
@@ -340,72 +437,50 @@ const AddMemberScreen = ({ navigation, route }: any) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: colors.borderLight,
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: colors.backgroundSecondary, alignItems: 'center', justifyContent: 'center',
   },
   topBarTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.text },
 
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
+  tabBar: { flexDirection: 'row', backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
   tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: 12,
-    borderBottomWidth: 2.5,
-    borderBottomColor: 'transparent',
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: spacing.xs, paddingVertical: 12, borderBottomWidth: 2.5, borderBottomColor: 'transparent',
   },
   tabActive: { borderBottomColor: colors.primary },
   tabText: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, color: colors.textSecondary },
   tabTextActive: { color: colors.primary, fontWeight: typography.fontWeight.bold },
 
+  groupSelectorBar: {
+    backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    borderBottomWidth: 1, borderBottomColor: colors.borderLight,
+  },
+  groupSelector: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.primarySurface, borderRadius: 12,
+    paddingHorizontal: spacing.md, paddingVertical: 10,
+    borderWidth: 1, borderColor: colors.primary + '33',
+  },
+  groupSelectorText: {
+    flex: 1, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.primary,
+  },
+
   form: { flex: 1, padding: spacing.md },
   stepCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    backgroundColor: colors.surface, borderRadius: 20, padding: spacing.lg, marginBottom: spacing.md,
+    borderWidth: 1, borderColor: colors.border,
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
   },
   stepHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   stepBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center',
   },
   stepBadgeText: { color: colors.white, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold },
   stepTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.text },
@@ -414,47 +489,24 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   searchInput: { flex: 1, marginBottom: 0 },
   searchBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    width: 52, height: 52, borderRadius: 14, backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   errorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-    backgroundColor: colors.errorSurface,
-    borderRadius: 10,
-    padding: spacing.sm,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.sm,
+    backgroundColor: colors.errorSurface, borderRadius: 10, padding: spacing.sm,
   },
   errorText: { fontSize: typography.fontSize.sm, color: colors.error, flex: 1 },
 
   realtorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 14,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.successSurface,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background,
+    borderRadius: 14, padding: spacing.md, marginBottom: spacing.md, gap: spacing.sm,
+    borderWidth: 1, borderColor: colors.successSurface,
   },
   realtorAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: colors.primarySurface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 48, height: 48, borderRadius: 14, backgroundColor: colors.primarySurface,
+    alignItems: 'center', justifyContent: 'center',
   },
   realtorAvatarText: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.primary },
   realtorInfo: { flex: 1 },
@@ -462,60 +514,53 @@ const styles = StyleSheet.create({
   realtorEmail: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 2 },
 
   sectionLabel: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-    marginTop: spacing.md,
-    letterSpacing: 0.3,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
-    paddingTop: spacing.md,
+    fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold,
+    color: colors.textSecondary, marginBottom: spacing.xs, marginTop: spacing.md,
+    letterSpacing: 0.3, borderTopWidth: 1, borderTopColor: colors.borderLight, paddingTop: spacing.md,
   },
   label: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textSecondary,
-    marginBottom: 6,
-    marginTop: spacing.md,
-    letterSpacing: 0.2,
+    fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold,
+    color: colors.textSecondary, marginBottom: 6, marginTop: spacing.md, letterSpacing: 0.2,
   },
   input: {
-    backgroundColor: colors.background,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    height: 52,
-    fontSize: typography.fontSize.md,
-    color: colors.text,
+    backgroundColor: colors.background, borderWidth: 1.5, borderColor: colors.border,
+    borderRadius: 12, paddingHorizontal: spacing.md, height: 52,
+    fontSize: typography.fontSize.md, color: colors.text,
   },
   passwordRow: { position: 'relative' },
   passwordInput: { paddingRight: 48 },
-  eyeBtn: {
-    position: 'absolute',
-    right: 14,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
+  eyeBtn: { position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' },
   primaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    height: 52,
-    borderRadius: 14,
-    marginTop: spacing.lg,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+    backgroundColor: colors.primary, height: 52, borderRadius: 14, marginTop: spacing.lg,
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 10, elevation: 6,
   },
   primaryBtnText: { color: colors.white, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold },
   btnDisabled: { opacity: 0.55 },
+
+  // Group picker modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center', alignItems: 'center', padding: spacing.xl,
+  },
+  modalCard: {
+    backgroundColor: colors.surface, borderRadius: 20, padding: spacing.xl, width: '100%',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10,
+  },
+  modalTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.text },
+  modalDesc: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 4, marginBottom: spacing.md },
+  groupPickerRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.borderLight,
+  },
+  groupPickerRowActive: { backgroundColor: colors.primarySurface, borderRadius: 10, paddingHorizontal: spacing.sm },
+  groupPickerName: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.text },
+  groupPickerSub: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 2 },
+  cancelBtn: {
+    height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.backgroundSecondary, borderWidth: 1, borderColor: colors.border, marginTop: spacing.md,
+  },
+  cancelBtnText: { color: colors.text, fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.md },
 });
 
 export default AddMemberScreen;

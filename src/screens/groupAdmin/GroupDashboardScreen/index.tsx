@@ -158,7 +158,7 @@ const GroupDashboardScreen = ({ navigation }: any) => {
               <Ionicons name="person-add" size={22} color={colors.primary} />
             </View>
             <Text style={styles.actionTitle}>Manage Realtors</Text>
-            <Text style={styles.actionSub}>View & manage team</Text>
+            <Text style={styles.actionSub}>View & manage</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -179,8 +179,8 @@ const GroupDashboardScreen = ({ navigation }: any) => {
             <View style={[styles.actionIconWrap, { backgroundColor: colors.infoSurface }]}>
               <Ionicons name="business-outline" size={22} color={colors.info} />
             </View>
-            <Text style={styles.actionTitle}>My Group</Text>
-            <Text style={styles.actionSub}>Group details</Text>
+            <Text style={styles.actionTitle}>My Groups</Text>
+            <Text style={styles.actionSub}>View & manage</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
