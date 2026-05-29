@@ -14,6 +14,7 @@ import Input from '@/components/common/Input';
 import type { RootState, AppDispatch } from '@/store';
 import { UserService } from '@/api/services/user.service';
 import { fetchUser } from '@/store/slices/authSlice';
+import { toIsoDateOrEmpty } from '@/utils/helpers/dateOfBirth';
 
 const GENDER_OPTIONS = [
   { label: 'Male', value: 'MALE', icon: 'male-outline' },
@@ -49,8 +50,12 @@ const EditProfileScreen = ({ navigation }: any) => {
         website: data.website || undefined,
         gender: selectedGender || undefined,
       };
-      if (data.dateOfBirth && data.dateOfBirth.trim().length > 0) {
-        payload.dateOfBirth = data.dateOfBirth.trim();
+      const dob = (data.dateOfBirth || '').trim();
+      if (dob.length > 0) {
+        // Backend expects ISO yyyy-MM-dd. Accept either yyyy-MM-dd (passthrough)
+        // or the legacy DD/MM/YYYY format the screen historically displayed.
+        const iso = toIsoDateOrEmpty(dob);
+        if (iso) payload.dateOfBirth = iso;
       }
       await UserService.updateMe(payload);
       await dispatch(fetchUser());
@@ -145,7 +150,7 @@ const EditProfileScreen = ({ navigation }: any) => {
                 value={value}
                 onChangeText={onChange}
                 leftIcon="calendar-outline"
-                placeholder="DD/MM/YYYY"
+                placeholder="YYYY-MM-DD"
               />
             )}
           />
