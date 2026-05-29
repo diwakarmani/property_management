@@ -32,7 +32,7 @@ export const AuthService = {
     axiosClient.post<ApiResponse<void>>(AUTH_ENDPOINTS.RESET_PASSWORD, data),
 
   getCurrentUser: () =>
-    axiosClient.get<ApiResponse<any>>(AUTH_ENDPOINTS.ME),
+    axiosClient.get<ApiResponse<any>>(AUTH_ENDPOINTS.ME, { skipErrorToast: true } as any),
 
   verifyEmail: (token: string) =>
     axiosClient.get<ApiResponse<void>>(`/api/auth/verify-email?token=${encodeURIComponent(token)}`),
