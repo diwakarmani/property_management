@@ -82,7 +82,7 @@ const CreateGroupScreen = ({ navigation }: any) => {
           style={styles.input}
           value={form.name}
           onChangeText={set('name')}
-          placeholder="e.g. Elite Realtors Mumbai"
+          placeholder="e.g. Champions Realty Austin"
           maxLength={100}
         />
 

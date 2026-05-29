@@ -45,7 +45,7 @@ const EditListingScreen = ({ navigation, route }: any) => {
   const [propertyTypes, setPropertyTypes] = useState<PropertyTypeDTO[]>([]);
   const [form, setForm] = useState<FormData>({
     title: '', description: '', listingType: 'SALE', price: '', propertyTypeId: '',
-    addressLine1: '', city: '', state: '', country: 'India', postalCode: '', locality: '',
+    addressLine1: '', city: '', state: '', country: 'USA', postalCode: '', locality: '',
     bedrooms: '', bathrooms: '', carpetArea: '', furnishedStatus: 'UNFURNISHED', depositAmount: '',
   });
 
@@ -69,7 +69,7 @@ const EditListingScreen = ({ navigation, route }: any) => {
           addressLine1: p.addressLine1 ?? '',
           city: p.city ?? '',
           state: p.state ?? '',
-          country: p.country ?? 'India',
+          country: p.country ?? 'USA',
           postalCode: p.postalCode ?? '',
           locality: p.locality ?? '',
           bedrooms: p.bedrooms != null ? String(p.bedrooms) : '',
@@ -230,13 +230,13 @@ const EditListingScreen = ({ navigation, route }: any) => {
         placeholder="e.g. Bandra West" />
 
       <Text style={styles.label}>City *</Text>
-      <TextInput style={styles.input} value={form.city} onChangeText={set('city')} placeholder="e.g. Mumbai" />
+      <TextInput style={styles.input} value={form.city} onChangeText={set('city')} placeholder="e.g. Austin" />
 
       <Text style={styles.label}>State *</Text>
       <TextInput style={styles.input} value={form.state} onChangeText={set('state')} placeholder="e.g. Maharashtra" />
 
       <Text style={styles.label}>Country</Text>
-      <TextInput style={styles.input} value={form.country} onChangeText={set('country')} placeholder="India" />
+      <TextInput style={styles.input} value={form.country} onChangeText={set('country')} placeholder="USA" />
 
       <Text style={styles.label}>Postal Code</Text>
       <TextInput style={styles.input} value={form.postalCode} onChangeText={set('postalCode')}

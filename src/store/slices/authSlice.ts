@@ -212,10 +212,11 @@ const authSlice = createSlice({
         }
       })
       .addCase(bootstrapSession.rejected, (state) => {
-        // Retries exhausted — keep bootstrapped=false so AppNavigator stays on
-        // BootScreen, which shows a Retry button (not the Login screen).
+        // Retries exhausted — mark bootstrapped so the user reaches Login.
         state.loading = false;
+        state.bootstrapped = true;
         state.bootstrapFailed = true;
+        state.isAuthenticated = false;
       })
       // Fetch current user (NB-02)
       .addCase(fetchUser.pending, (state) => {

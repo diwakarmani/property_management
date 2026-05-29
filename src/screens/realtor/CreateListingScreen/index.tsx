@@ -46,7 +46,7 @@ const CreateListingScreen = ({ navigation }: any) => {
   const [propertyTypes, setPropertyTypes] = useState<PropertyTypeDTO[]>([]);
   const [form, setForm] = useState<FormData>({
     title: '', description: '', listingType: 'SALE', price: '', propertyTypeId: '',
-    addressLine1: '', city: '', state: '', country: 'India', postalCode: '', locality: '',
+    addressLine1: '', city: '', state: '', country: 'USA', postalCode: '', locality: '',
     bedrooms: '', bathrooms: '', carpetArea: '', furnishedStatus: 'UNFURNISHED', depositAmount: '',
   });
 
@@ -237,7 +237,7 @@ const CreateListingScreen = ({ navigation }: any) => {
             style={styles.input}
             value={form.city}
             onChangeText={set('city')}
-            placeholder="e.g. Mumbai"
+            placeholder="e.g. Austin"
             placeholderTextColor={colors.textLight}
           />
         </View>
@@ -260,7 +260,7 @@ const CreateListingScreen = ({ navigation }: any) => {
             style={styles.input}
             value={form.country}
             onChangeText={set('country')}
-            placeholder="India"
+            placeholder="USA"
             placeholderTextColor={colors.textLight}
           />
         </View>

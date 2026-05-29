@@ -20,9 +20,9 @@ export const GroupService = {
     axiosClient.get<ApiResponse<GroupDashboardStatsDTO>>('/api/group-admin/dashboard/stats'),
 
   // ── Members ─────────────────────────────────────────────────────────────
-  getMembers: (page = 0, size = 20) =>
+  getMembers: (page = 0, size = 20, includeInactive = false) =>
     axiosClient.get<ApiResponse<PageResponse<GroupMemberDTO>>>('/api/group-admin/members', {
-      params: { page, size },
+      params: { page, size, includeInactive },
     }),
 
   lookupRealtor: (email: string) =>

@@ -127,10 +127,9 @@ const ApproveListingsScreen = ({ navigation }: any) => {
   };
 
   const formatPrice = (price: number) => {
-    if (price >= 10_000_000) return `₹${(price / 10_000_000).toFixed(1)}Cr`;
-    if (price >= 100_000) return `₹${(price / 100_000).toFixed(1)}L`;
-    if (price >= 1_000) return `₹${(price / 1_000).toFixed(0)}K`;
-    return `₹${price.toLocaleString('en-IN')}`;
+    if (price >= 1_000_000) return `$${(price / 1_000_000).toFixed(2)}M`;
+    if (price >= 1_000) return `$${(price / 1_000).toFixed(0)}K`;
+    return `$${price.toLocaleString('en-US')}`;
   };
 
   const PendingCard = ({ listing }: { listing: PropertyCardDTO }) => {

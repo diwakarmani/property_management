@@ -368,10 +368,10 @@ const SearchScreen = ({ navigation }: any) => {
                 {/* Quick budget presets */}
                 <View style={styles.presetRow}>
                   {[
-                    { label: 'Under 50L', min: '', max: '5000000' },
-                    { label: '50L–1Cr', min: '5000000', max: '10000000' },
-                    { label: '1–3Cr', min: '10000000', max: '30000000' },
-                    { label: '3Cr+', min: '30000000', max: '' },
+                    { label: 'Under $500K', min: '', max: '500000' },
+                    { label: '$500K–$1M', min: '500000', max: '1000000' },
+                    { label: '$1M–$3M', min: '1000000', max: '3000000' },
+                    { label: '$3M+', min: '3000000', max: '' },
                   ].map(preset => {
                     const isActive = filters.minPrice === preset.min && filters.maxPrice === preset.max;
                     return (

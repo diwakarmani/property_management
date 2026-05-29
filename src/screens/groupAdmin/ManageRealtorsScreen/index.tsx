@@ -33,7 +33,7 @@ const ManageRealtorsScreen = ({ navigation }: any) => {
 
   const loadMembers = useCallback((isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    GroupService.getMembers(0, 50)
+    GroupService.getMembers(0, 50, true) // includeInactive so deactivated members are visible for reactivation
       .then(res => {
         setMembers(res.data.data.content);
         setNoGroup(false);

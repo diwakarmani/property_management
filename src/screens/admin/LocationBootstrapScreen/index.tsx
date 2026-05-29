@@ -174,7 +174,7 @@ const LocationBootstrapScreen = () => {
               style={styles.importInput}
               value={countryName}
               onChangeText={setCountryName}
-              placeholder="Country name (e.g. India)"
+              placeholder="Country name (e.g. USA)"
               autoCapitalize="words"
             />
             <TouchableOpacity

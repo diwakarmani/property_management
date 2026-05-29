@@ -22,7 +22,7 @@ const EMPTY_FORM: Omit<UserAddressDTO, 'id'> = {
   addressLine2: '',
   city: '',
   state: '',
-  country: 'India',
+  country: 'USA',
   postalCode: '',
   addressType: 'HOME',
   isDefault: false,
@@ -234,7 +234,7 @@ const AddressesScreen = ({ navigation }: any) => {
                     style={fieldStyle('city')}
                     value={form.city}
                     onChangeText={set('city')}
-                    placeholder="e.g. Mumbai"
+                    placeholder="e.g. Austin"
                     placeholderTextColor={colors.textLight}
                     onFocus={() => setFocusedField('city')}
                     onBlur={() => setFocusedField(null)}
@@ -261,7 +261,7 @@ const AddressesScreen = ({ navigation }: any) => {
                     style={fieldStyle('country')}
                     value={form.country}
                     onChangeText={set('country')}
-                    placeholder="India"
+                    placeholder="USA"
                     placeholderTextColor={colors.textLight}
                     onFocus={() => setFocusedField('country')}
                     onBlur={() => setFocusedField(null)}
