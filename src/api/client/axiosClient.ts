@@ -4,13 +4,15 @@ import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '@/util
 import { toast } from '@/utils/toast';
 import { requestTracker } from '@/utils/requestTracker';
 
-// Allow request config to carry two opt-out flags:
-//   skipGlobalLoader  — don't show the full-screen spinner (fire-and-forget, polling)
-//   skipSuccessToast  — don't show the green success toast (caller handles its own UX)
+// Allow request config to carry opt-out flags:
+//   skipGlobalLoader  — don't show the full-screen spinner
+//   skipSuccessToast  — caller handles its own success UX
+//   skipErrorToast    — caller handles its own error UX (e.g. inline "no group yet" states)
 declare module 'axios' {
   interface InternalAxiosRequestConfig {
     skipGlobalLoader?: boolean;
     skipSuccessToast?: boolean;
+    skipErrorToast?: boolean;
   }
 }
 
@@ -110,6 +112,11 @@ axiosClient.interceptors.response.use(
     }
 
     // ── Surface error toast ───────────────────────────────────────────────
+    // Caller opted out — they show their own inline error state.
+    if (originalRequest.skipErrorToast) {
+      return Promise.reject(error);
+    }
+
     if (!response) {
       // Network error or timeout
       const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');

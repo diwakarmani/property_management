@@ -4,10 +4,17 @@ import type { GroupDashboardStatsDTO, GroupMemberDTO, RealtorGroupDTO, AddMember
 import type { PageResponse } from '../types/property.types';
 import type { PropertyCardDTO } from '../types/discovery.types';
 
+// GETs pass skipErrorToast because every screen shows its own inline error state
+// (e.g. "No Group Yet" empty state, Alert dialogs). The global toast would be noise.
+const SILENT = { skipErrorToast: true } as const;
+
 export const GroupService = {
   // ── Group ───────────────────────────────────────────────────────────────
   getMyGroup: () =>
-    axiosClient.get<ApiResponse<RealtorGroupDTO>>('/api/group-admin/groups/mine'),
+    axiosClient.get<ApiResponse<RealtorGroupDTO>>('/api/group-admin/groups/mine', SILENT),
+
+  getMyGroups: () =>
+    axiosClient.get<ApiResponse<RealtorGroupDTO[]>>('/api/group-admin/groups', SILENT),
 
   createGroup: (data: CreateGroupRequest) =>
     axiosClient.post<ApiResponse<RealtorGroupDTO>>('/api/group-admin/groups', data),
@@ -16,44 +23,57 @@ export const GroupService = {
     axiosClient.put<ApiResponse<RealtorGroupDTO>>(`/api/group-admin/groups/${id}`, data),
 
   // ── Dashboard ───────────────────────────────────────────────────────────
-  getDashboardStats: () =>
-    axiosClient.get<ApiResponse<GroupDashboardStatsDTO>>('/api/group-admin/dashboard/stats'),
+  getDashboardStats: (groupId?: number) =>
+    axiosClient.get<ApiResponse<GroupDashboardStatsDTO>>('/api/group-admin/dashboard/stats', {
+      ...SILENT,
+      params: groupId ? { groupId } : undefined,
+    }),
 
   // ── Members ─────────────────────────────────────────────────────────────
-  getMembers: (page = 0, size = 20, includeInactive = false) =>
+  getMembers: (page = 0, size = 20, includeInactive = false, groupId?: number) =>
     axiosClient.get<ApiResponse<PageResponse<GroupMemberDTO>>>('/api/group-admin/members', {
-      params: { page, size, includeInactive },
+      ...SILENT,
+      params: { page, size, includeInactive, ...(groupId ? { groupId } : {}) },
     }),
 
   lookupRealtor: (email: string) =>
     axiosClient.get<ApiResponse<GroupMemberDTO>>('/api/group-admin/realtors/search', {
+      ...SILENT,
       params: { email },
     }),
 
-  addMember: (request: AddMemberRequest) =>
+  addMember: (request: AddMemberRequest & { groupId?: number }) =>
     axiosClient.post<ApiResponse<GroupMemberDTO>>('/api/group-admin/members', request),
 
-  removeMember: (userId: number) =>
-    axiosClient.delete<ApiResponse<string>>(`/api/group-admin/members/${userId}`),
-
-  updateMemberSettings: (userId: number, request: Partial<AddMemberRequest>) =>
-    axiosClient.patch<ApiResponse<GroupMemberDTO>>(`/api/group-admin/members/${userId}/settings`, request),
-
-  createRealtor: (request: CreateRealtorRequest) =>
-    axiosClient.post<ApiResponse<GroupMemberDTO>>('/api/group-admin/realtors', request),
-
-  activateMember: (userId: number) =>
-    axiosClient.patch<ApiResponse<GroupMemberDTO>>(`/api/group-admin/members/${userId}/activate`),
-
-  // ── Listings ────────────────────────────────────────────────────────────
-  getPendingListings: (page = 0, size = 20) =>
-    axiosClient.get<ApiResponse<PageResponse<PropertyCardDTO>>>('/api/group-admin/listings/pending', {
-      params: { page, size },
+  removeMember: (userId: number, groupId?: number) =>
+    axiosClient.delete<ApiResponse<string>>(`/api/group-admin/members/${userId}`, {
+      params: groupId ? { groupId } : undefined,
     }),
 
-  getAllListings: (page = 0, size = 20) =>
+  updateMemberSettings: (userId: number, request: Partial<AddMemberRequest>, groupId?: number) =>
+    axiosClient.patch<ApiResponse<GroupMemberDTO>>(`/api/group-admin/members/${userId}/settings`, request, {
+      params: groupId ? { groupId } : undefined,
+    }),
+
+  createRealtor: (request: CreateRealtorRequest & { groupId?: number }) =>
+    axiosClient.post<ApiResponse<GroupMemberDTO>>('/api/group-admin/realtors', request),
+
+  activateMember: (userId: number, groupId?: number) =>
+    axiosClient.patch<ApiResponse<GroupMemberDTO>>(`/api/group-admin/members/${userId}/activate`, null, {
+      params: groupId ? { groupId } : undefined,
+    }),
+
+  // ── Listings ────────────────────────────────────────────────────────────
+  getPendingListings: (page = 0, size = 20, groupId?: number) =>
+    axiosClient.get<ApiResponse<PageResponse<PropertyCardDTO>>>('/api/group-admin/listings/pending', {
+      ...SILENT,
+      params: { page, size, ...(groupId ? { groupId } : {}) },
+    }),
+
+  getAllListings: (page = 0, size = 20, groupId?: number) =>
     axiosClient.get<ApiResponse<PageResponse<PropertyCardDTO>>>('/api/group-admin/listings', {
-      params: { page, size },
+      ...SILENT,
+      params: { page, size, ...(groupId ? { groupId } : {}) },
     }),
 
   approveListing: (propertyId: number) =>

@@ -4,7 +4,6 @@ import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
-import { useUnreadCountQuery } from '@/api/hooks/useNotifications';
 import type { RootState } from '@/store';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'REALTOR', 'REALTOR_GROUP_ADMIN'];
@@ -13,7 +12,6 @@ const Header = () => {
   const navigation = useNavigation();
   const { selectedCity } = useSelector((state: RootState) => state.location);
   const { user } = useSelector((state: RootState) => state.auth);
-  const { data: unreadCount = 0 } = useUnreadCountQuery();
 
   const isAdminRole = user?.roles?.some((r: string) => ADMIN_ROLES.includes(r)) ?? false;
 
@@ -49,15 +47,10 @@ const Header = () => {
           style={styles.actionWrap}
           onPress={() => (navigation as any).navigate('Profile', { screen: 'Notifications' })}
           accessibilityRole="button"
-          accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          accessibilityLabel="Notifications"
         >
           <View style={styles.actionBtn}>
             <Ionicons name="notifications-outline" size={20} color={colors.text} />
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-              </View>
-            )}
           </View>
         </TouchableOpacity>
 
@@ -164,20 +157,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: colors.error,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.white,
-  },
-  badgeText: { color: colors.white, fontSize: 9, fontWeight: 'bold' },
 });
 
 export default Header;

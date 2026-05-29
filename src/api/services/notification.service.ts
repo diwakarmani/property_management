@@ -8,11 +8,13 @@ export const NotificationService = {
   list: (page = 0, size = 20) =>
     axiosClient.get<ApiResponse<PageResponse<NotificationDTO>>>('/api/notifications', {
       params: { page, size },
-    }),
+      skipErrorToast: true,  // NotificationsScreen handles its own empty/error state
+    } as any),
 
   unreadCount: () =>
     axiosClient.get<ApiResponse<{ count: number }>>('/api/notifications/unread-count', {
       skipGlobalLoader: true,
+      skipErrorToast: true,  // badge silently shows 0 on error — no toast needed
     } as any),
 
   markRead: (id: number) =>
