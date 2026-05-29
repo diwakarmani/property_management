@@ -68,9 +68,18 @@ describe('GroupService', () => {
     expect(res.status).toBe(201);
   });
 
+  it('getMembers() passes includeInactive=true when requested', async () => {
+    mock.onGet('/api/group-admin/members').reply((config) => {
+      expect(config.params).toEqual({ page: 0, size: 50, includeInactive: true });
+      return [200, { success: true, data: { content: [], totalElements: 0 } }];
+    });
+    const res = await GroupService.getMembers(0, 50, true);
+    expect(res.status).toBe(200);
+  });
+
   it('activateMember() PATCHes /api/group-admin/members/{id}/activate', async () => {
     mock.onPatch('/api/group-admin/members/77/activate').reply(200, {
-      success: true, data: { userId: 77, active: true },
+      success: true, data: { userId: 77, isActive: true },
     });
     const res = await GroupService.activateMember(77);
     expect(res.status).toBe(200);
