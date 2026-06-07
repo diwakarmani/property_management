@@ -30,7 +30,7 @@ interface Props {
 }
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const [loginMode, setLoginMode] = useState<'password' | 'otp'>('password');
+  const [loginMode, setLoginMode] = useState<'password' | 'otp'>('otp');
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
 
@@ -50,7 +50,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       if (sendOtp.fulfilled.match(result)) {
         navigation.navigate('OTPVerification', { identifier: data.identifier });
       } else {
-        Alert.alert('Error', error || 'Failed to send OTP. Please try again.');
+        Alert.alert('Error', (result.payload as string) || 'Failed to send OTP. Please try again.');
       }
     }
   };
@@ -84,27 +84,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.card}>
-          {/* Toggle */}
-          <View style={styles.toggleContainer}>
-            {(['password', 'otp'] as const).map((mode) => (
-              <TouchableOpacity
-                key={mode}
-                style={[styles.toggleButton, loginMode === mode && styles.toggleButtonActive]}
-                onPress={() => setLoginMode(mode)}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name={mode === 'password' ? 'lock-closed-outline' : 'phone-portrait-outline'}
-                  size={15}
-                  color={loginMode === mode ? colors.white : colors.textSecondary}
-                />
-                <Text style={[styles.toggleText, loginMode === mode && styles.toggleTextActive]}>
-                  {mode === 'password' ? 'Password' : 'OTP Login'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
           <View style={styles.form}>
             <Controller
               control={control}
@@ -162,8 +141,23 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleSubmit(onSubmit)}
               style={styles.loginButton}
             >
-              {loginMode === 'password' ? 'Sign In' : 'Send OTP'}
+              {loginMode === 'password' ? 'Sign In' : 'Continue with OTP'}
             </Button>
+
+            <TouchableOpacity
+              style={styles.secondaryLogin}
+              onPress={() => setLoginMode(loginMode === 'password' ? 'otp' : 'password')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={loginMode === 'password' ? 'phone-portrait-outline' : 'lock-closed-outline'}
+                size={15}
+                color={colors.primary}
+              />
+              <Text style={styles.secondaryLoginText}>
+                {loginMode === 'password' ? 'Use OTP instead' : 'Login with password'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
@@ -230,37 +224,18 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
 
-  toggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: spacing.lg,
-  },
-  toggleButton: {
-    flex: 1,
+  secondaryLogin: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 10,
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
     gap: 6,
   },
-  toggleButtonActive: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  toggleText: {
+  secondaryLoginText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: colors.primary,
     fontWeight: typography.fontWeight.semibold,
-  },
-  toggleTextActive: {
-    color: colors.white,
   },
 
   form: { gap: 0 },

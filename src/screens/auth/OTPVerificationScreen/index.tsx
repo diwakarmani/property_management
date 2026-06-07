@@ -43,7 +43,7 @@ const OTPVerificationScreen: React.FC<Props> = ({ route }) => {
     dispatch(clearError());
     const result = await dispatch(verifyOtp({ identifier, otpCode: otp }));
     if (!verifyOtp.fulfilled.match(result)) {
-      Alert.alert('Invalid Code', error || 'The OTP entered is incorrect. Please try again.');
+      Alert.alert('Invalid Code', (result.payload as string) || 'The OTP entered is incorrect. Please try again.');
     }
   };
 
