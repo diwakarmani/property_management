@@ -1,6 +1,5 @@
 export const ROLES = {
   SUPER_ADMIN: 'SUPER_ADMIN',
-  REALTOR_GROUP_ADMIN: 'REALTOR_GROUP_ADMIN',
   REALTOR: 'REALTOR',
   SELLER: 'SELLER',
   BUYER: 'BUYER',
@@ -10,14 +9,9 @@ export const PERMISSIONS = {
   // Super Admin
   MANAGE_SYSTEM: 'manage_system',
   VIEW_PLATFORM_ANALYTICS: 'view_platform_analytics',
-  APPROVE_REALTOR_GROUPS: 'approve_realtor_groups',
-  
-  // Realtor Group Admin
-  MANAGE_GROUP: 'manage_group',
-  CREATE_REALTOR: 'create_realtor',
-  VIEW_GROUP_ANALYTICS: 'view_group_analytics',
-  SET_TARGETS: 'set_targets',
-  APPROVE_REALTOR_LISTINGS: 'approve_realtor_listings',
+  APPROVE_REALTORS: 'approve_realtors',
+  APPROVE_LISTINGS: 'approve_listings',
+  REVIEW_DOCUMENTS: 'review_documents',
   
   // Realtor
   CREATE_LISTING: 'create_listing',
@@ -34,16 +28,6 @@ export const PERMISSIONS = {
 
 export const ROLE_PERMISSIONS = {
   [ROLES.SUPER_ADMIN]: Object.values(PERMISSIONS),
-  
-  [ROLES.REALTOR_GROUP_ADMIN]: [
-    PERMISSIONS.VIEW_PROPERTIES,
-    PERMISSIONS.MANAGE_GROUP,
-    PERMISSIONS.CREATE_REALTOR,
-    PERMISSIONS.VIEW_GROUP_ANALYTICS,
-    PERMISSIONS.SET_TARGETS,
-    PERMISSIONS.APPROVE_REALTOR_LISTINGS,
-    PERMISSIONS.CREATE_LISTING,
-  ],
   
   [ROLES.REALTOR]: [
     PERMISSIONS.VIEW_PROPERTIES,

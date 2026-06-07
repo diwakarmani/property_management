@@ -8,8 +8,10 @@ import HomeScreen from '@/screens/home/HomeScreen';
 import ViewMoreScreen from '@/screens/property/ViewMoreScreen';
 import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
 import ContactAgentScreen from '@/screens/property/ContactAgentScreen';
+import RealtorProfileScreen from '@/screens/realtor/RealtorProfileScreen';
 import SearchScreen from '@/screens/search/SearchScreen';
 import FavoritesScreen from '@/screens/favorites/FavoritesScreen';
+import NotificationsScreen from '@/screens/profile/NotificationsScreen';
 import { withLayout } from '@/utils/withLayout';
 import ProfileStackNavigator from './ProfileStackNavigator';
 
@@ -21,6 +23,9 @@ const ViewMoreWrapped = withLayout(ViewMoreScreen);
 const PropertyDetailWrapped = withLayout(PropertyDetailScreen);
 const SearchWrapped = withLayout(SearchScreen);
 const FavoritesWrapped = withLayout(FavoritesScreen);
+const NotificationsWrapped = withLayout(NotificationsScreen);
+
+const RealtorProfileWrapped = withLayout(RealtorProfileScreen);
 
 const HomeStackScreen = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
@@ -28,6 +33,7 @@ const HomeStackScreen = () => (
     <HomeStack.Screen name="ViewMore" component={ViewMoreWrapped} />
     <HomeStack.Screen name="PropertyDetail" component={PropertyDetailWrapped} />
     <HomeStack.Screen name="ContactAgent" component={ContactAgentScreen} />
+    <HomeStack.Screen name="RealtorProfile" component={RealtorProfileWrapped} />
   </HomeStack.Navigator>
 );
 
@@ -64,7 +70,21 @@ const MainTabNavigator = () => (
     <Tab.Screen name="Home"      component={HomeStackScreen} />
     <Tab.Screen name="Search"    component={SearchWrapped} />
     <Tab.Screen name="Favorites" component={FavoritesWrapped} />
-    <Tab.Screen name="Profile"   component={ProfileStackNavigator} />
+    <Tab.Screen
+      name="Notifications"
+      component={NotificationsWrapped}
+      options={{ tabBarButton: () => null }}
+    />
+    <Tab.Screen
+      name="Profile"
+      component={ProfileStackNavigator}
+      listeners={({ navigation }) => ({
+        tabPress: (e) => {
+          e.preventDefault();
+          navigation.navigate('Profile', { screen: 'ProfileMain' });
+        },
+      })}
+    />
   </Tab.Navigator>
 );
 

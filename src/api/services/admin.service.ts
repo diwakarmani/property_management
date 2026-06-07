@@ -1,7 +1,6 @@
 import axiosClient from '../client/axiosClient';
 import type { ApiResponse } from '../types/auth.types';
-import type { PageResponse, PropertyTypeDTO, PropertySubTypeDTO, PropertyAmenityDTO } from '../types/property.types';
-import type { RealtorGroupDTO } from '../types/group.types';
+import type { PageResponse, PropertyTypeDTO, PropertySubTypeDTO, PropertyAmenityDTO, PropertyDTO } from '../types/property.types';
 
 export interface AdminCountryDTO { id: number; name: string; isoCode?: string; }
 export interface AdminStateDTO { id: number; name: string; countryId?: number; }
@@ -46,32 +45,6 @@ export const AdminService = {
   deactivateUser: (id: number) =>
     axiosClient.post<ApiResponse<AdminUserDTO>>(`/api/users/${id}/deactivate`),
 
-  getPendingGroupAdmins: (page = 0, size = 20) =>
-    axiosClient.get<ApiResponse<PageResponse<AdminUserDTO>>>('/api/users/pending-group-admins', {
-      params: { page, size },
-    }),
-
-  // Groups
-  getGroups: (status?: string, page = 0, size = 20) =>
-    axiosClient.get<ApiResponse<PageResponse<RealtorGroupDTO>>>('/api/admin/groups', {
-      params: { status, page, size },
-    }),
-
-  getGroupById: (id: number) =>
-    axiosClient.get<ApiResponse<RealtorGroupDTO>>(`/api/admin/groups/${id}`),
-
-  approveGroup: (id: number) =>
-    axiosClient.post<ApiResponse<void>>(`/api/admin/groups/${id}/approve`),
-
-  rejectGroup: (id: number, reason: string) =>
-    axiosClient.post<ApiResponse<void>>(`/api/admin/groups/${id}/reject`, { reason }),
-
-  suspendGroup: (id: number, reason: string) =>
-    axiosClient.post<ApiResponse<void>>(`/api/admin/groups/${id}/suspend`, { reason }),
-
-  deleteGroup: (id: number) =>
-    axiosClient.delete<ApiResponse<void>>(`/api/admin/groups/${id}`),
-
   // Discovery
   refreshDiscoveryCache: () =>
     axiosClient.post<ApiResponse<void>>('/api/admin/discovery/refresh'),
@@ -110,4 +83,22 @@ export const AdminService = {
 
   activateCity: (cityId: number) =>
     axiosClient.post<void>(`/api/admin/locations/cities/${cityId}/activate`),
+
+  // Property moderation
+  getAdminProperties: (status?: string, page = 0, size = 20) =>
+    axiosClient.get<ApiResponse<PageResponse<PropertyDTO>>>('/api/admin/properties', {
+      params: { status, page, size, sortBy: 'createdAt', sortDirection: 'DESC' },
+    }),
+
+  approveProperty: (id: number) =>
+    axiosClient.post<ApiResponse<PropertyDTO>>(`/api/admin/properties/${id}/approve`),
+
+  rejectProperty: (id: number, reason?: string) =>
+    axiosClient.post<ApiResponse<PropertyDTO>>(`/api/admin/properties/${id}/reject`, { reason }),
+
+  toggleFeatured: (id: number) =>
+    axiosClient.patch<ApiResponse<PropertyDTO>>(`/api/properties/${id}/toggle-featured`),
+
+  toggleVerified: (id: number) =>
+    axiosClient.patch<ApiResponse<PropertyDTO>>(`/api/properties/${id}/toggle-verified`),
 };

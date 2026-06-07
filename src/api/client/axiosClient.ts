@@ -9,6 +9,12 @@ import { requestTracker } from '@/utils/requestTracker';
 //   skipSuccessToast  — caller handles its own success UX
 //   skipErrorToast    — caller handles its own error UX (e.g. inline "no group yet" states)
 declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipGlobalLoader?: boolean;
+    skipSuccessToast?: boolean;
+    skipErrorToast?: boolean;
+  }
+
   interface InternalAxiosRequestConfig {
     skipGlobalLoader?: boolean;
     skipSuccessToast?: boolean;

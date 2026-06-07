@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import type { RootState } from '@/store';
 
-const ADMIN_ROLES = ['SUPER_ADMIN', 'REALTOR', 'REALTOR_GROUP_ADMIN'];
+const ADMIN_ROLES = ['SUPER_ADMIN', 'REALTOR'];
 
 const Header = () => {
   const navigation = useNavigation();
@@ -14,6 +14,20 @@ const Header = () => {
   const { user } = useSelector((state: RootState) => state.auth);
 
   const isAdminRole = user?.roles?.some((r: string) => ADMIN_ROLES.includes(r)) ?? false;
+  const openNotifications = () => {
+    let nav: any = navigation;
+
+    while (nav) {
+      const routeNames = nav.getState?.()?.routeNames ?? [];
+      if (routeNames.includes('Profile') && routeNames.includes('Notifications')) {
+        nav.navigate('Notifications');
+        return;
+      }
+      nav = nav.getParent?.();
+    }
+
+    (navigation as any).navigate('Notifications');
+  };
 
   return (
     <View style={styles.container}>
@@ -45,7 +59,7 @@ const Header = () => {
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.actionWrap}
-          onPress={() => (navigation as any).navigate('Profile', { screen: 'Notifications' })}
+          onPress={openNotifications}
           accessibilityRole="button"
           accessibilityLabel="Notifications"
         >

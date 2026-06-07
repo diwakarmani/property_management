@@ -20,9 +20,6 @@ export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   LocationSelection: undefined;
   MainApp: undefined;
-  // Registered at the root stack post-login so the shared Header can reach
-  // them from any tab (navigate() bubbles up to the root navigator).
-  Notifications: undefined;
 };
 
 // ── Buyer / default flow ──────────────────────────────────────────────────
@@ -31,12 +28,14 @@ export type HomeStackParamList = {
   ViewMore: { category?: string } | undefined;
   PropertyDetail: { propertyId?: number; id?: number } | undefined;
   ContactAgent: { propertyId: number; propertyTitle?: string };
+  RealtorProfile: { realtorId: number; propertyId?: number; propertyTitle?: string };
 };
 
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
   Search: undefined;
   Favorites: undefined;
+  Notifications: undefined;
   Profile: undefined;
 };
 
@@ -52,6 +51,7 @@ export type SellerTabParamList = {
   Dashboard: undefined;
   MyListings: NavigatorScreenParams<ListingsStackParamList>;
   Create: undefined;
+  Notifications: undefined;
   Profile: undefined;
 };
 
@@ -60,6 +60,7 @@ export type RealtorTabParamList = {
   Dashboard: undefined;
   MyListings: NavigatorScreenParams<ListingsStackParamList>;
   Create: undefined;
+  Notifications: undefined;
   Profile: undefined;
 };
 

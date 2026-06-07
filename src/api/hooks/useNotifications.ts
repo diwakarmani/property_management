@@ -13,6 +13,16 @@ export const useNotificationsQuery = (page = 0, size = 50) =>
     staleTime: STALE_TIME.MEDIUM,
   });
 
+export const useUnreadCountQuery = () =>
+  useQuery({
+    queryKey: queryKeys.notificationsUnreadCount,
+    queryFn: async () => {
+      const res = await NotificationService.unreadCount();
+      return res.data.data?.count ?? 0;
+    },
+    staleTime: STALE_TIME.LIVE,
+  });
+
 /** Mark a single notification read — optimistic + cache patch on success. */
 export const useMarkReadMutation = () => {
   const qc = useQueryClient();

@@ -17,7 +17,7 @@ import { AdminService } from '@/api/services/admin.service';
 
 const STAT_CONFIG = [
   { key: 'totalUsers',       icon: 'people',           label: 'Total Users',    color: colors.primary,  bg: colors.primarySurface },
-  { key: 'totalGroups',      icon: 'business',         label: 'Groups',         color: '#8B5CF6',       bg: '#F5F3FF' },
+  { key: 'totalProperties',  icon: 'business',         label: 'Properties',     color: '#8B5CF6',       bg: '#F5F3FF' },
   { key: 'activeListings',   icon: 'home',             label: 'Active',         color: colors.success,  bg: colors.successSurface },
   { key: 'pendingApprovals', icon: 'time',             label: 'Pending',        color: colors.warning,  bg: colors.warningSurface },
   { key: 'soldProperties',   icon: 'checkmark-circle', label: 'Sold',           color: '#2980B9',       bg: colors.infoSurface },
@@ -25,12 +25,13 @@ const STAT_CONFIG = [
 ];
 
 const QUICK_ACTIONS = [
-  { icon: 'business-outline',   title: 'Manage Groups',      route: 'Groups' },
-  { icon: 'people-outline',     title: 'Manage Users',       route: 'ManageUsers' },
-  { icon: 'bar-chart-outline',  title: 'Platform Analytics', route: 'Analytics' },
-  { icon: 'layers-outline',     title: 'Property Config',    route: 'PropertyConfig' },
-  { icon: 'location-outline',   title: 'Location Bootstrap', route: 'LocationBootstrap' },
-  { icon: 'settings-outline',   title: 'System Settings',   route: 'SystemSettings' },
+  { icon: 'list-outline',       title: 'Approve Listings',   route: 'Listings',          showPending: true },
+  { icon: 'people-outline',     title: 'Manage Realtors',    route: 'Users',             showPending: false },
+  { icon: 'person-add-outline', title: 'Manage Users',       route: 'Users',             showPending: false },
+  { icon: 'bar-chart-outline',  title: 'Platform Analytics', route: 'Analytics',         showPending: false },
+  { icon: 'layers-outline',     title: 'Property Config',    route: 'PropertyConfig',    showPending: false },
+  { icon: 'location-outline',   title: 'Location Bootstrap', route: 'LocationBootstrap', showPending: false },
+  { icon: 'settings-outline',   title: 'System Settings',   route: 'SystemSettings',    showPending: false },
 ];
 
 const AdminDashboardScreen = ({ navigation }: any) => {
@@ -125,9 +126,9 @@ const AdminDashboardScreen = ({ navigation }: any) => {
       {/* Quick Actions */}
       <View style={styles.actionsCard}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
-        {QUICK_ACTIONS.map(({ icon, title, route }) => (
+        {QUICK_ACTIONS.map(({ icon, title, route, showPending }) => (
           <TouchableOpacity
-            key={route}
+            key={title}
             style={styles.menuItem}
             onPress={() => navigation.navigate(route)}
             activeOpacity={0.75}
@@ -136,7 +137,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
               <Ionicons name={icon as any} size={20} color={colors.primary} />
             </View>
             <Text style={styles.menuTitle}>{title}</Text>
-            {route === 'Groups' && (stats?.pendingApprovals ?? 0) > 0 && (
+            {showPending && (stats?.pendingApprovals ?? 0) > 0 && (
               <View style={styles.pendingBadge}>
                 <Text style={styles.pendingBadgeText}>{stats!.pendingApprovals}</Text>
               </View>

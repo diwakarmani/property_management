@@ -26,6 +26,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, i
     if (price >= 1_000) return `$${(price / 1_000).toFixed(0)}K`;
     return `$${price.toLocaleString('en-US')}`;
   };
+  const listingLabel = property.listingType === 'SALE' ? 'BUY' : property.listingType;
+  const isRecurringPrice = property.listingType === 'RENT' || property.listingType === 'LEASE';
 
   return (
     <TouchableOpacity
@@ -69,16 +71,16 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, i
         {/* Listing type top-right */}
         <View style={[
           styles.listingTypeBadge,
-          property.listingType === 'RENT' ? styles.rentBadge : styles.saleBadge,
+          property.listingType === 'RENT' ? styles.rentBadge : property.listingType === 'LEASE' ? styles.leaseBadge : styles.saleBadge,
         ]}>
-          <Text style={styles.listingTypeText}>{property.listingType}</Text>
+          <Text style={styles.listingTypeText}>{listingLabel}</Text>
         </View>
 
         {/* Price on image bottom-left */}
         <View style={styles.priceOnImage}>
           <Text style={styles.priceText}>{formatPrice(property.price)}</Text>
-          {property.listingType === 'RENT' && (
-            <Text style={styles.priceSubtext}>/mo</Text>
+          {isRecurringPrice && (
+            <Text style={styles.priceSubtext}>{property.listingType === 'LEASE' ? '/lease' : '/mo'}</Text>
           )}
         </View>
 
@@ -226,6 +228,7 @@ const styles = StyleSheet.create({
   },
   saleBadge: { backgroundColor: colors.primary },
   rentBadge: { backgroundColor: '#2980B9' },
+  leaseBadge: { backgroundColor: '#7D3C98' },
   listingTypeText: {
     color: colors.white,
     fontSize: 9,

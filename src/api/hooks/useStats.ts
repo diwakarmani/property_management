@@ -1,9 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { RealtorService } from '@/api/services/realtor.service';
-import { GroupService } from '@/api/services/group.service';
 import { queryKeys, STALE_TIME } from '@/api/queryClient';
-import type { RealtorStatsDTO } from '@/api/types/property.types';
-import type { GroupDashboardStatsDTO } from '@/api/types/group.types';
+import type { ConnectRealtorRequest, RealtorStatsDTO } from '@/api/types/property.types';
 
 /** Realtor's KPI stats — used by the Realtor dashboard + PerformanceScreen. */
 export const useRealtorStatsQuery = () =>
@@ -16,13 +14,25 @@ export const useRealtorStatsQuery = () =>
     staleTime: STALE_TIME.MEDIUM,
   });
 
-/** Group admin dashboard stats. */
-export const useGroupStatsQuery = () =>
+export const useRealtorProfileQuery = (realtorId: number | null | undefined) =>
   useQuery({
-    queryKey: queryKeys.groupStats,
+    queryKey: realtorId != null ? queryKeys.realtorProfile(realtorId) : ['realtor', 'profile', 'none'],
     queryFn: async () => {
-      const res = await GroupService.getDashboardStats();
-      return res.data.data as GroupDashboardStatsDTO;
+      const res = await RealtorService.getProfile(realtorId as number);
+      return res.data.data;
     },
+    enabled: realtorId != null,
     staleTime: STALE_TIME.MEDIUM,
   });
+
+export const useConnectRealtorMutation = (realtorId: number | null | undefined) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ConnectRealtorRequest) => RealtorService.connect(realtorId as number, data),
+    onSuccess: () => {
+      if (realtorId != null) {
+        qc.invalidateQueries({ queryKey: queryKeys.realtorProfile(realtorId) });
+      }
+    },
+  });
+};

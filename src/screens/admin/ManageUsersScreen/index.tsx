@@ -16,27 +16,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import { AdminService, type AdminUserDTO } from '@/api/services/admin.service';
 
-type Tab = 'all' | 'pending';
-
-const ALL_ROLES = ['BUYER', 'SELLER', 'REALTOR', 'REALTOR_GROUP_ADMIN', 'SUPER_ADMIN'] as const;
+const ALL_ROLES = ['BUYER', 'SELLER', 'REALTOR', 'SUPER_ADMIN'] as const;
 
 const ROLE_COLORS: Record<string, string> = {
   SUPER_ADMIN: '#E74C3C',
-  REALTOR_GROUP_ADMIN: '#8E44AD',
   REALTOR: '#2980B9',
   SELLER: '#27AE60',
   BUYER: '#F39C12',
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  REALTOR_GROUP_ADMIN: 'Group Admin',
   SUPER_ADMIN: 'Super Admin',
 };
 
 const ManageUsersScreen = () => {
-  const [tab, setTab] = useState<Tab>('all');
-
-  // All users tab
   const [users, setUsers] = useState<AdminUserDTO[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -45,12 +38,6 @@ const ManageUsersScreen = () => {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-
-  // Pending group admins tab
-  const [pendingAdmins, setPendingAdmins] = useState<AdminUserDTO[]>([]);
-  const [pendingLoading, setPendingLoading] = useState(false);
-  const [pendingRefreshing, setPendingRefreshing] = useState(false);
-  const [activatingId, setActivatingId] = useState<number | null>(null);
 
   // Role assignment modal
   const [roleModalUser, setRoleModalUser] = useState<AdminUserDTO | null>(null);
@@ -75,21 +62,11 @@ const ManageUsersScreen = () => {
         setLoading(false);
         setRefreshing(false);
         setLoadingMore(false);
-      });
+    });
   }, [page]);
-
-  const fetchPendingAdmins = useCallback((isRefresh = false) => {
-    if (isRefresh) setPendingRefreshing(true);
-    else setPendingLoading(true);
-    AdminService.getPendingGroupAdmins()
-      .then(res => setPendingAdmins(res.data.data?.content ?? []))
-      .catch(err => console.error('Failed to load pending admins', err))
-      .finally(() => { setPendingLoading(false); setPendingRefreshing(false); });
-  }, []);
 
   useEffect(() => {
     fetchUsers(true);
-    fetchPendingAdmins();
   }, []);
 
   const handleSearch = useCallback(() => {
@@ -120,58 +97,9 @@ const ManageUsersScreen = () => {
     );
   };
 
-  const handleActivate = (user: AdminUserDTO) => {
-    Alert.alert(
-      'Activate Account',
-      `Activate ${user.firstName} ${user.lastName}'s Group Admin account? They will be able to log in immediately.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Activate',
-          onPress: () => {
-            setActivatingId(user.id);
-            AdminService.activateUser(user.id)
-              .then(() => {
-                setPendingAdmins(prev => prev.filter(u => u.id !== user.id));
-                setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isActive: true } : u));
-              })
-              .catch(err => Alert.alert('Error', err?.response?.data?.message ?? 'Failed to activate'))
-              .finally(() => setActivatingId(null));
-          },
-        },
-      ]
-    );
-  };
-
-  const handleDeactivate = (user: AdminUserDTO) => {
-    Alert.alert(
-      'Deactivate Account',
-      `Deactivate ${user.firstName} ${user.lastName}? They will be logged out and unable to access the app.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Deactivate',
-          style: 'destructive',
-          onPress: () => {
-            setActivatingId(user.id);
-            AdminService.deactivateUser(user.id)
-              .then(() => {
-                setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isActive: false } : u));
-                if (user.roles?.includes('REALTOR_GROUP_ADMIN')) {
-                  fetchPendingAdmins();
-                }
-              })
-              .catch(err => Alert.alert('Error', err?.response?.data?.message ?? 'Failed to deactivate'))
-              .finally(() => setActivatingId(null));
-          },
-        },
-      ]
-    );
-  };
-
   const openRoleModal = (user: AdminUserDTO) => {
     setRoleModalUser(user);
-    setSelectedRoles([...(user.roles ?? [])]);
+    setSelectedRoles((user.roles ?? []).filter(role => ALL_ROLES.includes(role as any)));
   };
 
   const toggleRole = (role: string) => {
@@ -212,8 +140,6 @@ const ManageUsersScreen = () => {
   const UserCard = ({ user }: { user: AdminUserDTO }) => {
     const primaryRole = user.roles?.[0] ?? 'BUYER';
     const roleColor = ROLE_COLORS[primaryRole] ?? colors.primary;
-    const isGroupAdmin = user.roles?.includes('REALTOR_GROUP_ADMIN');
-    const isBusy = activatingId === user.id;
 
     return (
       <View style={[styles.card, !user.isActive && styles.cardInactive]}>
@@ -235,7 +161,7 @@ const ManageUsersScreen = () => {
             <Text style={styles.userEmail}>{user.email}</Text>
             {user.phone ? <Text style={styles.userPhone}>{user.phone}</Text> : null}
             <View style={styles.roleBadgeRow}>
-              {user.roles?.map(role => (
+              {user.roles?.filter(role => ALL_ROLES.includes(role as any)).map(role => (
                 <View key={role} style={[styles.roleBadge, { backgroundColor: (ROLE_COLORS[role] ?? colors.primary) + '20' }]}>
                   <Text style={[styles.roleText, { color: ROLE_COLORS[role] ?? colors.primary }]}>
                     {ROLE_LABELS[role] ?? role.replace(/_/g, ' ')}
@@ -249,19 +175,6 @@ const ManageUsersScreen = () => {
           {user.emailVerified && (
             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
           )}
-          {isGroupAdmin && (
-            isBusy ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : user.isActive ? (
-              <TouchableOpacity style={styles.deactivateBtn} onPress={() => handleDeactivate(user)}>
-                <Ionicons name="pause-circle-outline" size={18} color={colors.error} />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.activateBtn} onPress={() => handleActivate(user)}>
-                <Ionicons name="checkmark-circle-outline" size={18} color={colors.success} />
-              </TouchableOpacity>
-            )
-          )}
           <TouchableOpacity style={styles.roleBtn} onPress={() => openRoleModal(user)}>
             <Ionicons name="shield-outline" size={18} color={colors.primary} />
           </TouchableOpacity>
@@ -273,137 +186,52 @@ const ManageUsersScreen = () => {
     );
   };
 
-  const PendingAdminCard = ({ user }: { user: AdminUserDTO }) => {
-    const isBusy = activatingId === user.id;
-    return (
-      <View style={styles.pendingCard}>
-        <View style={[styles.avatar, { backgroundColor: '#8E44AD20' }]}>
-          <Text style={[styles.avatarText, { color: '#8E44AD' }]}>
-            {user.firstName?.[0]}{user.lastName?.[0]}
-          </Text>
-        </View>
-        <View style={styles.pendingInfo}>
-          <Text style={styles.userName}>{user.firstName} {user.lastName}</Text>
-          <Text style={styles.userEmail}>{user.email}</Text>
-          {user.phone ? <Text style={styles.userPhone}>{user.phone}</Text> : null}
-          <Text style={styles.pendingHint}>Registered as Group Admin — awaiting activation</Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.activatePillBtn, isBusy && { opacity: 0.6 }]}
-          onPress={() => handleActivate(user)}
-          disabled={isBusy}
-        >
-          {isBusy ? (
-            <ActivityIndicator size="small" color={colors.white} />
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={14} color={colors.white} />
-              <Text style={styles.activatePillBtnText}>Activate</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, tab === 'all' && styles.tabActive]}
-          onPress={() => setTab('all')}
-        >
-          <Text style={[styles.tabText, tab === 'all' && styles.tabTextActive]}>All Users</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, tab === 'pending' && styles.tabActive]}
-          onPress={() => setTab('pending')}
-        >
-          <Text style={[styles.tabText, tab === 'pending' && styles.tabTextActive]}>
-            Pending Admins
-            {pendingAdmins.length > 0 && (
-              <Text style={styles.tabBadge}> {pendingAdmins.length}</Text>
-            )}
-          </Text>
-        </TouchableOpacity>
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color={colors.textSecondary} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search users or realtors..."
+          value={search}
+          onChangeText={setSearch}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
+        />
+        {searching ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : search.length > 0 ? (
+          <TouchableOpacity onPress={() => { setSearch(''); fetchUsers(true); }}>
+            <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
-      {/* Pending Group Admins Tab */}
-      {tab === 'pending' && (
-        pendingLoading ? (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        ) : (
-          <FlatList
-            data={pendingAdmins}
-            renderItem={({ item }) => <PendingAdminCard user={item} />}
-            keyExtractor={item => item.id.toString()}
-            contentContainerStyle={styles.list}
-            refreshControl={
-              <RefreshControl refreshing={pendingRefreshing} onRefresh={() => fetchPendingAdmins(true)} tintColor={colors.primary} />
-            }
-            ListEmptyComponent={
-              <View style={styles.empty}>
-                <Ionicons name="checkmark-done-circle" size={56} color={colors.success} />
-                <Text style={styles.emptyTitle}>No Pending Requests</Text>
-                <Text style={styles.emptyText}>All Group Admin accounts have been reviewed.</Text>
-              </View>
-            }
-          />
-        )
-      )}
-
-      {/* All Users Tab */}
-      {tab === 'all' && (
-        <>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={colors.textSecondary} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search by name or email..."
-              value={search}
-              onChangeText={setSearch}
-              onSubmitEditing={handleSearch}
-              returnKeyType="search"
-            />
-            {searching ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : search.length > 0 ? (
-              <TouchableOpacity onPress={() => { setSearch(''); fetchUsers(true); }}>
-                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          {loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={colors.primary} />
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={users}
+          renderItem={({ item }) => <UserCard user={item} />}
+          keyExtractor={item => item.id.toString()}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchUsers(true); }} />
+          }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            loadingMore ? <ActivityIndicator style={styles.footer} color={colors.primary} /> : null
+          }
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
+              <Text style={styles.emptyText}>No users found</Text>
             </View>
-          ) : (
-            <FlatList
-              data={users}
-              renderItem={({ item }) => <UserCard user={item} />}
-              keyExtractor={item => item.id.toString()}
-              contentContainerStyle={styles.list}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchUsers(true); }} />
-              }
-              onEndReached={loadMore}
-              onEndReachedThreshold={0.3}
-              ListFooterComponent={
-                loadingMore ? <ActivityIndicator style={styles.footer} color={colors.primary} /> : null
-              }
-              ListEmptyComponent={
-                <View style={styles.empty}>
-                  <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
-                  <Text style={styles.emptyText}>No users found</Text>
-                </View>
-              }
-            />
-          )}
-        </>
+          }
+        />
       )}
 
       {/* Role Assignment Modal */}

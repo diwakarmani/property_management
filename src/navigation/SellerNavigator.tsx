@@ -14,6 +14,7 @@ import PropertyImagesScreen from '@/screens/realtor/PropertyImagesScreen';
 import CreateListingScreen from '@/screens/realtor/CreateListingScreen';
 import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
 import ReceivedInquiriesScreen from '@/screens/inquiry/ReceivedInquiriesScreen';
+import NotificationsScreen from '@/screens/profile/NotificationsScreen';
 import ProfileStackNavigator from './ProfileStackNavigator';
 
 const Tab = createBottomTabNavigator();
@@ -28,6 +29,7 @@ const PropertyImagesWrapped = withLayout(PropertyImagesScreen);
 const CreateListingWrapped = withLayout(CreateListingScreen);
 const PropertyDetailWrapped = withLayout(PropertyDetailScreen);
 const InquiriesWrapped = withLayout(ReceivedInquiriesScreen);
+const NotificationsWrapped = withLayout(NotificationsScreen);
 
 const MyListingsStackScreen = () => (
   <ListingsStack.Navigator screenOptions={{ headerShown: false }}>
@@ -54,6 +56,7 @@ const SellerNavigator = () => (
         else if (route.name === 'Create') iconName = focused ? 'add-circle' : 'add-circle-outline';
         else if (route.name === 'Inquiries') iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
         else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
+        else return null;
         return <Ionicons name={iconName} size={size} color={color} />;
       },
       tabBarActiveTintColor: colors.primary,
@@ -64,7 +67,21 @@ const SellerNavigator = () => (
     <Tab.Screen name="MyListings" component={MyListingsStackScreen} />
     <Tab.Screen name="Create" component={CreateListingWrapped} />
     <Tab.Screen name="Inquiries" component={InquiriesWrapped} />
-    <Tab.Screen name="Profile" component={ProfileStackNavigator} />
+    <Tab.Screen
+      name="Notifications"
+      component={NotificationsWrapped}
+      options={{ tabBarButton: () => null }}
+    />
+    <Tab.Screen
+      name="Profile"
+      component={ProfileStackNavigator}
+      listeners={({ navigation }) => ({
+        tabPress: (e) => {
+          e.preventDefault();
+          navigation.navigate('Profile', { screen: 'ProfileMain' });
+        },
+      })}
+    />
   </Tab.Navigator>
 );
 

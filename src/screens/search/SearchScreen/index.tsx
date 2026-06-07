@@ -20,7 +20,7 @@ import PropertyCard from '@/components/property/PropertyCard';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
 import type { RootState } from '@/store';
 
-type ListingType = '' | 'SALE' | 'RENT';
+type ListingType = '' | 'SALE' | 'RENT' | 'LEASE';
 type Furnishing = '' | 'FURNISHED' | 'SEMI_FURNISHED' | 'UNFURNISHED';
 type SortBy = '' | 'price_asc' | 'price_desc' | 'newest';
 
@@ -306,7 +306,7 @@ const SearchScreen = ({ navigation }: any) => {
               {/* Looking to */}
               <FilterSection icon="home-outline" title="Looking to">
                 <View style={styles.segment}>
-                  {([{ label: 'Any', value: '' }, { label: 'Buy', value: 'SALE' }, { label: 'Rent', value: 'RENT' }] as { label: string; value: ListingType }[]).map((o) => (
+                  {([{ label: 'Any', value: '' }, { label: 'Buy', value: 'SALE' }, { label: 'Rent', value: 'RENT' }, { label: 'Lease', value: 'LEASE' }] as { label: string; value: ListingType }[]).map((o) => (
                     <TouchableOpacity
                       key={o.label}
                       style={[styles.segmentItem, filters.listingType === o.value && styles.segmentItemActive]}

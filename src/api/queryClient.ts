@@ -60,5 +60,5 @@ export const queryKeys = {
   inquiriesReceived: ['inquiries', 'received'] as const,
   inquiriesSent: ['inquiries', 'sent'] as const,
   realtorStats: ['realtor', 'stats'] as const,
-  groupStats: ['group-admin', 'stats'] as const,
+  realtorProfile: (realtorId: number) => ['realtor', 'profile', realtorId] as const,
 };

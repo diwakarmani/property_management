@@ -28,6 +28,7 @@ export interface PropertyDTO {
   ownerName?: string;
   ownerEmail?: string;
   ownerPhone?: string;
+  ownerIsRealtor?: boolean;
   listingType: string;
   price: number;
   depositAmount?: number;
@@ -55,10 +56,16 @@ export interface PropertyDTO {
   parkingOpen?: number;
   ageOfProperty?: number;
   availableFrom?: string;
+  ownershipType?: string;
+  possessionStatus?: string;
+  kitchenType?: string;
+  waterSupply?: string;
+  shortlistCount?: number;
   status: string;
   isVerified: boolean;
   isFeatured: boolean;
   isPremium: boolean;
+  rejectionReason?: string;
   viewCount?: number;
   inquiryCount?: number;
   publishedAt?: string;
@@ -75,7 +82,9 @@ export interface PageResponse<T> {
   totalPages: number;
   pageNumber: number;
   pageSize: number;
+  first?: boolean;
   last: boolean;
+  empty?: boolean;
 }
 
 export interface PropertySubTypeDTO {
@@ -104,4 +113,36 @@ export interface RealtorStatsDTO {
   soldCount: number;
   rentedCount: number;
   totalViews: number;
+}
+
+export interface RealtorProfileDTO {
+  id: number;
+  name: string;
+  profilePhotoUrl?: string;
+  phone?: string;
+  email?: string;
+  bio?: string;
+  areasServed?: string[];
+  languages?: string[];
+  ratingAverage?: number | null;
+  ratingCount?: number;
+  totalUserInteractions: number;
+  activeListingsCount?: number;
+  verificationStatus?: 'UNVERIFIED' | 'PENDING' | 'VERIFIED' | string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ConnectRealtorRequest {
+  propertyId?: number;
+  message?: string;
+}
+
+export interface ConnectRealtorResponse {
+  success: boolean;
+  interactionId: number;
+  realtorId: number;
+  propertyId?: number;
+  totalUserInteractions: number;
+  conversationId?: number;
 }

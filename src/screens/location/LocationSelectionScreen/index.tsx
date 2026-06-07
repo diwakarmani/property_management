@@ -36,6 +36,7 @@ const LocationSelectionScreen = ({ navigation }: any) => {
     selectedLocalities,
     loading,
     loadingLocalities,
+    error,
   } = useSelector((state: RootState) => state.location);
 
   const [showCityPicker, setShowCityPicker] = useState(false);
@@ -46,10 +47,23 @@ const LocationSelectionScreen = ({ navigation }: any) => {
     dispatch(fetchCities());
   }, [dispatch]);
 
+  useEffect(() => {
+    if (selectedCity && localities.length === 0 && !loadingLocalities) {
+      dispatch(fetchLocalities(selectedCity.id));
+    }
+  }, [dispatch, selectedCity, localities.length, loadingLocalities]);
+
   const handleCitySelect = (city: City) => {
     dispatch(selectCity(city));
     dispatch(fetchLocalities(city.id));
     setShowCityPicker(false);
+  };
+
+  const handleRetry = () => {
+    dispatch(fetchCities());
+    if (selectedCity) {
+      dispatch(fetchLocalities(selectedCity.id));
+    }
   };
 
   const handleConfirm = () => {
@@ -164,6 +178,15 @@ const LocationSelectionScreen = ({ navigation }: any) => {
 
         {/* ── City ──────────────────────────────────────────────────────── */}
         <Text style={styles.label}>City</Text>
+        {error && (
+          <View style={styles.errorCard}>
+            <Ionicons name="alert-circle-outline" size={18} color={colors.error} />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity onPress={handleRetry} style={styles.retryBtn}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <TouchableOpacity
           style={styles.selector}
           onPress={() => setShowCityPicker((v) => !v)}
@@ -183,7 +206,10 @@ const LocationSelectionScreen = ({ navigation }: any) => {
             {loading ? (
               <ActivityIndicator color={colors.primary} style={styles.loader} />
             ) : cities.length === 0 ? (
-              <Text style={styles.emptyText}>No cities available</Text>
+              <TouchableOpacity style={styles.emptyState} onPress={handleRetry}>
+                <Text style={styles.emptyText}>No cities available</Text>
+                <Text style={styles.emptySubtext}>Tap to reload</Text>
+              </TouchableOpacity>
             ) : (
               cities.map((city) => (
                 <TouchableOpacity
@@ -222,7 +248,10 @@ const LocationSelectionScreen = ({ navigation }: any) => {
             {loadingLocalities ? (
               <ActivityIndicator color={colors.primary} style={styles.loader} />
             ) : localities.length === 0 ? (
-              <Text style={styles.emptyText}>No areas listed for this city</Text>
+              <TouchableOpacity style={styles.emptyState} onPress={handleRetry}>
+                <Text style={styles.emptyText}>No areas listed for this city</Text>
+                <Text style={styles.emptySubtext}>Tap to reload</Text>
+              </TouchableOpacity>
             ) : (
               <View style={styles.chipWrap}>
                 {localities.map((loc) => {
@@ -400,6 +429,33 @@ const styles = StyleSheet.create({
   },
   selectorText: { fontSize: typography.fontSize.md, color: colors.text, fontWeight: typography.fontWeight.medium },
   placeholder: { color: colors.textLight },
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.error,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    color: colors.text,
+  },
+  retryBtn: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: colors.primarySurface,
+  },
+  retryText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary,
+    fontWeight: typography.fontWeight.bold,
+  },
   dropdown: {
     marginTop: spacing.sm,
     borderWidth: 1.5,
@@ -482,11 +538,22 @@ const styles = StyleSheet.create({
 
   confirmButton: { marginTop: spacing.lg },
   loader: { padding: spacing.md },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
   emptyText: {
     fontSize: typography.fontSize.md,
     color: colors.textSecondary,
     textAlign: 'center',
-    padding: spacing.md,
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  emptySubtext: {
+    fontSize: typography.fontSize.xs,
+    color: colors.primary,
+    fontWeight: typography.fontWeight.semibold,
+    paddingBottom: spacing.sm,
   },
 });
 

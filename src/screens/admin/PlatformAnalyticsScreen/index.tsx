@@ -98,14 +98,6 @@ const PlatformAnalyticsScreen = () => {
         <StatRow label="Rented" value={stats?.rentedProperties ?? 0} iconName="key" color="#8E44AD" />
       </View>
 
-      {/* Groups */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Realtor Groups</Text>
-        <StatRow label="Total Groups" value={stats?.totalGroups ?? 0} iconName="business" color={colors.primary} />
-        <StatRow label="Active Groups" value={stats?.activeGroups ?? 0} iconName="checkmark-circle" color={colors.success} />
-        <StatRow label="Pending Groups" value={(stats?.totalGroups ?? 0) - (stats?.activeGroups ?? 0)} iconName="time" color={colors.warning} />
-      </View>
-
       {/* This Month */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>This Month</Text>

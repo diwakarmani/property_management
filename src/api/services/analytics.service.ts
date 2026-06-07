@@ -6,8 +6,6 @@ export interface PlatformStatsDTO {
   totalProperties: number;
   activeListings: number;
   pendingApprovals: number;
-  totalGroups: number;
-  activeGroups: number;
   soldProperties: number;
   rentedProperties: number;
   newUsersThisMonth: number;
