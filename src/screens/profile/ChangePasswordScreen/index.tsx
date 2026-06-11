@@ -12,6 +12,34 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import { UserService } from '@/api/services/user.service';
 
+// Defined at module scope so React never unmounts/remounts the TextInput on
+// parent re-renders (inline component definitions change reference each render
+// and cause iOS TextInput to lose focus after the first character typed).
+const PasswordField = ({
+  label, value, onChangeText, show, onToggle, placeholder,
+}: {
+  label: string; value: string; onChangeText: (t: string) => void;
+  show: boolean; onToggle: () => void; placeholder: string;
+}) => (
+  <>
+    <Text style={styles.label}>{label}</Text>
+    <View style={styles.passwordRow}>
+      <TextInput
+        style={styles.passwordInput}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        secureTextEntry={!show}
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+      <TouchableOpacity onPress={onToggle} style={styles.eyeBtn}>
+        <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textSecondary} />
+      </TouchableOpacity>
+    </View>
+  </>
+);
+
 const ChangePasswordScreen = ({ navigation }: any) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -19,6 +47,7 @@ const ChangePasswordScreen = ({ navigation }: any) => {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
   const handleSubmit = async () => {
     if (!currentPassword.trim()) {
       Alert.alert('Required', 'Enter your current password'); return;
@@ -36,30 +65,6 @@ const ChangePasswordScreen = ({ navigation }: any) => {
       // global interceptor shows error toast
     }
   };
-
-  const PasswordField = ({
-    label, value, onChangeText, show, onToggle, placeholder,
-  }: {
-    label: string; value: string; onChangeText: (t: string) => void;
-    show: boolean; onToggle: () => void; placeholder: string;
-  }) => (
-    <>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.passwordRow}>
-        <TextInput
-          style={styles.passwordInput}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          secureTextEntry={!show}
-          autoCapitalize="none"
-        />
-        <TouchableOpacity onPress={onToggle} style={styles.eyeBtn}>
-          <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
-    </>
-  );
 
   return (
     <View style={styles.container}>

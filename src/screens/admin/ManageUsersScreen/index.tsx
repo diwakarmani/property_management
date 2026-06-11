@@ -29,7 +29,10 @@ const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
 };
 
-const ManageUsersScreen = () => {
+const ManageUsersScreen = ({ route }: any) => {
+  const roleFilter: string | null = route?.params?.roleFilter ?? null;
+  const screenTitle = roleFilter === 'REALTOR' ? 'Manage Realtors' : 'Manage Users';
+
   const [users, setUsers] = useState<AdminUserDTO[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -213,7 +216,7 @@ const ManageUsersScreen = () => {
         </View>
       ) : (
         <FlatList
-          data={users}
+          data={roleFilter ? users.filter(u => u.roles?.includes(roleFilter)) : users}
           renderItem={({ item }) => <UserCard user={item} />}
           keyExtractor={item => item.id.toString()}
           contentContainerStyle={styles.list}

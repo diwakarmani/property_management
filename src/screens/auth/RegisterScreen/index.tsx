@@ -47,7 +47,13 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       phone: data.phone?.trim() || undefined,
     };
     const result = await dispatch(registerUser(payload));
-    if (!registerUser.fulfilled.match(result)) {
+    if (registerUser.fulfilled.match(result)) {
+      Alert.alert(
+        'Registration Successful',
+        'Please check your email to verify your account, then log in.',
+        [{ text: 'Go to Login', onPress: () => navigation.navigate('Login') }]
+      );
+    } else {
       Alert.alert('Registration Failed', (result.payload as string) || error || 'Please try again.');
     }
   };

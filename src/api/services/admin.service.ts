@@ -97,8 +97,8 @@ export const AdminService = {
     axiosClient.post<ApiResponse<PropertyDTO>>(`/api/admin/properties/${id}/reject`, { reason }),
 
   toggleFeatured: (id: number) =>
-    axiosClient.patch<ApiResponse<PropertyDTO>>(`/api/properties/${id}/toggle-featured`),
+    axiosClient.patch<ApiResponse<PropertyDTO>>(`/api/admin/properties/${id}/toggle-featured`),
 
   toggleVerified: (id: number) =>
-    axiosClient.patch<ApiResponse<PropertyDTO>>(`/api/properties/${id}/toggle-verified`),
+    axiosClient.patch<ApiResponse<PropertyDTO>>(`/api/admin/properties/${id}/toggle-verified`),
 };

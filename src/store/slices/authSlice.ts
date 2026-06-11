@@ -42,7 +42,7 @@ const initialState: AuthState = {
   bootstrapFailed: false,
 };
 
-/** Normalises a backend UserDTO / AuthResponse into the local User shape. */
+/** Normalises a backend UserDTO / AuthResponse / OtpVerificationResponse into the local User shape. */
 const toUser = (payload: any): User => {
   const rawRoles = payload?.roles;
   const roles: string[] = Array.isArray(rawRoles)
@@ -51,6 +51,7 @@ const toUser = (payload: any): User => {
       ? Array.from(rawRoles)
       : ['BUYER'];
   return {
+    // OtpVerificationResponse uses `id`; all other responses also use `id` now
     id: payload?.id,
     email: payload?.email,
     firstName: payload?.firstName,
@@ -246,15 +247,13 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Register
+      // Register — backend only returns {message, email}, no token; do NOT set isAuthenticated
       .addCase(register.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(register.fulfilled, (state, action) => {
+      .addCase(register.fulfilled, (state) => {
         state.loading = false;
-        state.isAuthenticated = true;
-        state.user = toUser(action.payload);
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;

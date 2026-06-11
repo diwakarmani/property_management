@@ -22,6 +22,83 @@ import AsyncBoundary from '@/components/common/AsyncBoundary';
 const STATUS_TABS = ['ALL', 'DRAFT', 'ACTIVE', 'PENDING_APPROVAL', 'SOLD', 'RENTED'] as const;
 type StatusTab = typeof STATUS_TABS[number];
 
+type ListingCardProps = {
+  item: PropertyDTO;
+  navigation: any;
+  onDelete: (p: PropertyDTO) => void;
+  onPublish: (p: PropertyDTO) => void;
+};
+
+const ListingCard = ({ item, navigation, onDelete, onPublish }: ListingCardProps) => {
+  const statusColor = STATUS_COLORS[item.status] ?? colors.textSecondary;
+  const statusLabel = STATUS_LABELS[item.status] ?? item.status;
+
+  return (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate('PropertyDetail', { id: item.id })}
+      activeOpacity={0.9}
+    >
+      <View style={styles.cardImageWrap}>
+        <OptimizedImage uri={item.primaryImageUrl ?? ''} style={styles.cardImage} />
+        <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+          <Text style={styles.statusText}>{statusLabel}</Text>
+        </View>
+      </View>
+
+      <View style={styles.cardBody}>
+        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.cardPrice}>{formatPrice(item.price)}</Text>
+        <Text style={styles.cardLocation} numberOfLines={1}>
+          {item.locality}, {item.city}
+        </Text>
+
+        <View style={styles.cardMeta}>
+          {item.bedrooms ? (
+            <View style={styles.metaItem}>
+              <Ionicons name="bed-outline" size={14} color={colors.textSecondary} />
+              <Text style={styles.metaText}>{item.bedrooms} BHK</Text>
+            </View>
+          ) : null}
+          <View style={styles.metaItem}>
+            <Ionicons name="eye-outline" size={14} color={colors.textSecondary} />
+            <Text style={styles.metaText}>{item.viewCount ?? 0} views</Text>
+          </View>
+        </View>
+
+        <View style={styles.cardActions}>
+          {item.status === 'DRAFT' && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.publishBtn]}
+              onPress={() => onPublish(item)}
+            >
+              <Text style={styles.actionBtnText}>Publish</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.imagesBtn]}
+            onPress={() => navigation.navigate('PropertyImages', { propertyId: item.id, propertyTitle: item.title })}
+          >
+            <Ionicons name="images-outline" size={16} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.editBtn]}
+            onPress={() => navigation.navigate('EditListing', { propertyId: item.id })}
+          >
+            <Ionicons name="create-outline" size={16} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.deleteBtn]}
+            onPress={() => onDelete(item)}
+          >
+            <Ionicons name="trash-outline" size={16} color={colors.error} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: '#95A5A6',
   ACTIVE: '#27AE60',
@@ -78,76 +155,6 @@ const MyListingsScreen = ({ navigation }: any) => {
     });
   };
 
-  const ListingCard = ({ item }: { item: PropertyDTO }) => {
-    const statusColor = STATUS_COLORS[item.status] ?? colors.textSecondary;
-    const statusLabel = STATUS_LABELS[item.status] ?? item.status;
-
-    return (
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => navigation.navigate('PropertyDetail', { id: item.id })}
-        activeOpacity={0.9}
-      >
-        <View style={styles.cardImageWrap}>
-          <OptimizedImage uri={item.primaryImageUrl ?? ''} style={styles.cardImage} />
-          <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-            <Text style={styles.statusText}>{statusLabel}</Text>
-          </View>
-        </View>
-
-        <View style={styles.cardBody}>
-          <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={styles.cardPrice}>{formatPrice(item.price)}</Text>
-          <Text style={styles.cardLocation} numberOfLines={1}>
-            {item.locality}, {item.city}
-          </Text>
-
-          <View style={styles.cardMeta}>
-            {item.bedrooms ? (
-              <View style={styles.metaItem}>
-                <Ionicons name="bed-outline" size={14} color={colors.textSecondary} />
-                <Text style={styles.metaText}>{item.bedrooms} BHK</Text>
-              </View>
-            ) : null}
-            <View style={styles.metaItem}>
-              <Ionicons name="eye-outline" size={14} color={colors.textSecondary} />
-              <Text style={styles.metaText}>{item.viewCount ?? 0} views</Text>
-            </View>
-          </View>
-
-          <View style={styles.cardActions}>
-            {item.status === 'DRAFT' && (
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.publishBtn]}
-                onPress={() => handlePublish(item)}
-              >
-                <Text style={styles.actionBtnText}>Publish</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.imagesBtn]}
-              onPress={() => navigation.navigate('PropertyImages', { propertyId: item.id, propertyTitle: item.title })}
-            >
-              <Ionicons name="images-outline" size={16} color={colors.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.editBtn]}
-              onPress={() => navigation.navigate('EditListing', { propertyId: item.id })}
-            >
-              <Ionicons name="create-outline" size={16} color={colors.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.deleteBtn]}
-              onPress={() => handleDelete(item)}
-            >
-              <Ionicons name="trash-outline" size={16} color={colors.error} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
   return (
     <AsyncBoundary loading={isLoading} error={errorMessage} onRetry={() => refetch()}>
     <View style={styles.container}>
@@ -190,9 +197,17 @@ const MyListingsScreen = ({ navigation }: any) => {
 
       {/* Listings */}
       <FlatList
+        style={styles.listFlex}
         data={filtered}
         keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) => <ListingCard item={item} />}
+        renderItem={({ item }) => (
+          <ListingCard
+            item={item}
+            navigation={navigation}
+            onDelete={handleDelete}
+            onPublish={handlePublish}
+          />
+        )}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
@@ -262,7 +277,7 @@ const styles = StyleSheet.create({
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1.5,
@@ -282,6 +297,7 @@ const styles = StyleSheet.create({
   tabBadgeActive: { backgroundColor: 'rgba(255,255,255,0.3)' },
   tabBadgeText: { fontSize: 9, color: colors.textSecondary, fontWeight: typography.fontWeight.bold },
   tabBadgeTextActive: { color: colors.white },
+  listFlex: { flex: 1 },
   list: { padding: spacing.md, gap: spacing.md },
   card: {
     backgroundColor: colors.surface,

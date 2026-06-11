@@ -40,6 +40,7 @@ export const pickRoleKey = (roles: string[] | undefined | null): RoleKey => {
   const r = roles ?? [];
   // Highest-privilege role wins.
   if (r.includes('SUPER_ADMIN')) return 'admin';
+  if (r.includes('REALTOR_GROUP_ADMIN')) return 'realtor';
   if (r.includes('REALTOR')) return 'realtor';
   if (r.includes('SELLER')) return 'seller';
   return 'buyer';

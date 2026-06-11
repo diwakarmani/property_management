@@ -24,10 +24,10 @@ const STAT_CONFIG = [
   { key: 'newUsersThisMonth',icon: 'person-add',       label: 'New / Month',    color: '#E91E8C',       bg: '#FDE8F4' },
 ];
 
-const QUICK_ACTIONS = [
+const QUICK_ACTIONS: { icon: string; title: string; route: string; showPending: boolean; params?: object }[] = [
   { icon: 'list-outline',       title: 'Approve Listings',   route: 'Listings',          showPending: true },
-  { icon: 'people-outline',     title: 'Manage Realtors',    route: 'Users',             showPending: false },
-  { icon: 'person-add-outline', title: 'Manage Users',       route: 'Users',             showPending: false },
+  { icon: 'people-outline',     title: 'Manage Realtors',    route: 'Users',             showPending: false, params: { roleFilter: 'REALTOR' } },
+  { icon: 'person-add-outline', title: 'Manage Users',       route: 'Users',             showPending: false, params: { roleFilter: null } },
   { icon: 'bar-chart-outline',  title: 'Platform Analytics', route: 'Analytics',         showPending: false },
   { icon: 'layers-outline',     title: 'Property Config',    route: 'PropertyConfig',    showPending: false },
   { icon: 'location-outline',   title: 'Location Bootstrap', route: 'LocationBootstrap', showPending: false },
@@ -126,11 +126,11 @@ const AdminDashboardScreen = ({ navigation }: any) => {
       {/* Quick Actions */}
       <View style={styles.actionsCard}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
-        {QUICK_ACTIONS.map(({ icon, title, route, showPending }) => (
+        {QUICK_ACTIONS.map(({ icon, title, route, showPending, params }) => (
           <TouchableOpacity
             key={title}
             style={styles.menuItem}
-            onPress={() => navigation.navigate(route)}
+            onPress={() => navigation.navigate(route, params)}
             activeOpacity={0.75}
           >
             <View style={styles.menuIconWrap}>

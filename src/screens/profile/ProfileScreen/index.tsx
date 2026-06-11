@@ -53,6 +53,7 @@ const ProfileScreen = ({ navigation }: any) => {
   };
 
   const handleHelpSupport = () => {
+    const emailAddress = 'support@propertyapp.com';
     Alert.alert(
       'Help & Support',
       'Need help? Reach out to us and we\'ll get back to you shortly.',
@@ -60,7 +61,10 @@ const ProfileScreen = ({ navigation }: any) => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Email Us',
-          onPress: () => Linking.openURL('mailto:support@propertyapp.com?subject=Help%20%26%20Support'),
+          onPress: () =>
+            Linking.openURL(`mailto:${emailAddress}?subject=Help%20%26%20Support`).catch(() =>
+              Alert.alert('Email Us', `Send an email to:\n${emailAddress}`)
+            ),
         },
       ]
     );

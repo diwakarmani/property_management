@@ -15,18 +15,12 @@ const Header = () => {
 
   const isAdminRole = user?.roles?.some((r: string) => ADMIN_ROLES.includes(r)) ?? false;
   const openNotifications = () => {
-    let nav: any = navigation;
-
-    while (nav) {
-      const routeNames = nav.getState?.()?.routeNames ?? [];
-      if (routeNames.includes('Profile') && routeNames.includes('Notifications')) {
-        nav.navigate('Notifications');
-        return;
-      }
-      nav = nav.getParent?.();
-    }
-
-    (navigation as any).navigate('Notifications');
+    // Navigate to the Notifications screen within the Profile stack.
+    // Using navigate('Profile', { screen: 'Notifications' }) switches to the
+    // Profile tab and pushes Notifications onto its stack, so Back returns to
+    // ProfileMain cleanly — avoids the hidden Notifications tab which has no
+    // back stack and breaks the tab state.
+    (navigation as any).navigate('Profile', { screen: 'Notifications' });
   };
 
   return (
