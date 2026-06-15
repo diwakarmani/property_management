@@ -11,6 +11,7 @@ import {
 } from '@/api/hooks/useNotifications';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
 import { toast } from '@/utils/toast';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const formatDate = (iso?: string) => {
   if (!iso) return '';
@@ -83,7 +84,30 @@ const NotificationsScreen = () => {
   const errorMessage = isError ? (error as any)?.response?.data?.message ?? 'Could not load notifications.' : null;
 
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
+      <View style={styles.listHeader}>
+        <View style={styles.backRow}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.primary} />
+          </TouchableOpacity>
+          <Text style={styles.pageTitle}>Notifications</Text>
+          {hasUnread && (
+            <TouchableOpacity
+              onPress={onMarkAll}
+              disabled={markAll.isPending}
+              style={styles.markAllBtn}
+              accessibilityRole="button"
+            >
+              <Text style={styles.markAllText}>Mark all read</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
       <AsyncBoundary
         loading={isLoading}
         error={errorMessage}
@@ -101,33 +125,9 @@ const NotificationsScreen = () => {
           refreshControl={
             <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary} />
           }
-          ListHeaderComponent={
-            <View style={styles.listHeader}>
-              <View style={styles.backRow}>
-                <TouchableOpacity
-                  style={styles.backBtn}
-                  onPress={() => navigation.goBack()}
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="chevron-back" size={18} color={colors.primary} />
-                </TouchableOpacity>
-                <Text style={styles.pageTitle}>Notifications</Text>
-                {hasUnread && (
-                  <TouchableOpacity
-                    onPress={onMarkAll}
-                    disabled={markAll.isPending}
-                    style={styles.markAllBtn}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.markAllText}>Mark all read</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          }
         />
       </AsyncBoundary>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -136,12 +136,11 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing.md, paddingBottom: spacing.xl },
 
-  listHeader: { marginBottom: spacing.sm },
+  listHeader: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm },
   backRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.xs,
   },
   backBtn: {
     width: 32,

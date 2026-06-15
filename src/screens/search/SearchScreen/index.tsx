@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
@@ -19,6 +20,7 @@ import { useFavoriteIdsSet, useAddFavoriteMutation, useRemoveFavoriteMutation } 
 import PropertyCard from '@/components/property/PropertyCard';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
 import type { RootState } from '@/store';
+import { isBuyerExperience } from '@/utils/rbac/permissions';
 
 type ListingType = '' | 'SALE' | 'RENT' | 'LEASE';
 type Furnishing = '' | 'FURNISHED' | 'SEMI_FURNISHED' | 'UNFURNISHED';
@@ -54,6 +56,36 @@ const SORT_OPTS: { label: string; value: SortBy; icon: string }[] = [
   { label: 'Price: High to Low', value: 'price_desc', icon: 'trending-down-outline' },
   { label: 'Newest First', value: 'newest', icon: 'time-outline' },
 ];
+
+export const getSearchGridLayout = (screenWidth: number) => {
+  const horizontalPadding = spacing.md * 2;
+  const columns = screenWidth >= 700 ? 3 : 2;
+  const gap = spacing.sm + spacing.xs;
+  const cardWidth = (screenWidth - horizontalPadding - gap * (columns - 1)) / columns;
+  return { columns, gap, cardWidth };
+};
+
+export const buildSearchParams = (f: Filters, text: string, areaList: string[]) => {
+  const p: Record<string, any> = {};
+  if (text.trim()) p.city = text.trim();
+  if (areaList.length) p.localities = areaList.join(',');
+  if (f.listingType) p.listingType = f.listingType;
+  if (f.propertyTypeId != null) p.propertyTypeId = f.propertyTypeId;
+  if (f.minPrice) p.minPrice = Number(f.minPrice);
+  if (f.maxPrice) p.maxPrice = Number(f.maxPrice);
+  if (f.bedrooms.length) {
+    p.minBedrooms = Math.min(...f.bedrooms);
+    p.maxBedrooms = Math.max(...f.bedrooms);
+  }
+  if (f.minBathrooms != null) p.minBathrooms = f.minBathrooms;
+  if (f.furnishing) p.furnishedStatus = f.furnishing;
+  if (f.minArea) p.minArea = Number(f.minArea);
+  if (f.maxArea) p.maxArea = Number(f.maxArea);
+  if (f.sortBy === 'price_asc') { p.sortBy = 'price'; p.sortDir = 'asc'; }
+  if (f.sortBy === 'price_desc') { p.sortBy = 'price'; p.sortDir = 'desc'; }
+  if (f.sortBy === 'newest') { p.sortBy = 'createdAt'; p.sortDir = 'desc'; }
+  return p;
+};
 
 const FilterSection = ({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) => (
   <View style={filterStyles.section}>
@@ -96,9 +128,11 @@ const filterStyles = StyleSheet.create({
 });
 
 const SearchScreen = ({ navigation }: any) => {
+  const { width: screenWidth } = useWindowDimensions();
+  const grid = getSearchGridLayout(screenWidth);
   const { selectedCity, selectedLocalities } = useSelector((state: RootState) => state.location);
   const isBuyer = useSelector((state: RootState) =>
-    state.auth.user?.roles.includes('BUYER') ?? false
+    isBuyerExperience(state.auth.user?.roles)
   );
   const [searchText, setSearchText] = useState(selectedCity?.name ?? '');
   const [areas, setAreas] = useState<string[]>(selectedLocalities.map((l) => l.name));
@@ -106,10 +140,11 @@ const SearchScreen = ({ navigation }: any) => {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [searched, setSearched] = useState(!!selectedCity);
   const [committed, setCommitted] = useState<Record<string, any>>(() => {
-    const p: Record<string, any> = {};
-    if (selectedCity?.name) p.city = selectedCity.name;
-    if (selectedLocalities.length) p.localities = selectedLocalities.map((l) => l.name).join(',');
-    return p;
+    return buildSearchParams(
+      EMPTY_FILTERS,
+      selectedCity?.name ?? '',
+      selectedLocalities.map((l) => l.name)
+    );
   });
 
   const { ids: favoriteIds, isLoading: idsLoading } = useFavoriteIdsSet(isBuyer);
@@ -125,30 +160,43 @@ const SearchScreen = ({ navigation }: any) => {
 
   const { data: propertyTypes = [] } = usePropertyTypesQuery();
 
-  const buildParams = useCallback((f: Filters, text: string, areaList: string[]) => {
-    const p: Record<string, any> = {};
-    if (text.trim()) p.city = text.trim();
-    if (areaList.length) p.localities = areaList.join(',');
-    if (f.listingType) p.listingType = f.listingType;
-    if (f.propertyTypeId != null) p.propertyTypeId = f.propertyTypeId;
-    if (f.minPrice) p.minPrice = Number(f.minPrice);
-    if (f.maxPrice) p.maxPrice = Number(f.maxPrice);
-    if (f.bedrooms.length) { p.minBedrooms = Math.min(...f.bedrooms); p.maxBedrooms = Math.max(...f.bedrooms); }
-    if (f.minBathrooms != null) p.minBathrooms = f.minBathrooms;
-    if (f.furnishing) p.furnishedStatus = f.furnishing;
-    if (f.minArea) p.minArea = Number(f.minArea);
-    if (f.maxArea) p.maxArea = Number(f.maxArea);
-    if (f.sortBy === 'price_asc') { p.sortBy = 'price'; p.sortDir = 'asc'; }
-    if (f.sortBy === 'price_desc') { p.sortBy = 'price'; p.sortDir = 'desc'; }
-    if (f.sortBy === 'newest') { p.sortBy = 'createdAt'; p.sortDir = 'desc'; }
-    return p;
-  }, []);
-
   const runSearch = useCallback((f: Filters, text: string, areaList: string[]) => {
     setShowFilters(false);
     setSearched(true);
-    setCommitted(buildParams(f, text, areaList));
-  }, [buildParams]);
+    setCommitted(buildSearchParams(f, text, areaList));
+  }, []);
+
+  const selectedLocalityKey = selectedLocalities.map((l) => l.id).join(',');
+
+  useEffect(() => {
+    const city = selectedCity?.name ?? '';
+    const localityNames = selectedLocalities.map((l) => l.name);
+    setSearchText(city);
+    setAreas(localityNames);
+    if (city) setSearched(true);
+    setCommitted((previous) => {
+      const next = { ...previous };
+      if (city) next.city = city;
+      else delete next.city;
+      if (localityNames.length) next.localities = localityNames.join(',');
+      else delete next.localities;
+      return next;
+    });
+  }, [selectedCity?.id, selectedCity?.name, selectedLocalityKey]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearched(true);
+      setCommitted((previous) => {
+        const next = { ...previous };
+        const city = searchText.trim();
+        if (city) next.city = city;
+        else delete next.city;
+        return next;
+      });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
 
   const handleSearch = () => runSearch(filters, searchText, areas);
   const removeArea = (name: string) => { const next = areas.filter((a) => a !== name); setAreas(next); runSearch(filters, searchText, next); };
@@ -228,6 +276,7 @@ const SearchScreen = ({ navigation }: any) => {
       {/* Results */}
       <AsyncBoundary loading={isLoading} error={errorMessage} onRetry={() => refetch()}>
         <FlatList
+          key={`search-grid-${grid.columns}`}
           onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
           onEndReachedThreshold={0.5}
           ListHeaderComponent={
@@ -251,14 +300,14 @@ const SearchScreen = ({ navigation }: any) => {
             <PropertyCard
               property={item as any}
               onPress={() => navigation.navigate('PropertyDetail', { id: item.id })}
-              style={styles.card}
+              style={[styles.card, { width: grid.cardWidth }]}
               isFavorited={isBuyer ? favoriteIds.has(item.id) : undefined}
               onFavoriteToggle={isBuyer ? () => toggleFavorite(item.id) : undefined}
             />
           )}
           keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
+          numColumns={grid.columns}
+          columnWrapperStyle={[styles.row, { gap: grid.gap }]}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.empty}>
@@ -611,8 +660,8 @@ const styles = StyleSheet.create({
   sortBadgeText: { fontSize: 10, color: colors.primary, fontWeight: typography.fontWeight.semibold },
 
   list: { padding: spacing.md, flexGrow: 1 },
-  row: { justifyContent: 'space-between' },
-  card: { width: '48%', marginBottom: spacing.md },
+  row: { justifyContent: 'flex-start' },
+  card: { marginBottom: spacing.md },
 
   empty: { alignItems: 'center', paddingTop: 60, gap: spacing.sm },
   emptyIconWrap: {

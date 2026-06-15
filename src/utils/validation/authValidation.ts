@@ -1,14 +1,16 @@
 import * as yup from 'yup';
 import { REGEX } from '../constants/regex';
 
+export const identifierSchema = yup
+  .string()
+  .required('Email or phone is required')
+  .test('email-or-phone', 'Enter valid email or phone', (value) => {
+    if (!value) return false;
+    return REGEX.EMAIL.test(value) || REGEX.PHONE.test(value);
+  });
+
 export const loginSchema = yup.object().shape({
-  identifier: yup
-    .string()
-    .required('Email or phone is required')
-    .test('email-or-phone', 'Enter valid email or phone', (value) => {
-      if (!value) return false;
-      return REGEX.EMAIL.test(value) || REGEX.PHONE.test(value);
-    }),
+  identifier: identifierSchema,
   password: yup
     .string()
     .required('Password is required')
@@ -34,7 +36,7 @@ export const registerSchema = yup.object().shape({
 });
 
 export const otpSchema = yup.object().shape({
-  identifier: yup.string().required('Email or phone is required'),
+  identifier: identifierSchema,
 });
 
 export const otpVerifySchema = yup.object().shape({

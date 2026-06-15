@@ -18,6 +18,7 @@ import { colors, spacing, typography } from '@/theme';
 import PropertyCard from '@/components/property/PropertyCard';
 import type { RootState } from '@/store';
 import type { PropertyCardDTO } from '@/api/types/discovery.types';
+import { isBuyerExperience } from '@/utils/rbac/permissions';
 
 type SectionKey = 'POPULAR' | 'RECOMMENDED' | 'NEAREST';
 
@@ -32,7 +33,7 @@ const HomeScreen = ({ navigation }: any) => {
   const { selectedCity, coordinates } = useSelector((state: RootState) => state.location);
   const firstName = useSelector((state: RootState) => state.auth.user?.firstName);
   const isBuyer = useSelector((state: RootState) =>
-    state.auth.user?.roles.includes('BUYER') ?? false
+    isBuyerExperience(state.auth.user?.roles)
   );
 
   const { ids: favoriteIds, isLoading: idsLoading } = useFavoriteIdsSet(isBuyer);
@@ -48,8 +49,8 @@ const HomeScreen = ({ navigation }: any) => {
 
   const { data: home, isLoading, isError, isFetching, refetch } = useHomeFeedQuery(
     selectedCity?.name,
-    coordinates.latitude || undefined,
-    coordinates.longitude || undefined
+    coordinates.latitude ?? undefined,
+    coordinates.longitude ?? undefined
   );
 
   const sectionData = (key: SectionKey): PropertyCardDTO[] => {

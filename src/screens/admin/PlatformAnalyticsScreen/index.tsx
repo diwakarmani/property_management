@@ -1,29 +1,55 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import { AnalyticsService, type PlatformStatsDTO } from '@/api/services/analytics.service';
 
-const StatRow = ({ label, value, iconName, color }: { label: string; value: string | number; iconName: string; color: string }) => (
-  <View style={styles.statRow}>
+const StatRow = ({ label, value, iconName, color, onPress }: {
+  label: string;
+  value: string | number;
+  iconName: string;
+  color: string;
+  onPress?: () => void;
+}) => (
+  <TouchableOpacity
+    style={styles.statRow}
+    onPress={onPress}
+    disabled={!onPress}
+    accessibilityRole={onPress ? 'button' : undefined}
+    accessibilityLabel={onPress ? `View ${label}` : undefined}
+  >
     <View style={[styles.statIcon, { backgroundColor: color + '15' }]}>
       <Ionicons name={iconName as any} size={18} color={color} />
     </View>
     <Text style={styles.statLabel}>{label}</Text>
     <Text style={[styles.statValue, { color }]}>{value}</Text>
-  </View>
+    {onPress ? <Ionicons name="chevron-forward" size={16} color={colors.textLight} /> : null}
+  </TouchableOpacity>
 );
 
-const MetricCard = ({ title, value, sub }: { title: string; value: string | number; sub?: string }) => (
-  <View style={styles.metricCard}>
+const MetricCard = ({ title, value, sub, onPress }: {
+  title: string;
+  value: string | number;
+  sub?: string;
+  onPress?: () => void;
+}) => (
+  <TouchableOpacity
+    style={styles.metricCard}
+    onPress={onPress}
+    disabled={!onPress}
+    accessibilityRole={onPress ? 'button' : undefined}
+    accessibilityLabel={onPress ? `View ${title}` : undefined}
+  >
     <Text style={styles.metricTitle}>{title}</Text>
     <Text style={styles.metricValue}>{value}</Text>
     {sub ? <Text style={styles.metricSub}>{sub}</Text> : null}
-  </View>
+  </TouchableOpacity>
 );
 
-const PlatformAnalyticsScreen = () => {
+type AdminListingStatus = 'ALL' | 'ACTIVE' | 'PENDING_APPROVAL' | 'SOLD' | 'RENTED';
+
+const PlatformAnalyticsScreen = ({ navigation }: any) => {
   const [stats, setStats] = useState<PlatformStatsDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,6 +66,16 @@ const PlatformAnalyticsScreen = () => {
   };
 
   useEffect(() => { fetchStats(); }, []);
+
+  const tabNavigation = navigation.getParent?.() ?? navigation;
+  const openUsers = () => tabNavigation.navigate('Users', {
+    screen: 'ManageUsers',
+    params: { roleFilter: null },
+  });
+  const openListings = (status: AdminListingStatus) => tabNavigation.navigate('Listings', {
+    screen: 'AdminListings',
+    params: { status },
+  });
 
   if (loading) {
     return (
@@ -73,36 +109,40 @@ const PlatformAnalyticsScreen = () => {
           title="Total Users"
           value={stats?.totalUsers ?? 0}
           sub={`+${stats?.newUsersThisMonth ?? 0} this month`}
+          onPress={openUsers}
         />
         <MetricCard
           title="Total Properties"
           value={stats?.totalProperties ?? 0}
           sub={`+${stats?.newPropertiesThisMonth ?? 0} this month`}
+          onPress={() => openListings('ALL')}
         />
         <MetricCard
           title="Active Listings"
           value={stats?.activeListings ?? 0}
+          onPress={() => openListings('ACTIVE')}
         />
         <MetricCard
           title="Pending Review"
           value={stats?.pendingApprovals ?? 0}
+          onPress={() => openListings('PENDING_APPROVAL')}
         />
       </View>
 
       {/* Properties breakdown */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Properties by Status</Text>
-        <StatRow label="Active" value={stats?.activeListings ?? 0} iconName="checkmark-circle" color={colors.success} />
-        <StatRow label="Pending Approval" value={stats?.pendingApprovals ?? 0} iconName="time" color={colors.warning} />
-        <StatRow label="Sold" value={stats?.soldProperties ?? 0} iconName="cash" color="#2980B9" />
-        <StatRow label="Rented" value={stats?.rentedProperties ?? 0} iconName="key" color="#8E44AD" />
+        <StatRow label="Active" value={stats?.activeListings ?? 0} iconName="checkmark-circle" color={colors.success} onPress={() => openListings('ACTIVE')} />
+        <StatRow label="Pending Approval" value={stats?.pendingApprovals ?? 0} iconName="time" color={colors.warning} onPress={() => openListings('PENDING_APPROVAL')} />
+        <StatRow label="Sold" value={stats?.soldProperties ?? 0} iconName="cash" color="#2980B9" onPress={() => openListings('SOLD')} />
+        <StatRow label="Rented" value={stats?.rentedProperties ?? 0} iconName="key" color="#8E44AD" onPress={() => openListings('RENTED')} />
       </View>
 
       {/* This Month */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>This Month</Text>
-        <StatRow label="New Users" value={stats?.newUsersThisMonth ?? 0} iconName="person-add" color={colors.primary} />
-        <StatRow label="New Properties" value={stats?.newPropertiesThisMonth ?? 0} iconName="home" color="#27AE60" />
+        <StatRow label="New Users" value={stats?.newUsersThisMonth ?? 0} iconName="person-add" color={colors.primary} onPress={openUsers} />
+        <StatRow label="New Properties" value={stats?.newPropertiesThisMonth ?? 0} iconName="home" color="#27AE60" onPress={() => openListings('ALL')} />
       </View>
     </ScrollView>
   );

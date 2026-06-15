@@ -13,6 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing } from '@/theme';
@@ -24,6 +25,8 @@ import {
 } from '@/api/hooks/useFavorites';
 import { useRealtorProfileQuery } from '@/api/hooks/useStats';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
+import type { RootState } from '@/store';
+import { isBuyerExperience } from '@/utils/rbac/permissions';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -164,11 +167,14 @@ const PropertyDetailScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { id } = route.params as any;
+  const isBuyer = useSelector((state: RootState) =>
+    isBuyerExperience(state.auth.user?.roles)
+  );
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [descExpanded, setDescExpanded] = useState(false);
 
   const { data: property, isLoading, isError, error, refetch } = usePropertyQuery(id);
-  const { data: isFavorite, isLoading: checkLoading } = useFavoriteCheckQuery(id);
+  const { data: isFavorite, isLoading: checkLoading } = useFavoriteCheckQuery(id, isBuyer);
   const addFavorite = useAddFavoriteMutation();
   const removeFavorite = useRemoveFavoriteMutation();
   const realtorId = property?.ownerIsRealtor ? property.ownerId : undefined;
@@ -399,17 +405,21 @@ const PropertyDetailScreen = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>Property Details</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity
-            onPress={toggleFavorite}
-            style={[styles.headerBtn, favoriteBlocked && { opacity: 0.45 }]}
-            disabled={favoriteBlocked}
-          >
-            <Ionicons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={20}
-              color={isFavorite ? colors.error : colors.text}
-            />
-          </TouchableOpacity>
+          {isBuyer ? (
+            <TouchableOpacity
+              onPress={toggleFavorite}
+              style={[styles.headerBtn, favoriteBlocked && { opacity: 0.45 }]}
+              disabled={favoriteBlocked}
+              accessibilityRole="button"
+              accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Ionicons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={20}
+                color={isFavorite ? colors.error : colors.text}
+              />
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity onPress={handleShare} style={styles.headerBtn}>
             <Ionicons name="share-social-outline" size={20} color={colors.text} />
           </TouchableOpacity>

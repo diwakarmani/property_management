@@ -194,10 +194,20 @@ const PropertyConfigScreen = () => {
               </Text>
             </View>
             <Text style={styles.subCount}>{item.subTypes?.length ?? 0} sub</Text>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => openEditType(item)}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => openEditType(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`Edit ${item.name}`}
+            >
               <Ionicons name="create-outline" size={18} color={colors.primary} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => openAddSubType(item.id)}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => openAddSubType(item.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`Add subtype to ${item.name}`}
+            >
               <Ionicons name="add-circle-outline" size={18} color={colors.success} />
             </TouchableOpacity>
           </View>

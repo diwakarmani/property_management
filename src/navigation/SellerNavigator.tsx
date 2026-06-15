@@ -14,7 +14,6 @@ import PropertyImagesScreen from '@/screens/realtor/PropertyImagesScreen';
 import CreateListingScreen from '@/screens/realtor/CreateListingScreen';
 import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
 import ReceivedInquiriesScreen from '@/screens/inquiry/ReceivedInquiriesScreen';
-import NotificationsScreen from '@/screens/profile/NotificationsScreen';
 import ProfileStackNavigator from './ProfileStackNavigator';
 
 const Tab = createBottomTabNavigator();
@@ -29,7 +28,10 @@ const PropertyImagesWrapped = withLayout(PropertyImagesScreen);
 const CreateListingWrapped = withLayout(CreateListingScreen);
 const PropertyDetailWrapped = withLayout(PropertyDetailScreen);
 const InquiriesWrapped = withLayout(ReceivedInquiriesScreen);
-const NotificationsWrapped = withLayout(NotificationsScreen);
+
+export const SELLER_TAB_REGISTERED_ROUTES = [
+  'Dashboard', 'MyListings', 'Create', 'Inquiries', 'Profile',
+] as const;
 
 const MyListingsStackScreen = () => (
   <ListingsStack.Navigator screenOptions={{ headerShown: false }}>
@@ -67,11 +69,6 @@ const SellerNavigator = () => (
     <Tab.Screen name="MyListings" component={MyListingsStackScreen} />
     <Tab.Screen name="Create" component={CreateListingWrapped} />
     <Tab.Screen name="Inquiries" component={InquiriesWrapped} />
-    <Tab.Screen
-      name="Notifications"
-      component={NotificationsWrapped}
-      options={{ tabBarButton: () => null }}
-    />
     <Tab.Screen
       name="Profile"
       component={ProfileStackNavigator}

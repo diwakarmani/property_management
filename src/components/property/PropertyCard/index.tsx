@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ViewStyle,
+  StyleProp,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,7 +16,7 @@ import OptimizedImage from '@/components/common/OptimizedImage';
 interface PropertyCardProps {
   property: PropertyCardDTO;
   onPress: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   isFavorited?: boolean;
   onFavoriteToggle?: () => void;
 }
@@ -118,21 +119,21 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, i
 
         <View style={styles.divider} />
 
-        <View style={styles.details}>
+        <View style={styles.details} testID="property-card-details">
           {property.bedrooms > 0 && (
             <View style={styles.detailItem}>
               <Ionicons name="bed-outline" size={13} color={colors.textSecondary} />
               <Text style={styles.detailText}>{property.bedrooms}</Text>
             </View>
           )}
-          <View style={styles.detailItem}>
+          <View style={[styles.detailItem, styles.furnishingItem]} testID="property-card-furnishing">
             <Ionicons name="cube-outline" size={13} color={colors.textSecondary} />
-            <Text style={styles.detailText} numberOfLines={1}>
+            <Text style={[styles.detailText, styles.furnishingText]} numberOfLines={1}>
               {property.furnishedStatus?.replace('_', ' ')}
             </Text>
           </View>
           {property.distanceInKm !== undefined && (
-            <View style={[styles.detailItem, styles.distancePill]}>
+            <View style={[styles.detailItem, styles.distancePill]} testID="property-card-distance">
               <Ionicons name="navigate" size={11} color={colors.primary} />
               <Text style={[styles.detailText, styles.distanceText]}>
                 {property.distanceInKm?.toFixed(1)} km
@@ -282,6 +283,7 @@ const styles = StyleSheet.create({
   details: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: spacing.sm,
   },
   detailItem: {
@@ -292,6 +294,13 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: typography.fontSize.xs,
     color: colors.textSecondary,
+  },
+  furnishingItem: {
+    flex: 1,
+    minWidth: 0,
+  },
+  furnishingText: {
+    flexShrink: 1,
   },
   distancePill: {
     marginLeft: 'auto',

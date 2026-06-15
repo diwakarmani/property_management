@@ -70,6 +70,10 @@ const ProfileScreen = ({ navigation }: any) => {
     );
   };
 
+  const openNotifications = () => {
+    navigation.navigate('Notifications');
+  };
+
   const initials = [user?.firstName?.[0], user?.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
 
   const MENU_SECTIONS = [
@@ -84,7 +88,7 @@ const ProfileScreen = ({ navigation }: any) => {
     {
       title: 'Preferences',
       items: [
-        { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('Notifications'), color: '#F39C12' },
+        { icon: 'notifications-outline', label: 'Notifications', onPress: openNotifications, color: '#F39C12' },
         { icon: 'help-circle-outline',   label: 'Help & Support', onPress: handleHelpSupport,                         color: '#27AE60' },
       ],
     },

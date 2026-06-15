@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/api/queryClient';
 import { PropertyService } from '@/api/services/property.service';
 import type { PropertyDTO, PropertyTypeDTO } from '@/api/types/property.types';
 
@@ -94,6 +96,7 @@ const EMPTY_FORM: FormData = {
 
 const EditListingScreen = ({ navigation, route }: any) => {
   const propertyId: number = route?.params?.propertyId;
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -225,6 +228,8 @@ const EditListingScreen = ({ navigation, route }: any) => {
 
     PropertyService.updateProperty(propertyId, payload)
       .then(() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.myListings });
+        queryClient.invalidateQueries({ queryKey: queryKeys.property(propertyId) });
         Alert.alert('Updated', 'Listing updated successfully.', [
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);

@@ -22,7 +22,9 @@ export const useRealtorProfileQuery = (realtorId: number | null | undefined) =>
       return res.data.data;
     },
     enabled: realtorId != null,
-    staleTime: STALE_TIME.MEDIUM,
+    staleTime: 0,         // always considered stale — refetch on every mount so errors recover fast
+    retry: false,         // axiosClient already retries once internally; TQ retry adds delay
+    gcTime: 60_000,       // keep in cache for 1 min so PropertyDetail → RealtorProfile navigation is instant
   });
 
 export const useConnectRealtorMutation = (realtorId: number | null | undefined) => {

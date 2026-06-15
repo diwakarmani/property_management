@@ -76,7 +76,7 @@ export const useFavoriteIdsSet = (enabled = true) => {
 };
 
 /** Whether a single property is favorited — seeded by useFavoritesQuery / useFavoriteIdsSet. */
-export const useFavoriteCheckQuery = (propertyId: number) =>
+export const useFavoriteCheckQuery = (propertyId: number, enabled = true) =>
   useQuery({
     queryKey: queryKeys.favoritesCheck(propertyId),
     queryFn: async () => {
@@ -84,6 +84,7 @@ export const useFavoriteCheckQuery = (propertyId: number) =>
       return res.data.data ?? false;
     },
     staleTime: STALE_TIME.MEDIUM,
+    enabled,
     retry: false,
   });
 

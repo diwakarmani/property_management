@@ -11,7 +11,7 @@ describe('useDiscovery hooks', () => {
 
   const makeWrapper = () => {
     const client = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: Infinity } },
     });
     const Wrapper = ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -24,12 +24,28 @@ describe('useDiscovery hooks', () => {
   });
   afterEach(() => mock.restore());
 
-  it('useHomeFeedQuery is disabled until a city is provided', async () => {
+  it('useHomeFeedQuery is disabled until a city or coordinate pair is provided', async () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useHomeFeedQuery(undefined), { wrapper: Wrapper });
     // With no city, the query never runs — stays idle.
     expect(result.current.isFetching).toBe(false);
     expect(result.current.data).toBeUndefined();
+  });
+
+  it('useHomeFeedQuery fetches immediately for near-me coordinates without a city', async () => {
+    mock.onGet('/api/discovery/home').reply((config) => {
+      expect(config.params).toEqual({ city: undefined, lat: 12.9716, lng: 77.5946 });
+      return [200, { success: true, data: { popular: [], recommended: [], nearest: [] } }];
+    });
+
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useHomeFeedQuery(undefined, 12.9716, 77.5946),
+      { wrapper: Wrapper }
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mock.history.get).toHaveLength(1);
   });
 
   it('useHomeFeedQuery fetches the three home sections when a city is provided', async () => {

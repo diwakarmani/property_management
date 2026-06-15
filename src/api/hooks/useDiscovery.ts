@@ -24,7 +24,7 @@ export const useHomeFeedQuery = (city?: string, lat?: number, lng?: number) =>
       const res = await DiscoveryService.getHomeFeed(city, lat, lng);
       return res.data.data as HomeDiscoveryResponse;
     },
-    enabled: !!city,
+    enabled: !!city || (lat != null && lng != null),
     staleTime: STALE_TIME.SLOW,
   });
 

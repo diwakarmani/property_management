@@ -27,5 +27,7 @@ export const FavoriteService = {
     } as any),
 
   checkFavorite: (propertyId: number) =>
-    axiosClient.get<ApiResponse<boolean>>(`/api/favorites/${propertyId}/check`),
+    axiosClient.get<ApiResponse<boolean>>(`/api/favorites/${propertyId}/check`, {
+      skipErrorToast: true,  // heart defaults to false on error; PropertyDetailsScreen shows no inline state for this
+    }),
 };

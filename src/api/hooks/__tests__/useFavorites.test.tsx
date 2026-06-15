@@ -16,7 +16,7 @@ describe('useFavorites hooks', () => {
 
   const makeWrapper = () => {
     const client = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: Infinity } },
     });
     const Wrapper = ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>

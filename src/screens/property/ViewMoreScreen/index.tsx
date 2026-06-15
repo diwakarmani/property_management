@@ -9,6 +9,7 @@ import PropertyCard from '@/components/property/PropertyCard';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
 import { colors, typography, spacing } from '@/theme';
 import type { RootState } from '@/store';
+import { isBuyerExperience } from '@/utils/rbac/permissions';
 
 const CATEGORY_LABELS: Record<string, string> = {
   popular: 'Popular Properties',
@@ -21,7 +22,7 @@ const ViewMoreScreen = ({ navigation }: any) => {
   const { category, city } = route.params as any;
   const { coordinates } = useSelector((state: RootState) => state.location);
   const isBuyer = useSelector((state: RootState) =>
-    state.auth.user?.roles.includes('BUYER') ?? false
+    isBuyerExperience(state.auth.user?.roles)
   );
 
   const { ids: favoriteIds, isLoading: idsLoading } = useFavoriteIdsSet(isBuyer);

@@ -19,8 +19,16 @@ import {
 import OptimizedImage from '@/components/common/OptimizedImage';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
 
-const STATUS_TABS = ['ALL', 'DRAFT', 'ACTIVE', 'PENDING_APPROVAL', 'SOLD', 'RENTED'] as const;
-type StatusTab = typeof STATUS_TABS[number];
+const STATUS_TABS = [
+  { key: 'ALL',              label: 'All',     icon: 'apps-outline',             color: colors.textSecondary },
+  { key: 'DRAFT',            label: 'Draft',   icon: 'document-outline',         color: colors.textLight },
+  { key: 'ACTIVE',           label: 'Active',  icon: 'checkmark-circle-outline', color: colors.success },
+  { key: 'PENDING_APPROVAL', label: 'Pending', icon: 'time-outline',             color: colors.warning },
+  { key: 'SOLD',             label: 'Sold',    icon: 'cash-outline',             color: colors.info },
+  { key: 'RENTED',           label: 'Rented',  icon: 'key-outline',              color: colors.primary },
+] as const;
+
+type StatusTab = typeof STATUS_TABS[number]['key'];
 
 type ListingCardProps = {
   item: PropertyDTO;
@@ -31,7 +39,7 @@ type ListingCardProps = {
 
 const ListingCard = ({ item, navigation, onDelete, onPublish }: ListingCardProps) => {
   const statusColor = STATUS_COLORS[item.status] ?? colors.textSecondary;
-  const statusLabel = STATUS_LABELS[item.status] ?? item.status;
+  const statusLabel = STATUS_TABS.find(t => t.key === item.status)?.label ?? item.status;
 
   return (
     <TouchableOpacity
@@ -108,9 +116,6 @@ const STATUS_COLORS: Record<string, string> = {
   INACTIVE: '#E74C3C',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING_APPROVAL: 'PENDING',
-};
 
 const formatPrice = (price: number) => {
   if (price >= 1000000) return `$${(price / 1000000).toFixed(1)}M`;
@@ -130,6 +135,8 @@ const MyListingsScreen = ({ navigation }: any) => {
   const filtered = activeTab === 'ALL'
     ? allListings
     : allListings.filter(p => p.status === activeTab);
+
+  const activeTabCfg = STATUS_TABS.find(t => t.key === activeTab) ?? STATUS_TABS[0];
 
   const handleDelete = (property: PropertyDTO) => {
     Alert.alert(
@@ -165,35 +172,27 @@ const MyListingsScreen = ({ navigation }: any) => {
       </View>
 
       {/* Status Tabs */}
-      <FlatList
-        horizontal
-        data={STATUS_TABS}
-        keyExtractor={t => t}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabs}
-        renderItem={({ item: tab }) => {
-          const count = tab === 'ALL'
-            ? allListings.length
-            : allListings.filter(p => p.status === tab).length;
+      <View style={styles.tabBar}>
+        {STATUS_TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
           return (
             <TouchableOpacity
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
-              onPress={() => setActiveTab(tab)}
+              key={tab.key}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
             >
-              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                {STATUS_LABELS[tab] ?? tab}
+              <Ionicons
+                name={tab.icon as any}
+                size={14}
+                color={isActive ? tab.color : colors.textLight}
+              />
+              <Text style={[styles.tabLabel, isActive && { color: tab.color }]}>
+                {tab.label}
               </Text>
-              {count > 0 && (
-                <View style={[styles.tabBadge, activeTab === tab && styles.tabBadgeActive]}>
-                  <Text style={[styles.tabBadgeText, activeTab === tab && styles.tabBadgeTextActive]}>
-                    {count}
-                  </Text>
-                </View>
-              )}
             </TouchableOpacity>
           );
-        }}
-      />
+        })}
+      </View>
 
       {/* Listings */}
       <FlatList
@@ -216,7 +215,7 @@ const MyListingsScreen = ({ navigation }: any) => {
           <View style={styles.empty}>
             <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
             <Text style={styles.emptyText}>
-              {activeTab === 'ALL' ? 'No listings yet' : `No ${activeTab.toLowerCase()} listings`}
+              {activeTab === 'ALL' ? 'No listings yet' : `No ${activeTabCfg.label.toLowerCase()} listings`}
             </Text>
             {activeTab === 'ALL' && (
               <TouchableOpacity
@@ -266,37 +265,29 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     fontWeight: typography.fontWeight.medium,
   },
-  tabs: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
+  tabBar: {
+    flexDirection: 'row',
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
+    paddingHorizontal: spacing.sm,
   },
   tab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    gap: 4,
-    backgroundColor: colors.background,
+    justifyContent: 'center',
+    gap: 3,
+    paddingVertical: spacing.sm + 2,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  tabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  tabText: { fontSize: typography.fontSize.xs, color: colors.text, fontWeight: typography.fontWeight.medium },
-  tabTextActive: { color: colors.white, fontWeight: typography.fontWeight.bold },
-  tabBadge: {
-    backgroundColor: colors.borderLight,
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+  tabActive: { borderBottomColor: colors.primary },
+  tabLabel: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textLight,
   },
-  tabBadgeActive: { backgroundColor: 'rgba(255,255,255,0.3)' },
-  tabBadgeText: { fontSize: 9, color: colors.textSecondary, fontWeight: typography.fontWeight.bold },
-  tabBadgeTextActive: { color: colors.white },
   listFlex: { flex: 1 },
   list: { padding: spacing.md, gap: spacing.md },
   card: {

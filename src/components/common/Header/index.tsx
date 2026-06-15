@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import type { RootState } from '@/store';
+import { useUnreadCountQuery } from '@/api/hooks/useNotifications';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'REALTOR'];
 
@@ -12,14 +13,11 @@ const Header = () => {
   const navigation = useNavigation();
   const { selectedCity } = useSelector((state: RootState) => state.location);
   const { user } = useSelector((state: RootState) => state.auth);
+  const { data: unreadCount = 0, refetch: refetchUnreadCount } = useUnreadCountQuery();
 
   const isAdminRole = user?.roles?.some((r: string) => ADMIN_ROLES.includes(r)) ?? false;
   const openNotifications = () => {
-    // Navigate to the Notifications screen within the Profile stack.
-    // Using navigate('Profile', { screen: 'Notifications' }) switches to the
-    // Profile tab and pushes Notifications onto its stack, so Back returns to
-    // ProfileMain cleanly — avoids the hidden Notifications tab which has no
-    // back stack and breaks the tab state.
+    void refetchUnreadCount();
     (navigation as any).navigate('Profile', { screen: 'Notifications' });
   };
 
@@ -59,6 +57,11 @@ const Header = () => {
         >
           <View style={styles.actionBtn}>
             <Ionicons name="notifications-outline" size={20} color={colors.text} />
+            {unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -156,6 +159,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  unreadBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -5,
+    minWidth: 17,
+    height: 17,
+    paddingHorizontal: 3,
+    borderRadius: 9,
+    backgroundColor: colors.error,
+    borderWidth: 1.5,
+    borderColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unreadBadgeText: {
+    color: colors.white,
+    fontSize: 9,
+    fontWeight: typography.fontWeight.bold,
   },
   avatarBtn: {
     width: 38,

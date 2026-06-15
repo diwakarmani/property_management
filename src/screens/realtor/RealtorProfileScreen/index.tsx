@@ -144,7 +144,7 @@ const RealtorProfileScreen = () => {
     }
     if (propertyId) {
       // Navigate directly to inquiry form when we have a property context
-      connectRealtor.mutate({});  // fire-and-forget to record interaction
+      connectRealtor.mutate({ propertyId });
       (navigation as any).navigate('ContactAgent', { propertyId, propertyTitle });
       return;
     }

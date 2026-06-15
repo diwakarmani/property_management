@@ -13,12 +13,21 @@ describe('rbac/permissions', () => {
 
     it('denies a permission the role does not have', () => {
       expect(hasPermission([ROLES.BUYER], PERMISSIONS.MANAGE_SYSTEM)).toBe(false);
-      expect(hasPermission([ROLES.SELLER], PERMISSIONS.APPROVE_REALTOR_LISTINGS)).toBe(false);
+      expect(hasPermission([ROLES.SELLER], PERMISSIONS.APPROVE_LISTINGS)).toBe(false);
     });
 
-    it('SUPER_ADMIN holds every permission', () => {
+    it('grants SUPER_ADMIN platform permissions but not buyer-only favorites', () => {
       expect(hasPermission([ROLES.SUPER_ADMIN], PERMISSIONS.MANAGE_SYSTEM)).toBe(true);
       expect(hasPermission([ROLES.SUPER_ADMIN], PERMISSIONS.CREATE_LISTING)).toBe(true);
+      expect(hasPermission([ROLES.SUPER_ADMIN], PERMISSIONS.SAVE_FAVORITES)).toBe(false);
+    });
+
+    it('reserves favorites for buyers', () => {
+      expect(hasPermission([ROLES.BUYER], PERMISSIONS.SAVE_FAVORITES)).toBe(true);
+      expect(hasPermission([ROLES.REALTOR], PERMISSIONS.SAVE_FAVORITES)).toBe(false);
+      expect(hasPermission([ROLES.SELLER], PERMISSIONS.SAVE_FAVORITES)).toBe(false);
+      expect(hasPermission([ROLES.SUPER_ADMIN, ROLES.BUYER], PERMISSIONS.SAVE_FAVORITES)).toBe(false);
+      expect(hasPermission([ROLES.REALTOR, ROLES.BUYER], PERMISSIONS.SAVE_FAVORITES)).toBe(false);
     });
 
     it('returns false for an empty or unknown role set', () => {

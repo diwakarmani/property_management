@@ -11,31 +11,38 @@ import ContactAgentScreen from '@/screens/property/ContactAgentScreen';
 import RealtorProfileScreen from '@/screens/realtor/RealtorProfileScreen';
 import SearchScreen from '@/screens/search/SearchScreen';
 import FavoritesScreen from '@/screens/favorites/FavoritesScreen';
-import NotificationsScreen from '@/screens/profile/NotificationsScreen';
 import { withLayout } from '@/utils/withLayout';
 import ProfileStackNavigator from './ProfileStackNavigator';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createStackNavigator();
+const SearchStack = createStackNavigator();
 
 const HomeMainScreen = withLayout(HomeScreen);
 const ViewMoreWrapped = withLayout(ViewMoreScreen);
-const PropertyDetailWrapped = withLayout(PropertyDetailScreen);
 const SearchWrapped = withLayout(SearchScreen);
 const FavoritesWrapped = withLayout(FavoritesScreen);
-const NotificationsWrapped = withLayout(NotificationsScreen);
-
-const RealtorProfileWrapped = withLayout(RealtorProfileScreen);
 
 const HomeStackScreen = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
     <HomeStack.Screen name="HomeMain" component={HomeMainScreen} />
     <HomeStack.Screen name="ViewMore" component={ViewMoreWrapped} />
-    <HomeStack.Screen name="PropertyDetail" component={PropertyDetailWrapped} />
+    <HomeStack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
     <HomeStack.Screen name="ContactAgent" component={ContactAgentScreen} />
-    <HomeStack.Screen name="RealtorProfile" component={RealtorProfileWrapped} />
+    <HomeStack.Screen name="RealtorProfile" component={RealtorProfileScreen} />
   </HomeStack.Navigator>
 );
+
+export const SearchStackScreen = ({ disableAnimations = false }: { disableAnimations?: boolean }) => (
+  <SearchStack.Navigator screenOptions={{ headerShown: false, animationEnabled: !disableAnimations }}>
+    <SearchStack.Screen name="SearchMain" component={SearchWrapped} />
+    <SearchStack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
+    <SearchStack.Screen name="ContactAgent" component={ContactAgentScreen} />
+    <SearchStack.Screen name="RealtorProfile" component={RealtorProfileScreen} />
+  </SearchStack.Navigator>
+);
+
+export const MAIN_TAB_ROUTE_NAMES = ['Home', 'Search', 'Favorites', 'Profile'] as const;
 
 const TAB_ICONS: Record<string, { active: any; inactive: any }> = {
   Home:      { active: 'home',       inactive: 'home-outline' },
@@ -68,13 +75,8 @@ const MainTabNavigator = () => (
     })}
   >
     <Tab.Screen name="Home"      component={HomeStackScreen} />
-    <Tab.Screen name="Search"    component={SearchWrapped} />
+    <Tab.Screen name="Search"    component={SearchStackScreen} />
     <Tab.Screen name="Favorites" component={FavoritesWrapped} />
-    <Tab.Screen
-      name="Notifications"
-      component={NotificationsWrapped}
-      options={{ tabBarButton: () => null }}
-    />
     <Tab.Screen
       name="Profile"
       component={ProfileStackNavigator}

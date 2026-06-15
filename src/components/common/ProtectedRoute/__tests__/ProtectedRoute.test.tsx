@@ -11,8 +11,10 @@ import ProtectedRoute from '../index';
  * `withLayout` test's mock-it-out style).
  */
 const mockUseSelector = jest.fn();
+const mockDispatch = jest.fn();
 jest.mock('react-redux', () => ({
   useSelector: (selector: any) => mockUseSelector(selector),
+  useDispatch: () => mockDispatch,
 }));
 
 /** Drives `useSelector` with an auth slice carrying the given roles. */
@@ -44,7 +46,7 @@ describe('ProtectedRoute (NB-17)', () => {
       </ProtectedRoute>
     );
     expect(queryByText('SECRET')).toBeNull();
-    expect(queryByText('Access Denied')).not.toBeNull();
+    expect(queryByText('Access Restricted')).not.toBeNull();
   });
 
   it('fails closed for a session with no roles (the NB-17 case)', () => {
@@ -106,6 +108,6 @@ describe('ProtectedRoute (NB-17)', () => {
       </ProtectedRoute>
     );
     expect(queryByText('NOPE')).not.toBeNull();
-    expect(queryByText('Access Denied')).toBeNull();
+    expect(queryByText('Access Restricted')).toBeNull();
   });
 });

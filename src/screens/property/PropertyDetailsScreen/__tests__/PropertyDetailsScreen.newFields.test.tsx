@@ -2,6 +2,7 @@ import React from 'react';
 import { Linking } from 'react-native';
 import { fireEvent, render } from '@testing-library/react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
 import PropertyDetailScreen from '../index';
 import { usePropertyQuery } from '@/api/hooks/useProperties';
 import { useFavoriteCheckQuery, useAddFavoriteMutation, useRemoveFavoriteMutation } from '@/api/hooks/useFavorites';
@@ -11,6 +12,7 @@ jest.mock('@react-navigation/native', () => ({
   useRoute: jest.fn(),
   useNavigation: jest.fn(),
 }));
+jest.mock('react-redux', () => ({ useSelector: jest.fn() }));
 jest.mock('@/api/hooks/useProperties', () => ({ usePropertyQuery: jest.fn() }));
 jest.mock('@/api/hooks/useFavorites', () => ({
   useFavoriteCheckQuery: jest.fn(),
@@ -51,6 +53,9 @@ const BASE_PROPERTY = {
 };
 
 const setupMocks = (propertyOverrides: object = {}) => {
+  (useSelector as unknown as jest.Mock).mockImplementation((selector: any) => selector({
+    auth: { user: { roles: ['BUYER'] } },
+  }));
   (useRoute as jest.Mock).mockReturnValue({ params: { id: 5 } });
   (useNavigation as jest.Mock).mockReturnValue({ navigate: jest.fn(), goBack: jest.fn() });
   (useFavoriteCheckQuery as jest.Mock).mockReturnValue({ data: false, isLoading: false });
@@ -76,6 +81,12 @@ describe('PropertyDetailScreen — Activity section', () => {
     const screen = render(<PropertyDetailScreen />);
     expect(screen.getByText('120')).toBeTruthy();
     expect(screen.getByText('Views')).toBeTruthy();
+  });
+
+  it('enables the favorite control for a buyer', () => {
+    const screen = render(<PropertyDetailScreen />);
+    expect(screen.getByLabelText('Add to favorites')).toBeTruthy();
+    expect(useFavoriteCheckQuery).toHaveBeenCalledWith(5, true);
   });
 
   it('shows shortlist count', () => {

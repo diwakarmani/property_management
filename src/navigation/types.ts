@@ -33,10 +33,9 @@ export type HomeStackParamList = {
 
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
-  Search: undefined;
+  Search: NavigatorScreenParams<HomeStackParamList>;
   Favorites: undefined;
-  Notifications: undefined;
-  Profile: undefined;
+  Profile: NavigatorScreenParams<ProfileStackParamList>;
 };
 
 // ── Listing-management stack (shared by Seller & Realtor) ─────────────────
@@ -51,8 +50,7 @@ export type SellerTabParamList = {
   Dashboard: undefined;
   MyListings: NavigatorScreenParams<ListingsStackParamList>;
   Create: undefined;
-  Notifications: undefined;
-  Profile: undefined;
+  Profile: NavigatorScreenParams<ProfileStackParamList>;
 };
 
 // ── Realtor flow ──────────────────────────────────────────────────────────
@@ -60,15 +58,14 @@ export type RealtorTabParamList = {
   Dashboard: undefined;
   MyListings: NavigatorScreenParams<ListingsStackParamList>;
   Create: undefined;
-  Notifications: undefined;
-  Profile: undefined;
+  Profile: NavigatorScreenParams<ProfileStackParamList>;
 };
 
 // ── Profile stack ─────────────────────────────────────────────────────────
 export type ProfileStackParamList = {
   ProfileMain: undefined;
   EditProfile: undefined;
-  Notifications: undefined;
   ChangePassword: undefined;
   Addresses: undefined;
+  Notifications: undefined;
 };

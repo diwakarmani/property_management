@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
 import PropertyDetailScreen from '../index';
 import { usePropertyQuery } from '@/api/hooks/useProperties';
 import { useFavoriteCheckQuery, useAddFavoriteMutation, useRemoveFavoriteMutation } from '@/api/hooks/useFavorites';
@@ -10,6 +11,7 @@ jest.mock('@react-navigation/native', () => ({
   useRoute: jest.fn(),
   useNavigation: jest.fn(),
 }));
+jest.mock('react-redux', () => ({ useSelector: jest.fn() }));
 jest.mock('@/api/hooks/useProperties', () => ({ usePropertyQuery: jest.fn() }));
 jest.mock('@/api/hooks/useFavorites', () => ({
   useFavoriteCheckQuery: jest.fn(),
@@ -31,6 +33,9 @@ describe('PropertyDetailScreen — enquiry flow', () => {
     jest.clearAllMocks();
     (useRoute as jest.Mock).mockReturnValue({ params: { id: 99 } });
     (useNavigation as jest.Mock).mockReturnValue({ navigate, goBack: jest.fn() });
+    (useSelector as unknown as jest.Mock).mockImplementation((selector: any) => selector({
+      auth: { user: { roles: ['REALTOR'] } },
+    }));
     (useFavoriteCheckQuery as jest.Mock).mockReturnValue({ data: false, isLoading: false });
     (useAddFavoriteMutation as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
     (useRemoveFavoriteMutation as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
@@ -71,6 +76,12 @@ describe('PropertyDetailScreen — enquiry flow', () => {
   it('renders the Send Enquiry button', async () => {
     const screen = render(<PropertyDetailScreen />);
     expect(screen.getByText('Send Enquiry')).toBeTruthy();
+  });
+
+  it('does not expose or query buyer-only favorites for a realtor', () => {
+    const screen = render(<PropertyDetailScreen />);
+    expect(screen.queryByLabelText(/favorites/i)).toBeNull();
+    expect(useFavoriteCheckQuery).toHaveBeenCalledWith(99, false);
   });
 
   it('pressing Send Enquiry navigates directly to ContactAgent', async () => {

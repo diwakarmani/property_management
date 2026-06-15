@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,10 +26,15 @@ const TABS = [
   { key: 'PENDING_APPROVAL', label: 'Pending', icon: 'time-outline', color: colors.warning },
   { key: 'ACTIVE',           label: 'Active',  icon: 'checkmark-circle-outline', color: colors.success },
   { key: 'REJECTED',         label: 'Rejected',icon: 'close-circle-outline', color: colors.error },
+  { key: 'SOLD',             label: 'Sold',    icon: 'cash-outline', color: colors.info },
+  { key: 'RENTED',           label: 'Rented',  icon: 'key-outline', color: colors.primary },
   { key: 'ALL',              label: 'All',     icon: 'apps-outline', color: colors.textSecondary },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
+
+export const normalizeAdminListingStatus = (status?: string): TabKey =>
+  TABS.some((tab) => tab.key === status) ? status as TabKey : 'PENDING_APPROVAL';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -159,7 +164,7 @@ const modalStyles = StyleSheet.create({
 
 // ── Property card ─────────────────────────────────────────────────────────────
 
-const PropertyCard = ({
+export const PropertyCard = ({
   property,
   onApprove,
   onReject,
@@ -263,6 +268,9 @@ const PropertyCard = ({
             style={[cardStyles.iconBtn, property.isFeatured && cardStyles.iconBtnActive]}
             onPress={onToggleFeatured}
             disabled={isPending}
+            accessibilityRole="button"
+            accessibilityLabel="Toggle featured"
+            accessibilityState={{ disabled: isPending, selected: property.isFeatured }}
           >
             <Ionicons
               name={property.isFeatured ? 'star' : 'star-outline'}
@@ -274,6 +282,9 @@ const PropertyCard = ({
             style={[cardStyles.iconBtn, property.isVerified && cardStyles.iconBtnActiveGreen]}
             onPress={onToggleVerified}
             disabled={isPending}
+            accessibilityRole="button"
+            accessibilityLabel="Toggle verified"
+            accessibilityState={{ disabled: isPending, selected: property.isVerified }}
           >
             <Ionicons
               name={property.isVerified ? 'shield-checkmark' : 'shield-outline'}
@@ -370,13 +381,21 @@ const cardStyles = StyleSheet.create({
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-const AdminListingsScreen = () => {
+const AdminListingsScreen = ({ route }: any) => {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<TabKey>('PENDING_APPROVAL');
+  const [activeTab, setActiveTab] = useState<TabKey>(() =>
+    normalizeAdminListingStatus(route?.params?.status)
+  );
   const [page, setPage] = useState(0);
   const [rejectTargetId, setRejectTargetId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!route?.params?.status) return;
+    setActiveTab(normalizeAdminListingStatus(route.params.status));
+    setPage(0);
+  }, [route?.params?.status]);
 
   const queryKey = ['admin', 'properties', activeTab, page];
 

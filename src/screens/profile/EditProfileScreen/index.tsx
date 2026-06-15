@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
@@ -22,12 +23,152 @@ const GENDER_OPTIONS = [
   { label: 'Other', value: 'OTHER', icon: 'person-outline' },
 ];
 
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const CURRENT_YEAR = new Date().getFullYear();
+const DOB_YEARS = Array.from({ length: CURRENT_YEAR - 1899 }, (_, index) => CURRENT_YEAR - index);
+
+const parseIsoDate = (value?: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? '');
+  if (!match) return new Date(2000, 0, 1);
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+};
+
+const formatIsoDate = (date: Date) => [
+  date.getFullYear(),
+  String(date.getMonth() + 1).padStart(2, '0'),
+  String(date.getDate()).padStart(2, '0'),
+].join('-');
+
+const DateOfBirthPicker = ({
+  visible,
+  value,
+  onClose,
+  onSelect,
+}: {
+  visible: boolean;
+  value?: string;
+  onClose: () => void;
+  onSelect: (value: string) => void;
+}) => {
+  const initialDate = parseIsoDate(value);
+  const [year, setYear] = useState(initialDate.getFullYear());
+  const [month, setMonth] = useState(initialDate.getMonth());
+  const [showYears, setShowYears] = useState(false);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    const next = parseIsoDate(value);
+    setYear(next.getFullYear());
+    setMonth(next.getMonth());
+    setShowYears(false);
+  }, [visible, value]);
+
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const selected = parseIsoDate(value);
+  const today = new Date();
+  const atMinimumMonth = year === 1900 && month === 0;
+  const atCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+
+  const changeMonth = (delta: number) => {
+    const next = new Date(year, month + delta, 1);
+    setYear(next.getFullYear());
+    setMonth(next.getMonth());
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.calendarOverlay}>
+        <View style={styles.calendarSheet} accessibilityLabel="Date of birth calendar">
+          <View style={styles.calendarTopRow}>
+            <Text style={styles.calendarTitle}>Select date of birth</Text>
+            <TouchableOpacity onPress={onClose} accessibilityLabel="Close calendar">
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.calendarHeader}>
+            <TouchableOpacity
+              onPress={() => changeMonth(-1)}
+              disabled={atMinimumMonth}
+              accessibilityLabel="Previous month"
+              accessibilityState={{ disabled: atMinimumMonth }}
+            >
+              <Ionicons name="chevron-back" size={22} color={atMinimumMonth ? colors.textLight : colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowYears(current => !current)} accessibilityLabel="Choose year">
+              <Text style={styles.calendarMonth}>{MONTHS[month]} {year}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => changeMonth(1)}
+              disabled={atCurrentMonth}
+              accessibilityLabel="Next month"
+              accessibilityState={{ disabled: atCurrentMonth }}
+            >
+              <Ionicons name="chevron-forward" size={22} color={atCurrentMonth ? colors.textLight : colors.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {showYears ? (
+            <ScrollView style={styles.yearList} contentContainerStyle={styles.yearGrid}>
+              {DOB_YEARS.map(option => (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.yearOption, option === year && styles.yearOptionActive]}
+                  onPress={() => { setYear(option); setShowYears(false); }}
+                  accessibilityLabel={`Select year ${option}`}
+                >
+                  <Text style={[styles.yearOptionText, option === year && styles.yearOptionTextActive]}>{option}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <>
+              <View style={styles.weekRow}>
+                {WEEKDAYS.map((day, index) => <Text key={`${day}-${index}`} style={styles.weekday}>{day}</Text>)}
+              </View>
+              <View style={styles.dayGrid}>
+                {Array.from({ length: firstWeekday }).map((_, index) => <View key={`blank-${index}`} style={styles.dayCell} />)}
+                {Array.from({ length: daysInMonth }, (_, index) => index + 1).map(day => {
+                  const date = new Date(year, month, day);
+                  const isFuture = date > today;
+                  const isSelected = selected.getFullYear() === year
+                    && selected.getMonth() === month
+                    && selected.getDate() === day;
+                  const iso = formatIsoDate(date);
+                  return (
+                    <TouchableOpacity
+                      key={day}
+                      style={[styles.dayCell, isSelected && styles.dayCellSelected]}
+                      disabled={isFuture}
+                      onPress={() => { onSelect(iso); onClose(); }}
+                      accessibilityLabel={`Select ${iso}`}
+                      accessibilityState={{ disabled: isFuture, selected: isSelected }}
+                    >
+                      <Text style={[styles.dayText, isFuture && styles.dayTextDisabled, isSelected && styles.dayTextSelected]}>{day}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 const EditProfileScreen = ({ navigation }: any) => {
   const { user } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch<AppDispatch>();
   const [selectedGender, setSelectedGender] = useState<string>(user?.gender || '');
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
 
-  const { control, handleSubmit, formState: { errors } } = useForm({
+  const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm({
     defaultValues: {
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
@@ -38,6 +179,7 @@ const EditProfileScreen = ({ navigation }: any) => {
       website: user?.website || '',
     },
   });
+  const dateOfBirth = watch('dateOfBirth');
 
   const onSubmit = async (data: any) => {
     try {
@@ -141,19 +283,19 @@ const EditProfileScreen = ({ navigation }: any) => {
               />
             )}
           />
-          <Controller
-            control={control}
-            name="dateOfBirth"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                label="Date of Birth"
-                value={value}
-                onChangeText={onChange}
-                leftIcon="calendar-outline"
-                placeholder="YYYY-MM-DD"
-              />
-            )}
-          />
+          <Text style={styles.dateLabel}>Date of Birth</Text>
+          <TouchableOpacity
+            style={styles.dateField}
+            onPress={() => setDatePickerVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Choose date of birth"
+          >
+            <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+            <Text style={[styles.dateValue, !dateOfBirth && styles.datePlaceholder]}>
+              {dateOfBirth || 'Select date'}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         {/* Gender selector */}
@@ -269,6 +411,12 @@ const EditProfileScreen = ({ navigation }: any) => {
           <Text style={styles.saveBtnText}>Save Changes</Text>
         </TouchableOpacity>
       </ScrollView>
+      <DateOfBirthPicker
+        visible={datePickerVisible}
+        value={dateOfBirth}
+        onClose={() => setDatePickerVisible(false)}
+        onSelect={(value) => setValue('dateOfBirth', value, { shouldDirty: true })}
+      />
     </View>
   );
 };
@@ -364,6 +512,66 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
+  dateLabel: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textSecondary,
+    marginBottom: 6,
+  },
+  dateField: {
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background,
+  },
+  dateValue: { flex: 1, fontSize: typography.fontSize.md, color: colors.text },
+  datePlaceholder: { color: colors.textLight },
+  calendarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  calendarSheet: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: spacing.lg,
+    maxHeight: '82%',
+  },
+  calendarTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  calendarTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.text },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.lg,
+  },
+  calendarMonth: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.primary },
+  weekRow: { flexDirection: 'row' },
+  weekday: { width: '14.2857%', textAlign: 'center', fontSize: typography.fontSize.xs, color: colors.textSecondary },
+  dayGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.sm },
+  dayCell: { width: '14.2857%', height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
+  dayCellSelected: { backgroundColor: colors.primary },
+  dayText: { fontSize: typography.fontSize.sm, color: colors.text },
+  dayTextDisabled: { color: colors.textLight },
+  dayTextSelected: { color: colors.white, fontWeight: typography.fontWeight.bold },
+  yearList: { maxHeight: 280 },
+  yearGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, paddingVertical: spacing.sm },
+  yearOption: {
+    width: '30%',
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    borderRadius: 10,
+    backgroundColor: colors.background,
+  },
+  yearOptionActive: { backgroundColor: colors.primary },
+  yearOptionText: { color: colors.text, fontSize: typography.fontSize.sm },
+  yearOptionTextActive: { color: colors.white, fontWeight: typography.fontWeight.bold },
 
   genderRow: { flexDirection: 'row', gap: spacing.sm },
   genderChip: {

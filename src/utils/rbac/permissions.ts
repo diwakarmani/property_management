@@ -27,7 +27,9 @@ export const PERMISSIONS = {
 } as const;
 
 export const ROLE_PERMISSIONS = {
-  [ROLES.SUPER_ADMIN]: Object.values(PERMISSIONS),
+  [ROLES.SUPER_ADMIN]: Object.values(PERMISSIONS).filter(
+    permission => permission !== PERMISSIONS.SAVE_FAVORITES
+  ),
 
   [ROLES.REALTOR]: [
     PERMISSIONS.VIEW_PROPERTIES,
@@ -50,7 +52,23 @@ export const ROLE_PERMISSIONS = {
 
 
 
+const NON_BUYER_APP_ROLES = [
+  ROLES.SUPER_ADMIN,
+  ROLES.REALTOR,
+  'REALTOR_GROUP_ADMIN',
+  ROLES.SELLER,
+];
+
+export const isBuyerExperience = (userRoles: string[] | undefined | null) => {
+  const roles = userRoles ?? [];
+  return roles.includes(ROLES.BUYER)
+    && !roles.some(role => NON_BUYER_APP_ROLES.includes(role as any));
+};
+
 export const hasPermission = (userRoles: string[], permission: string) => {
+  if (permission === PERMISSIONS.SAVE_FAVORITES) {
+    return isBuyerExperience(userRoles);
+  }
   return userRoles.some(role => 
     (ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] as readonly string[])?.includes(permission)
   );

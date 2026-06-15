@@ -76,7 +76,7 @@ const MainAppScreen = () => {
       );
     case 'realtor':
       return (
-        <ProtectedRoute requiredRoles={['REALTOR']}>
+        <ProtectedRoute requiredRoles={['REALTOR', 'REALTOR_GROUP_ADMIN']}>
           <RealtorNavigator />
         </ProtectedRoute>
       );

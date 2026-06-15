@@ -13,7 +13,6 @@ import PlatformAnalyticsScreen from '@/screens/admin/PlatformAnalyticsScreen';
 import SystemSettingsScreen from '@/screens/admin/SystemSettingsScreen';
 import PropertyConfigScreen from '@/screens/admin/PropertyConfigScreen';
 import LocationBootstrapScreen from '@/screens/admin/LocationBootstrapScreen';
-import NotificationsScreen from '@/screens/profile/NotificationsScreen';
 import ProfileStackNavigator from './ProfileStackNavigator';
 
 const Tab = createBottomTabNavigator();
@@ -31,7 +30,10 @@ const PlatformAnalyticsWrapped = withLayout(PlatformAnalyticsScreen);
 const SystemSettingsWrapped = withLayout(SystemSettingsScreen);
 const PropertyConfigWrapped = withLayout(PropertyConfigScreen);
 const LocationBootstrapWrapped = withLayout(LocationBootstrapScreen);
-const NotificationsWrapped = withLayout(NotificationsScreen);
+
+export const ADMIN_TAB_REGISTERED_ROUTES = [
+  'Dashboard', 'Users', 'Listings', 'Analytics', 'Profile',
+] as const;
 
 const DashboardStackScreen = () => (
   <DashboardStack.Navigator screenOptions={{ headerShown: false }}>
@@ -82,11 +84,6 @@ const AdminNavigator = () => (
     <Tab.Screen name="Users" component={UsersStackScreen} />
     <Tab.Screen name="Listings" component={ListingsStackScreen} />
     <Tab.Screen name="Analytics" component={AnalyticsStackScreen} />
-    <Tab.Screen
-      name="Notifications"
-      component={NotificationsWrapped}
-      options={{ tabBarButton: () => null }}
-    />
     <Tab.Screen
       name="Profile"
       component={ProfileStackNavigator}
