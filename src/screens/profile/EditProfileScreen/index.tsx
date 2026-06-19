@@ -6,6 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
@@ -168,7 +171,7 @@ const EditProfileScreen = ({ navigation }: any) => {
   const [selectedGender, setSelectedGender] = useState<string>(user?.gender || '');
   const [datePickerVisible, setDatePickerVisible] = useState(false);
 
-  const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm({
+  const { control, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
@@ -208,7 +211,10 @@ const EditProfileScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
 
         {/* Inline back row — inside scroll, not a separate header bar */}
@@ -404,11 +410,21 @@ const EditProfileScreen = ({ navigation }: any) => {
 
         {/* Save button */}
         <TouchableOpacity
-          style={styles.saveBtn}
+          style={[styles.saveBtn, isSubmitting && styles.saveBtnDisabled]}
           onPress={handleSubmit(onSubmit)}
+          disabled={isSubmitting}
+          accessibilityRole="button"
+          accessibilityLabel="Save changes"
+          accessibilityState={{ disabled: isSubmitting }}
         >
-          <Ionicons name="checkmark" size={18} color={colors.white} />
-          <Text style={styles.saveBtnText}>Save Changes</Text>
+          {isSubmitting ? (
+            <ActivityIndicator color={colors.white} size="small" />
+          ) : (
+            <>
+              <Ionicons name="checkmark" size={18} color={colors.white} />
+              <Text style={styles.saveBtnText}>Save Changes</Text>
+            </>
+          )}
         </TouchableOpacity>
       </ScrollView>
       <DateOfBirthPicker
@@ -417,7 +433,7 @@ const EditProfileScreen = ({ navigation }: any) => {
         onClose={() => setDatePickerVisible(false)}
         onSelect={(value) => setValue('dateOfBirth', value, { shouldDirty: true })}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

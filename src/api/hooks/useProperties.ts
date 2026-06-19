@@ -58,7 +58,7 @@ export const usePropertyQuery = (id: number | null | undefined) =>
       return res.data.data;
     },
     enabled: id != null,
-    staleTime: STALE_TIME.SLOW,
+    staleTime: STALE_TIME.MEDIUM,
   });
 
 export const useMyListingsQuery = (page = 0, size = 50) =>
@@ -68,6 +68,25 @@ export const useMyListingsQuery = (page = 0, size = 50) =>
       const res = await PropertyService.getMyListings(page, size);
       return res.data.data?.content ?? ([] as PropertyDTO[]);
     },
+    staleTime: STALE_TIME.MEDIUM,
+  });
+
+export const useMyListingsInfiniteQuery = (pageSize = 20) =>
+  useInfiniteQuery({
+    queryKey: [...queryKeys.myListings, 'infinite', pageSize] as const,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const res = await PropertyService.getMyListings(pageParam as number, pageSize);
+      return res.data.data;
+    },
+    getNextPageParam: (lastPage) =>
+      !lastPage || lastPage.last ? undefined : (lastPage.pageNumber ?? 0) + 1,
+    select: (data) => ({
+      pages: data.pages,
+      pageParams: data.pageParams,
+      items: data.pages.flatMap((p) => p?.content ?? []) as PropertyDTO[],
+      hasMore: !(data.pages[data.pages.length - 1]?.last ?? true),
+    }),
     staleTime: STALE_TIME.MEDIUM,
   });
 

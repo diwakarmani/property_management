@@ -8,11 +8,17 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSelector } from 'react-redux';
 import { colors, typography, spacing } from '@/theme';
 import { PropertyService } from '@/api/services/property.service';
+import { LocationService } from '@/api/services/location.service';
 import type { PropertyTypeDTO } from '@/api/types/property.types';
+import type { Locality } from '@/api/types/location.type';
+import type { RootState } from '@/store';
 
 interface FormData {
   // Step 1
@@ -25,7 +31,8 @@ interface FormData {
   propertyTypeId: string;
   // Step 2
   addressLine1: string;
-  locality: string;
+  locality: string;        // display name only
+  localityId: number | null; // required by backend
   city: string;
   state: string;
   country: string;
@@ -94,7 +101,7 @@ const STEP_LABELS = ['Basic', 'Location', 'Specs', 'Profile'];
 const INITIAL_FORM: FormData = {
   title: '', description: '', listingType: 'SALE', price: '', depositAmount: '',
   maintenanceCharge: '', propertyTypeId: '',
-  addressLine1: '', locality: '', city: '', state: '', country: 'USA', postalCode: '',
+  addressLine1: '', locality: '', localityId: null, city: '', state: '', country: 'USA', postalCode: '',
   bedrooms: '', bathrooms: '', balconies: '', carpetArea: '', builtUpArea: '',
   floorNumber: '', totalFloors: '', furnishedStatus: 'UNFURNISHED', facingDirection: '',
   parkingCovered: '', parkingOpen: '', ageOfProperty: '',
@@ -106,12 +113,28 @@ const CreateListingScreen = ({ navigation }: any) => {
   const [submitting, setSubmitting] = useState(false);
   const [propertyTypes, setPropertyTypes] = useState<PropertyTypeDTO[]>([]);
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
+  const [localities, setLocalities] = useState<Locality[]>([]);
+  const [localitySearch, setLocalitySearch] = useState('');
+  const [localityModal, setLocalityModal] = useState(false);
+
+  const selectedCity = useSelector((state: RootState) => state.location.selectedCity);
 
   useEffect(() => {
     PropertyService.getPropertyTypes()
       .then(res => setPropertyTypes(res.data.data ?? []))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!selectedCity?.id) return;
+    LocationService.getLocalities(selectedCity.id)
+      .then(res => setLocalities(res.data.data ?? []))
+      .catch(() => {});
+    setForm(prev => ({
+      ...prev,
+      city: prev.city || selectedCity.name,
+    }));
+  }, [selectedCity?.id]);
 
   const set = (key: keyof FormData) => (val: string) =>
     setForm(prev => ({ ...prev, [key]: val }));
@@ -130,6 +153,7 @@ const CreateListingScreen = ({ navigation }: any) => {
     }
     if (step === 2) {
       if (!form.addressLine1.trim()) { Alert.alert('Required', 'Address is required'); return false; }
+      if (!form.localityId) { Alert.alert('Required', 'Select a neighbourhood / locality'); return false; }
       if (!form.city.trim()) { Alert.alert('Required', 'City is required'); return false; }
       if (!form.state.trim()) { Alert.alert('Required', 'State is required'); return false; }
       if (!form.country.trim()) { Alert.alert('Required', 'Country is required'); return false; }
@@ -151,6 +175,7 @@ const CreateListingScreen = ({ navigation }: any) => {
       price: Number(form.price),
       propertyTypeId: Number(form.propertyTypeId),
       addressLine1: form.addressLine1,
+      localityId: form.localityId,
       city: form.city,
       state: form.state,
       country: form.country,
@@ -309,14 +334,16 @@ const CreateListingScreen = ({ navigation }: any) => {
         placeholderTextColor={colors.textLight}
       />
 
-      <Text style={styles.label}>Locality / Area</Text>
-      <TextInput
-        style={styles.input}
-        value={form.locality}
-        onChangeText={set('locality')}
-        placeholder="e.g. Bandra West"
-        placeholderTextColor={colors.textLight}
-      />
+      <Text style={styles.label}>Neighbourhood / Area *</Text>
+      <TouchableOpacity
+        style={[styles.input, styles.pickerBtn]}
+        onPress={() => { setLocalitySearch(''); setLocalityModal(true); }}
+      >
+        <Text style={form.locality ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
+          {form.locality || 'Select neighbourhood'}
+        </Text>
+        <Ionicons name="chevron-down" size={16} color={colors.textLight} />
+      </TouchableOpacity>
 
       <View style={styles.row2}>
         <View style={{ flex: 1 }}>
@@ -610,6 +637,58 @@ const CreateListingScreen = ({ navigation }: any) => {
       {step === 3 && renderStep3()}
       {step === 4 && renderStep4()}
 
+      {/* Locality picker modal */}
+      <Modal visible={localityModal} animationType="slide" transparent onRequestClose={() => setLocalityModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Neighbourhood</Text>
+              <TouchableOpacity onPress={() => setLocalityModal(false)}>
+                <Ionicons name="close" size={22} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.modalSearch}
+              placeholder="Search neighbourhoods…"
+              placeholderTextColor={colors.textLight}
+              value={localitySearch}
+              onChangeText={setLocalitySearch}
+              autoFocus
+            />
+            {localities.length === 0 ? (
+              <View style={styles.modalEmpty}>
+                <Text style={styles.modalEmptyText}>
+                  {selectedCity ? 'No neighbourhoods found for this city.' : 'Select a city from the header first.'}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={localities.filter(l =>
+                  !localitySearch || l.name.toLowerCase().includes(localitySearch.toLowerCase())
+                )}
+                keyExtractor={l => l.id.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.modalItem, form.localityId === item.id && styles.modalItemSelected]}
+                    onPress={() => {
+                      setForm(prev => ({ ...prev, locality: item.name, localityId: item.id }));
+                      setLocalityModal(false);
+                    }}
+                  >
+                    <Ionicons name="location-outline" size={16} color={colors.primary} />
+                    <Text style={styles.modalItemText}>{item.name}</Text>
+                    {form.localityId === item.id && (
+                      <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                )}
+                keyboardShouldPersistTaps="handled"
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
       {/* Footer */}
       <View style={styles.footer}>
         {step < TOTAL_STEPS ? (
@@ -736,6 +815,38 @@ const styles = StyleSheet.create({
   },
   primaryBtnDisabled: { opacity: 0.55 },
   primaryBtnText: { color: colors.white, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold },
+
+  // Locality picker
+  pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pickerBtnText: { color: colors.text, fontSize: typography.fontSize.md, flex: 1 },
+  pickerBtnPlaceholder: { color: colors.textLight, fontSize: typography.fontSize.md, flex: 1 },
+
+  // Locality modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '75%', paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+    borderBottomWidth: 1, borderBottomColor: colors.borderLight,
+  },
+  modalTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.text },
+  modalSearch: {
+    margin: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: 10,
+    paddingHorizontal: spacing.md, paddingVertical: 10,
+    fontSize: typography.fontSize.md, color: colors.text, backgroundColor: colors.background,
+  },
+  modalEmpty: { alignItems: 'center', padding: spacing.xl },
+  modalEmptyText: { color: colors.textSecondary, fontSize: typography.fontSize.sm, textAlign: 'center' },
+  modalItem: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingHorizontal: spacing.md, paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderLight,
+  },
+  modalItemSelected: { backgroundColor: colors.primarySurface },
+  modalItemText: { flex: 1, fontSize: typography.fontSize.md, color: colors.text },
 });
 
 export default CreateListingScreen;

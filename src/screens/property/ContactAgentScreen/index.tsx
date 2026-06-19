@@ -81,7 +81,7 @@ const ContactAgentScreen = () => {
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contact Agent</Text>
-        <View style={styles.backBtn} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <KeyboardAvoidingView
@@ -228,6 +228,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerSpacer: {
+    width: 38,
+    height: 38,
   },
   headerTitle: {
     fontSize: typography.fontSize.lg,

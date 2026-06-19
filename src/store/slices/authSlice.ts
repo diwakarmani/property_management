@@ -1,7 +1,9 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthService } from '@/api/services/auth.service';
-import { saveTokens, clearTokens, getAccessToken } from '@/utils/helpers/storage';
+import { saveTokens, clearTokens, getAccessToken, saveActiveRole, getActiveRole, clearActiveRole } from '@/utils/helpers/storage';
+import { queryClient } from '@/api/queryClient';
 import type { LoginRequest, RegisterRequest, OtpSendRequest, OtpVerifyRequest } from '@/api/types/auth.types';
+import { getAvailableRoles, pickRoleKey, isRoleValid, type RoleKey } from '@/utils/roleUtils';
 
 interface User {
   id?: number;
@@ -25,10 +27,10 @@ interface AuthState {
   error: string | null;
   otpSent: boolean;
   otpIdentifier: string | null;
-  /** True once boot-time session restore has *succeeded* (user known, or definitively unauthenticated). */
   bootstrapped: boolean;
-  /** True when bootstrap retries were exhausted (server unreachable) → BootScreen shows Retry. */
   bootstrapFailed: boolean;
+  /** Which role navigator the user is currently using. null = needs role selection. */
+  activeRole: RoleKey | null;
 }
 
 const initialState: AuthState = {
@@ -40,9 +42,9 @@ const initialState: AuthState = {
   otpIdentifier: null,
   bootstrapped: false,
   bootstrapFailed: false,
+  activeRole: null,
 };
 
-/** Normalises a backend UserDTO / AuthResponse / OtpVerificationResponse into the local User shape. */
 const toUser = (payload: any): User => {
   const rawRoles = payload?.roles;
   const roles: string[] = Array.isArray(rawRoles)
@@ -51,7 +53,6 @@ const toUser = (payload: any): User => {
       ? Array.from(rawRoles)
       : ['BUYER'];
   return {
-    // OtpVerificationResponse uses `id`; all other responses also use `id` now
     id: payload?.id,
     email: payload?.email,
     firstName: payload?.firstName,
@@ -66,6 +67,18 @@ const toUser = (payload: any): User => {
     website: payload?.website,
   };
 };
+
+/**
+ * Determines activeRole after login/OTP:
+ * - 1 available role  → auto-select it (no popup needed)
+ * - multiple roles    → return null so the role-selection popup appears
+ */
+const resolveActiveRole = (roles: string[]): RoleKey | null => {
+  const available = getAvailableRoles(roles);
+  return available.length === 1 ? available[0] : null;
+};
+
+// ─── Thunks ───────────────────────────────────────────────────────────────────
 
 export const login = createAsyncThunk(
   'auth/login',
@@ -85,54 +98,37 @@ export const fetchUser = createAsyncThunk(
   'auth/fetchUser',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await AuthService.getCurrentUser(); // GET /api/users/me
-      return response.data.data; // UserDTO with roles
+      const response = await AuthService.getCurrentUser();
+      return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch user');
     }
   }
 );
 
-/**
- * Boot-time session restore (KB-01 / NB-03 / NB-15).
- * If a stored access token exists, fetches the current user with exponential
- * backoff so a cold Render backend (~50s) does not bounce the user to Login.
- * - 401/403 → token is genuinely dead → unauthenticated (go to Login).
- * - network/timeout/5xx → retried; if all retries fail → rejected (Retry UI).
- */
 export const bootstrapSession = createAsyncThunk(
   'auth/bootstrap',
   async (_, { rejectWithValue }) => {
     const token = await getAccessToken();
-    if (!token) {
-      return { authenticated: false as const };
-    }
+    if (!token) return { authenticated: false as const };
 
-    const delays = [0, 2000, 4000, 8000, 16000]; // ~30s retry budget
-
+    const delays = [0, 2000, 4000, 8000, 16000];
     for (let attempt = 0; attempt < delays.length; attempt++) {
-      if (delays[attempt] > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
-      }
+      if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]));
       try {
         const response = await AuthService.getCurrentUser();
-        return { authenticated: true as const, user: response.data.data };
+        const storedRole = await getActiveRole();
+        return { authenticated: true as const, user: response.data.data, storedRole };
       } catch (error: any) {
         const status = error?.response?.status;
-        // The axios interceptor auto-refreshes on 401 and clears tokens if the
-        // refresh fails. A 401/403 here — or tokens that have vanished — means
-        // the session is genuinely dead → route to Login (not Retry).
         const tokenStillPresent = await getAccessToken();
         if (status === 401 || status === 403 || !tokenStillPresent) {
           await clearTokens();
+          await clearActiveRole();
           return { authenticated: false as const };
         }
-        // network error / timeout / 5xx → likely a cold backend; retry.
       }
     }
-
-    // Retries exhausted but the token is still valid-looking → server
-    // unreachable. Reject so BootScreen shows a Retry button.
     return rejectWithValue('bootstrap-failed');
   }
 );
@@ -177,25 +173,41 @@ export const verifyOtp = createAsyncThunk(
   }
 );
 
+/** Persists the selected role and updates state. Call this from RoleSelectionScreen. */
+export const selectRole = createAsyncThunk(
+  'auth/selectRole',
+  async (role: RoleKey) => {
+    await saveActiveRole(role);
+    return role;
+  }
+);
+
+/** Clears active role to trigger role-selection popup (used by "Switch Role"). */
+export const clearActiveRoleAndReselect = createAsyncThunk(
+  'auth/clearActiveRole',
+  async () => {
+    await clearActiveRole();
+  }
+);
+
 export const logout = createAsyncThunk('auth/logout', async () => {
   await clearTokens();
+  await clearActiveRole();
+  queryClient.clear();
 });
+
+// ─── Slice ────────────────────────────────────────────────────────────────────
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    clearError: (state) => {
-      state.error = null;
-    },
-    resetOtpState: (state) => {
-      state.otpSent = false;
-      state.otpIdentifier = null;
-    },
+    clearError: (state) => { state.error = null; },
+    resetOtpState: (state) => { state.otpSent = false; state.otpIdentifier = null; },
   },
   extraReducers: (builder) => {
     builder
-      // Bootstrap (boot-time session restore)
+      // ── Bootstrap ──────────────────────────────────────────────────────────
       .addCase(bootstrapSession.pending, (state) => {
         state.loading = true;
         state.bootstrapFailed = false;
@@ -207,23 +219,28 @@ const authSlice = createSlice({
         if (action.payload.authenticated && action.payload.user) {
           state.user = toUser(action.payload.user);
           state.isAuthenticated = true;
+          const stored = action.payload.storedRole ?? null;
+          // Restore stored role if it's still valid; otherwise resolve fresh
+          if (isRoleValid(stored, state.user?.roles)) {
+            state.activeRole = stored as RoleKey;
+          } else {
+            state.activeRole = resolveActiveRole(state.user?.roles ?? []);
+          }
         } else {
           state.user = null;
           state.isAuthenticated = false;
+          state.activeRole = null;
         }
       })
       .addCase(bootstrapSession.rejected, (state) => {
-        // Retries exhausted — mark bootstrapped so the user reaches Login.
         state.loading = false;
         state.bootstrapped = true;
         state.bootstrapFailed = true;
         state.isAuthenticated = false;
+        state.activeRole = null;
       })
-      // Fetch current user (NB-02)
-      .addCase(fetchUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // ── Fetch user ─────────────────────────────────────────────────────────
+      .addCase(fetchUser.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(fetchUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = toUser(action.payload);
@@ -233,37 +250,27 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Login
-      .addCase(login.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // ── Login ──────────────────────────────────────────────────────────────
+      .addCase(login.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
         state.user = toUser(action.payload);
+        state.activeRole = resolveActiveRole(state.user?.roles ?? []);
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Register — backend only returns {message, email}, no token; do NOT set isAuthenticated
-      .addCase(register.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(register.fulfilled, (state) => {
-        state.loading = false;
-      })
+      // ── Register ───────────────────────────────────────────────────────────
+      .addCase(register.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(register.fulfilled, (state) => { state.loading = false; })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Send OTP
-      .addCase(sendOtp.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // ── Send OTP ───────────────────────────────────────────────────────────
+      .addCase(sendOtp.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(sendOtp.fulfilled, (state, action) => {
         state.loading = false;
         state.otpSent = true;
@@ -273,15 +280,13 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Verify OTP
-      .addCase(verifyOtp.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // ── Verify OTP ─────────────────────────────────────────────────────────
+      .addCase(verifyOtp.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(verifyOtp.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
         state.user = toUser(action.payload);
+        state.activeRole = resolveActiveRole(state.user?.roles ?? []);
         state.otpSent = false;
         state.otpIdentifier = null;
       })
@@ -289,12 +294,21 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Logout
+      // ── Select role ────────────────────────────────────────────────────────
+      .addCase(selectRole.fulfilled, (state, action) => {
+        state.activeRole = action.payload;
+      })
+      // ── Clear active role (Switch Role) ────────────────────────────────────
+      .addCase(clearActiveRoleAndReselect.fulfilled, (state) => {
+        state.activeRole = null;
+      })
+      // ── Logout ─────────────────────────────────────────────────────────────
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.isAuthenticated = false;
         state.error = null;
         state.bootstrapFailed = false;
+        state.activeRole = null;
       });
   },
 });

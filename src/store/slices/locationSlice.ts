@@ -120,6 +120,12 @@ const locationSlice = createSlice({
       state.localities = [];
     },
 
+    /** Overrides stored coordinates to actual GPS and marks mode as nearMe — used after auto-selecting nearest city. */
+    setCoordinates: (state, action: PayloadAction<Coordinates>) => {
+      state.coordinates = action.payload;
+      state.mode = 'nearMe';
+    },
+
     confirmLocation: (state) => {
       // A valid scope is either a city or near-me coordinates.
       if (state.mode === 'city' && !state.selectedCity) return;
@@ -185,7 +191,7 @@ const locationSlice = createSlice({
   },
 });
 
-export const { selectCity, toggleLocality, setNearMe, confirmLocation, clearError } =
+export const { selectCity, toggleLocality, setNearMe, setCoordinates, confirmLocation, clearError } =
   locationSlice.actions;
 
 export default locationSlice.reducer;

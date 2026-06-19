@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,10 +17,13 @@ import { useSelector } from 'react-redux';
 import { colors, typography, spacing } from '@/theme';
 import { useSearchInfiniteQuery, usePropertyTypesQuery } from '@/api/hooks/useProperties';
 import { useFavoriteIdsSet, useAddFavoriteMutation, useRemoveFavoriteMutation } from '@/api/hooks/useFavorites';
+import { useLocalitySearch } from '@/api/hooks/useLocation';
 import PropertyCard from '@/components/property/PropertyCard';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
 import type { RootState } from '@/store';
 import { isBuyerExperience } from '@/utils/rbac/permissions';
+
+const MAX_LOCALITIES = 3;
 
 type ListingType = '' | 'SALE' | 'RENT' | 'LEASE';
 type Furnishing = '' | 'FURNISHED' | 'SEMI_FURNISHED' | 'UNFURNISHED';
@@ -132,20 +135,33 @@ const SearchScreen = ({ navigation }: any) => {
   const grid = getSearchGridLayout(screenWidth);
   const { selectedCity, selectedLocalities } = useSelector((state: RootState) => state.location);
   const isBuyer = useSelector((state: RootState) =>
-    isBuyerExperience(state.auth.user?.roles)
+    isBuyerExperience(state.auth.user?.roles, state.auth.activeRole)
   );
-  const [searchText, setSearchText] = useState(selectedCity?.name ?? '');
+
+  // Locality fuzzy search state
+  const [localityInput, setLocalityInput] = useState('');
+  const [debouncedLocality, setDebouncedLocality] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [areas, setAreas] = useState<string[]>(selectedLocalities.map((l) => l.name));
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [searched, setSearched] = useState(!!selectedCity);
-  const [committed, setCommitted] = useState<Record<string, any>>(() => {
-    return buildSearchParams(
-      EMPTY_FILTERS,
-      selectedCity?.name ?? '',
-      selectedLocalities.map((l) => l.name)
-    );
-  });
+  const [committed, setCommitted] = useState<Record<string, any>>(() =>
+    buildSearchParams(EMPTY_FILTERS, selectedCity?.name ?? '', selectedLocalities.map((l) => l.name))
+  );
+
+  // 350 ms debounce before API call
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedLocality(localityInput.trim()), 350);
+    return () => clearTimeout(t);
+  }, [localityInput]);
+
+  const { data: localitySuggestions = [], isFetching: isSearching } = useLocalitySearch(
+    selectedCity?.id,
+    debouncedLocality,
+  );
 
   const { ids: favoriteIds, isLoading: idsLoading } = useFavoriteIdsSet(isBuyer);
   const addFavorite = useAddFavoriteMutation();
@@ -160,22 +176,25 @@ const SearchScreen = ({ navigation }: any) => {
 
   const { data: propertyTypes = [] } = usePropertyTypesQuery();
 
-  const runSearch = useCallback((f: Filters, text: string, areaList: string[]) => {
+  const cityName = selectedCity?.name ?? '';
+
+  const runSearch = useCallback((f: Filters, areaList: string[]) => {
     setShowFilters(false);
     setSearched(true);
-    setCommitted(buildSearchParams(f, text, areaList));
-  }, []);
+    setCommitted(buildSearchParams(f, cityName, areaList));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cityName]);
 
   const selectedLocalityKey = selectedLocalities.map((l) => l.id).join(',');
 
+  // Sync when Redux city/localities change (e.g. from LocationSelectionScreen via header)
   useEffect(() => {
     const city = selectedCity?.name ?? '';
     const localityNames = selectedLocalities.map((l) => l.name);
-    setSearchText(city);
     setAreas(localityNames);
     if (city) setSearched(true);
-    setCommitted((previous) => {
-      const next = { ...previous };
+    setCommitted((prev) => {
+      const next = { ...prev };
       if (city) next.city = city;
       else delete next.city;
       if (localityNames.length) next.localities = localityNames.join(',');
@@ -184,22 +203,25 @@ const SearchScreen = ({ navigation }: any) => {
     });
   }, [selectedCity?.id, selectedCity?.name, selectedLocalityKey]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearched(true);
-      setCommitted((previous) => {
-        const next = { ...previous };
-        const city = searchText.trim();
-        if (city) next.city = city;
-        else delete next.city;
-        return next;
-      });
-    }, 350);
-    return () => clearTimeout(timer);
-  }, [searchText]);
+  const addArea = (name: string) => {
+    if (areas.includes(name) || areas.length >= MAX_LOCALITIES) return;
+    const next = [...areas, name];
+    setAreas(next);
+    setLocalityInput('');
+    setDebouncedLocality('');
+    setIsFocused(false);
+    runSearch(filters, next);
+  };
 
-  const handleSearch = () => runSearch(filters, searchText, areas);
-  const removeArea = (name: string) => { const next = areas.filter((a) => a !== name); setAreas(next); runSearch(filters, searchText, next); };
+  const handleSearch = () => runSearch(filters, areas);
+  const removeArea = (name: string) => {
+    const next = areas.filter((a) => a !== name);
+    setAreas(next);
+    runSearch(filters, next);
+  };
+
+  const atLimit = areas.length >= MAX_LOCALITIES;
+  const showSuggestions = isFocused && debouncedLocality.length >= 1;
 
   const { data, isLoading, isError, error, refetch, fetchNextPage, isFetchingNextPage, hasNextPage } =
     useSearchInfiniteQuery(committed, { enabled: searched });
@@ -224,23 +246,41 @@ const SearchScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.safeArea}>
-      {/* Search bar */}
+      {/* Locality search bar */}
       <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
+        <View style={[styles.searchBar, isFocused && styles.searchBarFocused]}>
           <View style={styles.searchIconWrap}>
-            <Ionicons name="search" size={16} color={colors.primary} />
+            {isSearching
+              ? <ActivityIndicator size="small" color={colors.primary} />
+              : <Ionicons name="search" size={16} color={colors.primary} />}
           </View>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by city…"
+            placeholder={
+              !selectedCity
+                ? 'Select a city from the header first'
+                : atLimit
+                ? 'Max 3 neighborhoods selected'
+                : 'Search neighborhoods…'
+            }
             placeholderTextColor={colors.textLight}
-            value={searchText}
-            onChangeText={setSearchText}
-            onSubmitEditing={handleSearch}
+            value={localityInput}
+            onChangeText={setLocalityInput}
+            onFocus={() => {
+              if (blurTimer.current) clearTimeout(blurTimer.current);
+              setIsFocused(true);
+            }}
+            onBlur={() => {
+              blurTimer.current = setTimeout(() => setIsFocused(false), 200);
+            }}
             returnKeyType="search"
+            editable={!!selectedCity && !atLimit}
           />
-          {searchText.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearBtn}>
+          {localityInput.length > 0 && (
+            <TouchableOpacity
+              onPress={() => { setLocalityInput(''); setDebouncedLocality(''); }}
+              style={styles.clearBtn}
+            >
               <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
@@ -258,18 +298,76 @@ const SearchScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
 
-      {/* Area chips */}
-      {areas.length > 0 && (
-        <View style={styles.areaRow}>
-          {areas.map((a) => (
-            <View key={a} style={styles.areaChip}>
-              <Ionicons name="location" size={11} color={colors.primary} />
-              <Text style={styles.areaChipText}>{a}</Text>
-              <TouchableOpacity onPress={() => removeArea(a)} hitSlop={8}>
-                <Ionicons name="close" size={13} color={colors.textSecondary} />
-              </TouchableOpacity>
+      {/* Suggestion dropdown */}
+      {showSuggestions && (
+        <View style={styles.suggestionBox}>
+          {isSearching ? (
+            <View style={styles.suggestionLoading}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.suggestionLoadingText}>Searching…</Text>
             </View>
-          ))}
+          ) : localitySuggestions.length === 0 ? (
+            <View style={styles.suggestionEmpty}>
+              <Ionicons name="location-outline" size={16} color={colors.textSecondary} />
+              <Text style={styles.suggestionEmptyText}>No neighborhoods match "{debouncedLocality}"</Text>
+            </View>
+          ) : (
+            localitySuggestions.map((loc, index) => {
+              const alreadySelected = areas.includes(loc.name);
+              return (
+                <TouchableOpacity
+                  key={loc.id}
+                  style={[
+                    styles.suggestionRow,
+                    index < localitySuggestions.length - 1 && styles.suggestionRowBorder,
+                    alreadySelected && styles.suggestionRowSelected,
+                  ]}
+                  onPress={() => addArea(loc.name)}
+                  disabled={alreadySelected}
+                >
+                  <Ionicons
+                    name={alreadySelected ? 'checkmark-circle' : 'location-outline'}
+                    size={15}
+                    color={alreadySelected ? colors.primary : colors.textSecondary}
+                  />
+                  <Text style={[styles.suggestionText, alreadySelected && styles.suggestionTextSelected]}>
+                    {loc.name}
+                  </Text>
+                  {alreadySelected && (
+                    <Text style={styles.suggestionAddedLabel}>Added</Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </View>
+      )}
+
+      {/* Selected chips + counter */}
+      {(areas.length > 0 || selectedCity) && (
+        <View style={styles.chipBar}>
+          {areas.length > 0 ? (
+            <>
+              <View style={[styles.counter, atLimit && styles.counterFull]}>
+                <Text style={[styles.counterText, atLimit && styles.counterTextFull]}>
+                  {areas.length}/{MAX_LOCALITIES}
+                </Text>
+              </View>
+              {areas.map((a) => (
+                <View key={a} style={styles.areaChip}>
+                  <Ionicons name="location" size={11} color={colors.primary} />
+                  <Text style={styles.areaChipText}>{a}</Text>
+                  <TouchableOpacity onPress={() => removeArea(a)} hitSlop={8}>
+                    <Ionicons name="close" size={13} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </>
+          ) : selectedCity ? (
+            <Text style={styles.cityHint}>
+              <Ionicons name="location-outline" size={12} color={colors.textSecondary} /> {selectedCity.name} · type to filter by neighborhood
+            </Text>
+          ) : null}
         </View>
       )}
 
@@ -534,7 +632,7 @@ const SearchScreen = ({ navigation }: any) => {
 
             {/* Footer actions */}
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.resetButton} onPress={() => { setFilters(EMPTY_FILTERS); runSearch(EMPTY_FILTERS, searchText, areas); }}>
+              <TouchableOpacity style={styles.resetButton} onPress={() => { setFilters(EMPTY_FILTERS); runSearch(EMPTY_FILTERS, areas); }}>
                 <Ionicons name="refresh-outline" size={16} color={colors.textSecondary} />
                 <Text style={styles.resetButtonText}>Reset</Text>
               </TouchableOpacity>
@@ -580,6 +678,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     height: 46,
   },
+  searchBarFocused: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
+  },
   searchIconWrap: {
     width: 26,
     height: 26,
@@ -618,15 +720,79 @@ const styles = StyleSheet.create({
   },
   filterBadgeText: { color: colors.white, fontSize: 9, fontWeight: 'bold' },
 
-  areaRow: {
+  // Suggestion dropdown
+  suggestionBox: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 10,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 13,
+    backgroundColor: colors.surface,
+  },
+  suggestionRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderLight,
+  },
+  suggestionRowSelected: { backgroundColor: colors.primarySurface },
+  suggestionText: { flex: 1, fontSize: typography.fontSize.md, color: colors.text },
+  suggestionTextSelected: { color: colors.primary, fontWeight: typography.fontWeight.semibold },
+  suggestionAddedLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.primary,
+    fontWeight: typography.fontWeight.bold,
+  },
+  suggestionLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  suggestionLoadingText: { fontSize: typography.fontSize.sm, color: colors.textSecondary },
+  suggestionEmpty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  suggestionEmptyText: { fontSize: typography.fontSize.sm, color: colors.textSecondary },
+
+  // Chips bar
+  chipBar: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xs,
     backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
   },
+  counter: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  counterFull: { backgroundColor: colors.primarySurface, borderColor: colors.primary },
+  counterText: { fontSize: 11, color: colors.textSecondary, fontWeight: typography.fontWeight.bold },
+  counterTextFull: { color: colors.primary },
   areaChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -639,6 +805,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   areaChipText: { fontSize: typography.fontSize.xs, color: colors.primary, fontWeight: typography.fontWeight.semibold },
+  cityHint: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textSecondary,
+    paddingVertical: 2,
+  },
 
   resultHeader: {
     flexDirection: 'row',

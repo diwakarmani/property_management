@@ -55,21 +55,31 @@ export const ROLE_PERMISSIONS = {
 const NON_BUYER_APP_ROLES = [
   ROLES.SUPER_ADMIN,
   ROLES.REALTOR,
-  'REALTOR_GROUP_ADMIN',
   ROLES.SELLER,
 ];
 
-export const isBuyerExperience = (userRoles: string[] | undefined | null) => {
+/**
+ * Returns true when the user should see buyer-specific UI (favorites, inquiries, etc.).
+ * Multi-role users who have actively selected 'buyer' get full buyer experience
+ * regardless of their other roles.
+ */
+export const isBuyerExperience = (
+  userRoles: string[] | undefined | null,
+  activeRole?: string | null,
+): boolean => {
   const roles = userRoles ?? [];
-  return roles.includes(ROLES.BUYER)
-    && !roles.some(role => NON_BUYER_APP_ROLES.includes(role as any));
+  if (!roles.includes(ROLES.BUYER)) return false;
+  // Explicit buyer session → always grant buyer experience
+  if (activeRole === 'buyer') return true;
+  // Single-role buyer or buyer-only account
+  return !roles.some(role => NON_BUYER_APP_ROLES.includes(role as any));
 };
 
-export const hasPermission = (userRoles: string[], permission: string) => {
+export const hasPermission = (userRoles: string[], permission: string, activeRole?: string | null) => {
   if (permission === PERMISSIONS.SAVE_FAVORITES) {
-    return isBuyerExperience(userRoles);
+    return isBuyerExperience(userRoles, activeRole);
   }
-  return userRoles.some(role => 
+  return userRoles.some(role =>
     (ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] as readonly string[])?.includes(permission)
   );
 };

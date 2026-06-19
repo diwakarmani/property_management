@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking } 
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { logout } from '@/store/slices/authSlice';
+import { logout, clearActiveRoleAndReselect } from '@/store/slices/authSlice';
+import { getAvailableRoles } from '@/utils/roleUtils';
 import { colors, typography, spacing } from '@/theme';
 import type { AppDispatch, RootState } from '@/store';
 
@@ -76,13 +77,31 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const initials = [user?.firstName?.[0], user?.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
 
+  const isBuyer = user?.roles?.includes('BUYER') ?? false;
+  const isMultiRole = getAvailableRoles(user?.roles).length > 1;
+
+  const handleSwitchRole = () => {
+    Alert.alert(
+      'Switch Role',
+      'This will take you back to the role selection screen.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Switch',
+          onPress: () => dispatch(clearActiveRoleAndReselect()),
+        },
+      ]
+    );
+  };
+
   const MENU_SECTIONS = [
     {
       title: 'Account',
       items: [
-        { icon: 'create-outline',      label: 'Edit Profile',    onPress: () => navigation.navigate('EditProfile'),    color: colors.primary },
-        { icon: 'lock-closed-outline', label: 'Change Password', onPress: () => navigation.navigate('ChangePassword'), color: '#8B5CF6' },
-        { icon: 'location-outline',    label: 'My Addresses',    onPress: () => navigation.navigate('Addresses'),      color: '#2980B9' },
+        { icon: 'create-outline',        label: 'Edit Profile',    onPress: () => navigation.navigate('EditProfile'),    color: colors.primary },
+        { icon: 'lock-closed-outline',   label: 'Change Password', onPress: () => navigation.navigate('ChangePassword'), color: '#8B5CF6' },
+        { icon: 'location-outline',      label: 'My Addresses',    onPress: () => navigation.navigate('Addresses'),      color: '#2980B9' },
+        ...(isBuyer ? [{ icon: 'chatbubbles-outline', label: 'My Inquiries', onPress: () => navigation.navigate('SentInquiries'), color: '#0891B2' }] : []),
       ],
     },
     {
@@ -127,7 +146,7 @@ const ProfileScreen = ({ navigation }: any) => {
             )}
             {!!user?.occupation && <InfoRow icon="briefcase-outline" label="Occupation" value={user.occupation} />}
             {!!user?.phone && <InfoRow icon="call-outline" label="Phone" value={user.phone} />}
-            {!!user?.dateOfBirth && <InfoRow icon="calendar-outline" label="Date of Birth" value={user.dateOfBirth} />}
+            {!!user?.dateOfBirth && <InfoRow icon="calendar-outline" label="Date of Birth" value={user.dateOfBirth.slice(0, 10)} />}
             {!!user?.website && <InfoRow icon="globe-outline" label="Website" value={user.website} />}
           </View>
         </View>
@@ -156,9 +175,18 @@ const ProfileScreen = ({ navigation }: any) => {
         </View>
       ))}
 
-      {/* Sign Out */}
+      {/* Switch Role (only shown for multi-role users) + Sign Out */}
       <View style={styles.section}>
         <View style={styles.card}>
+          {isMultiRole && (
+            <TouchableOpacity style={styles.menuItem} onPress={handleSwitchRole} activeOpacity={0.7}>
+              <View style={[styles.menuIcon, { backgroundColor: colors.primarySurface }]}>
+                <Ionicons name="swap-horizontal-outline" size={18} color={colors.primary} />
+              </View>
+              <Text style={styles.menuText}>Switch Role</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.textLight} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={[styles.menuItem, styles.menuItemLast]} onPress={handleLogout} activeOpacity={0.7}>
             <View style={[styles.menuIcon, { backgroundColor: colors.errorSurface }]}>
               <Ionicons name="log-out-outline" size={18} color={colors.error} />

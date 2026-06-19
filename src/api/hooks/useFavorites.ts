@@ -1,5 +1,5 @@
 import React from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FavoriteService } from '@/api/services/favorite.service';
 import { queryKeys, STALE_TIME } from '@/api/queryClient';
 import type { PropertyDTO } from '@/api/types/property.types';
@@ -46,6 +46,36 @@ export const useFavoritesQuery = (page = 0, size = 50) => {
     },
     staleTime: STALE_TIME.MEDIUM,
     retry: false,
+  });
+};
+
+export const useFavoritesInfiniteQuery = (pageSize = 20) => {
+  const qc = useQueryClient();
+  return useInfiniteQuery({
+    queryKey: [...queryKeys.favorites, 'infinite', pageSize] as const,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const res = await FavoriteService.getFavorites(pageParam as number, pageSize);
+      const items = res.data.data?.content ?? ([] as PropertyDTO[]);
+      items.forEach(item => qc.setQueryData(queryKeys.favoritesCheck(item.id), true));
+      return res.data.data;
+    },
+    getNextPageParam: (lastPage) => {
+      if (!lastPage) return undefined;
+      const { pageNumber = 0, totalPages = 1 } = lastPage;
+      return pageNumber + 1 >= totalPages ? undefined : pageNumber + 1;
+    },
+    select: (data) => {
+      const last = data.pages[data.pages.length - 1];
+      const isLast = !last || (last.pageNumber ?? 0) + 1 >= (last.totalPages ?? 1);
+      return {
+        pages: data.pages,
+        pageParams: data.pageParams,
+        items: data.pages.flatMap((p) => p?.content ?? []) as PropertyDTO[],
+        hasMore: !isLast,
+      };
+    },
+    staleTime: STALE_TIME.MEDIUM,
   });
 };
 

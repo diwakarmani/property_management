@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme';
 import { withLayout } from '@/utils/withLayout';
+import { useNewInquiryCount } from '@/api/hooks/useInquiries';
 
 import RealtorDashboardScreen from '@/screens/realtor/RealtorDashboardScreen';
 import MyListingsScreen from '@/screens/realtor/MyListingsScreen';
@@ -25,7 +26,7 @@ const MyListingsWrapped = withLayout(MyListingsScreen);
 const EditListingWrapped = withLayout(EditListingScreen);
 const PropertyImagesWrapped = withLayout(PropertyImagesScreen);
 const CreateListingWrapped = withLayout(CreateListingScreen);
-const PropertyDetailWrapped = withLayout(PropertyDetailScreen);
+const PropertyDetailWrapped = PropertyDetailScreen;
 const RealtorProfileWrapped = withLayout(RealtorProfileScreen);
 const InquiriesWrapped = withLayout(ReceivedInquiriesScreen);
 
@@ -43,7 +44,9 @@ const MyListingsStackScreen = () => (
   </ListingsStack.Navigator>
 );
 
-const RealtorNavigator = () => (
+const RealtorNavigator = () => {
+  const newInquiryCount = useNewInquiryCount();
+  return (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       headerShown: false,
@@ -64,7 +67,11 @@ const RealtorNavigator = () => (
     <Tab.Screen name="Dashboard" component={DashboardWrapped} />
     <Tab.Screen name="MyListings" component={MyListingsStackScreen} />
     <Tab.Screen name="Create" component={CreateListingWrapped} />
-    <Tab.Screen name="Inquiries" component={InquiriesWrapped} />
+    <Tab.Screen
+      name="Inquiries"
+      component={InquiriesWrapped}
+      options={{ tabBarBadge: newInquiryCount > 0 ? newInquiryCount : undefined }}
+    />
     <Tab.Screen
       name="Profile"
       component={ProfileStackNavigator}
@@ -76,6 +83,7 @@ const RealtorNavigator = () => (
       })}
     />
   </Tab.Navigator>
-);
+  );
+};
 
 export default RealtorNavigator;

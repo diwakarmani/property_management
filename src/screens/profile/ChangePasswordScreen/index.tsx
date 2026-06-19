@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
@@ -47,6 +48,7 @@ const ChangePasswordScreen = ({ navigation }: any) => {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!currentPassword.trim()) {
@@ -58,11 +60,14 @@ const ChangePasswordScreen = ({ navigation }: any) => {
     if (newPassword !== confirmPassword) {
       Alert.alert('Mismatch', 'New passwords do not match'); return;
     }
+    setSubmitting(true);
     try {
       await UserService.changePassword(currentPassword, newPassword, confirmPassword);
       navigation.goBack();
     } catch {
       // global interceptor shows error toast
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -109,8 +114,19 @@ const ChangePasswordScreen = ({ navigation }: any) => {
           placeholder="Re-enter new password"
         />
 
-        <TouchableOpacity style={styles.primaryBtn} onPress={handleSubmit}>
-          <Text style={styles.primaryBtnText}>Update Password</Text>
+        <TouchableOpacity
+          style={[styles.primaryBtn, submitting && { opacity: 0.55 }]}
+          onPress={handleSubmit}
+          disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Update password"
+          accessibilityState={{ disabled: submitting }}
+        >
+          {submitting ? (
+            <ActivityIndicator color={colors.white} size="small" />
+          ) : (
+            <Text style={styles.primaryBtnText}>Update Password</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </View>

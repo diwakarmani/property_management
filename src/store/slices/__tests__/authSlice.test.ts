@@ -5,6 +5,21 @@ import authReducer, {
   logout,
 } from '../authSlice';
 
+// Mock queryClient so we can assert .clear() is called on logout (Bug 9).
+const mockClear = jest.fn();
+jest.mock('@/api/queryClient', () => ({
+  queryClient: { clear: mockClear },
+  queryKeys: {},
+  STALE_TIME: {},
+}));
+
+// clearTokens must resolve so the logout thunk completes.
+jest.mock('@/utils/helpers/storage', () => ({
+  saveTokens: jest.fn(),
+  clearTokens: jest.fn().mockResolvedValue(undefined),
+  getAccessToken: jest.fn().mockResolvedValue(null),
+}));
+
 /**
  * Unit tests for the auth slice reducers (gap analysis §15.2 — UT-AUTHSLICE-FETCHUSER).
  * Verifies the previously-missing fetchUser reducers and the new bootstrap flow.
@@ -123,6 +138,20 @@ describe('authSlice', () => {
       expect(state.isAuthenticated).toBe(false);
       expect(state.user).toBeNull();
       expect(state.bootstrapFailed).toBe(false);
+    });
+
+    /**
+     * Bug 9 regression guard — logout thunk must call queryClient.clear() so that
+     * React Query cache from User A is never served to User B after login swap.
+     */
+    it('calls queryClient.clear() when the logout thunk executes (Bug 9)', async () => {
+      const { configureStore } = await import('@reduxjs/toolkit');
+      const store = configureStore({ reducer: { auth: authReducer } });
+      mockClear.mockClear();
+
+      await store.dispatch(logout());
+
+      expect(mockClear).toHaveBeenCalledTimes(1);
     });
   });
 });

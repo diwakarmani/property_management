@@ -7,7 +7,8 @@ import { colors, typography, spacing } from '@/theme';
 import type { RootState } from '@/store';
 import { useUnreadCountQuery } from '@/api/hooks/useNotifications';
 
-const ADMIN_ROLES = ['SUPER_ADMIN', 'REALTOR'];
+// Roles that list/manage properties — they see the brand, not the location pill
+const LISTING_ROLES = ['SUPER_ADMIN', 'REALTOR', 'SELLER'];
 
 const Header = () => {
   const navigation = useNavigation();
@@ -15,16 +16,16 @@ const Header = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const { data: unreadCount = 0, refetch: refetchUnreadCount } = useUnreadCountQuery();
 
-  const isAdminRole = user?.roles?.some((r: string) => ADMIN_ROLES.includes(r)) ?? false;
+  const isListingRole = user?.roles?.some((r: string) => LISTING_ROLES.includes(r)) ?? false;
   const openNotifications = () => {
     void refetchUnreadCount();
-    (navigation as any).navigate('Profile', { screen: 'Notifications' });
+    (navigation as any).navigate('Notifications');
   };
 
   return (
     <View style={styles.container}>
-      {/* Left — location pill (buyer) or brand (admin/realtor) */}
-      {isAdminRole ? (
+      {/* Left — brand for listing/admin roles; location pill for buyers */}
+      {isListingRole ? (
         <View style={styles.brand}>
           <View style={styles.brandIcon}>
             <Ionicons name="home" size={16} color={colors.white} />

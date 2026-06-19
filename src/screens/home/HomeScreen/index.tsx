@@ -33,7 +33,7 @@ const HomeScreen = ({ navigation }: any) => {
   const { selectedCity, coordinates } = useSelector((state: RootState) => state.location);
   const firstName = useSelector((state: RootState) => state.auth.user?.firstName);
   const isBuyer = useSelector((state: RootState) =>
-    isBuyerExperience(state.auth.user?.roles)
+    isBuyerExperience(state.auth.user?.roles, state.auth.activeRole)
   );
 
   const { ids: favoriteIds, isLoading: idsLoading } = useFavoriteIdsSet(isBuyer);
@@ -79,20 +79,6 @@ const HomeScreen = ({ navigation }: any) => {
         </View>
       </View>
 
-      {/* Location pill */}
-      {selectedCity?.name ? (
-        <TouchableOpacity
-          style={styles.locationPill}
-          onPress={() => navigation.navigate('LocationSelection')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.locationPillIcon}>
-            <Ionicons name="location" size={12} color={colors.primary} />
-          </View>
-          <Text style={styles.locationPillText}>{selectedCity.name}</Text>
-          <Ionicons name="chevron-down" size={14} color="rgba(255,255,255,0.7)" />
-        </TouchableOpacity>
-      ) : null}
     </LinearGradient>
   );
 
@@ -246,32 +232,6 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     letterSpacing: -0.5,
   },
-  locationPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 20,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  locationPillIcon: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  locationPillText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.white,
-    fontWeight: typography.fontWeight.semibold,
-  },
-
   section: { marginTop: spacing.lg },
   sectionHeader: {
     flexDirection: 'row',

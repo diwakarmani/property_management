@@ -26,7 +26,7 @@ const MyListingsWrapped = withLayout(MyListingsScreen);
 const EditListingWrapped = withLayout(EditListingScreen);
 const PropertyImagesWrapped = withLayout(PropertyImagesScreen);
 const CreateListingWrapped = withLayout(CreateListingScreen);
-const PropertyDetailWrapped = withLayout(PropertyDetailScreen);
+const PropertyDetailWrapped = PropertyDetailScreen;
 const InquiriesWrapped = withLayout(ReceivedInquiriesScreen);
 
 export const SELLER_TAB_REGISTERED_ROUTES = [

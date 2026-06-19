@@ -34,7 +34,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
 
-  const { control, handleSubmit, formState: { errors } } = useForm<any>({
+  const { control, handleSubmit, formState: { errors }, reset } = useForm<any>({
     resolver: yupResolver(loginMode === 'password' ? loginSchema : otpSchema),
   });
 
@@ -146,7 +146,11 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
             <TouchableOpacity
               style={styles.secondaryLogin}
-              onPress={() => setLoginMode(loginMode === 'password' ? 'otp' : 'password')}
+              onPress={() => {
+                dispatch(clearError());
+                reset();
+                setLoginMode(loginMode === 'password' ? 'otp' : 'password');
+              }}
               activeOpacity={0.8}
             >
               <Ionicons

@@ -126,11 +126,11 @@ const LocationSelectionScreen = ({ navigation }: any) => {
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
         ) : (
-          <View style={styles.headerBtn} />
+          <View style={styles.headerSpacer} />
         )}
         <Text style={styles.headerTitle}>Choose location</Text>
         {isReselect ? (
-          <View style={styles.headerBtn} />
+          <View style={styles.headerSpacer} />
         ) : (
           <TouchableOpacity onPress={handleLogout} style={styles.headerBtn}>
             <Ionicons name="log-out-outline" size={22} color={colors.error} />
@@ -340,6 +340,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: colors.backgroundSecondary,
     alignItems: 'center', justifyContent: 'center',
+  },
+  headerSpacer: {
+    width: 38,
+    height: 38,
   },
   headerTitle: {
     fontSize: typography.fontSize.lg,

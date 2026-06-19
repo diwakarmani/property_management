@@ -7,9 +7,9 @@ import {
   Image,
   TouchableOpacity,
   Alert,
-  SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -165,8 +165,12 @@ const RealtorProfileScreen = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <HeaderBar onBack={() => navigation.goBack()} />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={styles.inlineHeader}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.loadingCenter}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading profile...</Text>
@@ -180,8 +184,12 @@ const RealtorProfileScreen = () => {
       ? (error as any)?.response?.data?.message ?? 'Could not load realtor profile.'
       : 'Realtor not found.';
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <HeaderBar onBack={() => navigation.goBack()} />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={styles.inlineHeader}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.loadingCenter}>
           <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
           <Text style={styles.errorText}>{msg}</Text>
@@ -197,18 +205,23 @@ const RealtorProfileScreen = () => {
   const hasRating = profile.ratingAverage != null && profile.ratingAverage > 0;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <HeaderBar onBack={() => navigation.goBack()} />
-
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {/* Hero */}
+        {/* Hero — full-bleed gradient with overlay back button */}
         <LinearGradient
           colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.heroCard}
+          style={styles.hero}
         >
+          {/* Overlay back button — consistent with PropertyDetailScreen */}
+          <View style={styles.heroTopRow}>
+            <TouchableOpacity style={styles.overlayBtn} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={20} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+
           {profile.profilePhotoUrl ? (
             <Image source={{ uri: profile.profilePhotoUrl }} style={styles.avatar} />
           ) : (
@@ -400,45 +413,28 @@ const RealtorProfileScreen = () => {
   );
 };
 
-// ── Shared header component ───────────────────────────────────────────────────
-
-const HeaderBar = ({ onBack }: { onBack: () => void }) => (
-  <View style={styles.header}>
-    <TouchableOpacity onPress={onBack} style={styles.headerBtn}>
-      <Ionicons name="arrow-back" size={20} color={colors.text} />
-    </TouchableOpacity>
-    <Text style={styles.headerTitle}>Realtor Profile</Text>
-    <View style={{ width: 36 }} />
-  </View>
-);
-
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
 
-  header: {
+  // Inline back bar for loading/error states (no gradient)
+  inlineHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
-  headerBtn: {
+  backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primarySurface,
+    borderRadius: 10,
+    backgroundColor: colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text,
   },
 
   container: { flex: 1 },
@@ -461,19 +457,26 @@ const styles = StyleSheet.create({
   },
   retryText: { fontSize: typography.fontSize.sm, color: colors.primary, fontWeight: typography.fontWeight.semibold },
 
-  // Hero
-  heroCard: {
-    margin: spacing.md,
-    borderRadius: 20,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.lg,
+  // Hero — full-bleed gradient (no margin so it fills to screen edges)
+  hero: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xl,
+    paddingTop: 10,
     alignItems: 'center',
     gap: spacing.xs,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
+  },
+  heroTopRow: {
+    alignSelf: 'stretch',
+    paddingBottom: spacing.md,
+  },
+  // Semi-transparent overlay button — matches PropertyDetailScreen
+  overlayBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.32)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatar: {
     width: 96,

@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import type { InquiryDTO } from '@/api/types/inquiry.types';
 import {
-  useReceivedInquiriesQuery,
+  useReceivedInquiriesInfiniteQuery,
   useUpdateInquiryStatusMutation,
 } from '@/api/hooks/useInquiries';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
@@ -29,8 +29,9 @@ const formatDate = (iso?: string) => {
 };
 
 const ReceivedInquiriesScreen = () => {
-  const { data: inquiries = [], isLoading, isError, error, refetch, isFetching } =
-    useReceivedInquiriesQuery(0, 50);
+  const { data, isLoading, isError, error, refetch, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useReceivedInquiriesInfiniteQuery();
+  const inquiries = data?.items ?? [];
   const updateStatus = useUpdateInquiryStatusMutation();
 
   const cycleStatus = (inquiry: InquiryDTO) => {
@@ -55,18 +56,23 @@ const ReceivedInquiriesScreen = () => {
               {item.propertyTitle}
             </Text>
           </View>
-          <TouchableOpacity
-            style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}
-            onPress={() => cycleStatus(item)}
-            accessibilityRole="button"
-            accessibilityLabel={`Inquiry status ${item.status}, tap to advance`}
-            disabled={updateStatus.isPending}
-          >
-            <Ionicons name={statusCfg.icon as any} size={12} color={statusCfg.color} />
-            <Text style={[styles.statusText, { color: statusCfg.color }]}>
-              {item.status}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.statusRow}>
+            <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
+              <Ionicons name={statusCfg.icon as any} size={12} color={statusCfg.color} />
+              <Text style={[styles.statusText, { color: statusCfg.color }]}>
+                {item.status}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.advanceBtn}
+              onPress={() => cycleStatus(item)}
+              disabled={updateStatus.isPending}
+              accessibilityRole="button"
+              accessibilityLabel={`Advance inquiry status from ${item.status} to ${NEXT_STATUS[item.status] ?? 'NEW'}`}
+            >
+              <Ionicons name="arrow-forward-circle-outline" size={18} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.inquirerRow}>
@@ -114,6 +120,9 @@ const ReceivedInquiriesScreen = () => {
             </View>
           </View>
         }
+        onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={styles.footer} color={colors.primary} /> : null}
         refreshControl={
           <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
         }
@@ -125,6 +134,7 @@ const ReceivedInquiriesScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xl },
+  footer: { paddingVertical: spacing.md },
 
   listHeader: {
     flexDirection: 'row',
@@ -186,6 +196,12 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.semibold,
     color: colors.primary,
   },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: spacing.sm,
+  },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -193,9 +209,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: 10,
-    marginLeft: spacing.sm,
   },
   statusText: { fontSize: 11, fontWeight: typography.fontWeight.bold },
+  advanceBtn: {
+    padding: 2,
+  },
 
   inquirerRow: {
     flexDirection: 'row',

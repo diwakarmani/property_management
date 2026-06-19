@@ -28,7 +28,7 @@ interface Props {
 
 const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
   const { token } = route.params;
-  const { control, handleSubmit, formState: { errors } } = useForm({
+  const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(resetPasswordSchema),
   });
 
@@ -81,7 +81,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.strengthText}>Use a mix of letters, numbers and symbols for a stronger password.</Text>
         </View>
 
-        <Button onPress={handleSubmit(onSubmit)} style={styles.submitButton}>
+        <Button onPress={handleSubmit(onSubmit)} style={styles.submitButton} loading={isSubmitting} disabled={isSubmitting}>
           Reset Password
         </Button>
       </View>

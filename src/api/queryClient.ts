@@ -13,7 +13,7 @@ import { toast } from '@/utils/toast';
 export const STALE_TIME = {
   STATIC: 30 * 60 * 1000,
   SLOW:    5 * 60 * 1000,
-  MEDIUM:  2 * 60 * 1000,
+  MEDIUM:      30 * 1000,
   DEFAULT:      30 * 1000,
   LIVE:         10 * 1000,
 } as const;

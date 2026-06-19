@@ -14,6 +14,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { colors, typography, spacing } from '@/theme';
 import { PropertyService } from '@/api/services/property.service';
 import { UploadService } from '@/api/services/upload.service';
+import { queryClient, queryKeys } from '@/api/queryClient';
 import type { PropertyImageDTO } from '@/api/types/property.types';
 
 const PropertyImagesScreen = ({ navigation, route }: any) => {
@@ -42,35 +43,47 @@ const PropertyImagesScreen = ({ navigation, route }: any) => {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsMultipleSelection: true,
       quality: 0.8,
+      orderedSelection: true,
     });
 
     if (result.canceled || !result.assets?.length) return;
 
-    const localUri = result.assets[0].uri;
     setUploading(true);
+    let currentImages = images;
+    let failCount = 0;
 
-    UploadService.uploadImage(localUri)
-      .then(uploadRes => {
+    for (const asset of result.assets) {
+      try {
+        const uploadRes = await UploadService.uploadImage(asset.uri);
         const imageUrl = uploadRes.data.data;
-        const isFirst = images.length === 0;
-        return PropertyService.addImage(propertyId, imageUrl, isFirst);
-      })
-      .then(addRes => {
-        setImages(prev => [...prev, addRes.data.data]);
-      })
-      .catch(err => {
-        const msg = err?.response?.data?.message ?? 'Failed to upload image';
-        Alert.alert('Upload Failed', msg);
-      })
-      .finally(() => setUploading(false));
+        const isFirst = currentImages.length === 0;
+        const addRes = await PropertyService.addImage(propertyId, imageUrl, isFirst);
+        const added = addRes.data.data;
+        currentImages = [...currentImages, added];
+        setImages(currentImages);
+      } catch {
+        failCount += 1;
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: queryKeys.property(propertyId) });
+    setUploading(false);
+
+    if (failCount > 0) {
+      Alert.alert(
+        'Some Uploads Failed',
+        `${failCount} of ${result.assets.length} image${failCount === 1 ? '' : 's'} could not be uploaded.`
+      );
+    }
   };
 
   const handleSetPrimary = (image: PropertyImageDTO) => {
     PropertyService.setPrimaryImage(propertyId, image.id!)
       .then(() => {
         setImages(prev => prev.map(img => ({ ...img, isPrimary: img.id === image.id })));
+        queryClient.invalidateQueries({ queryKey: queryKeys.property(propertyId) });
       })
       .catch(() => Alert.alert('Error', 'Failed to set primary image'));
   };
@@ -83,7 +96,10 @@ const PropertyImagesScreen = ({ navigation, route }: any) => {
         style: 'destructive',
         onPress: () => {
           PropertyService.deleteImage(propertyId, image.id!)
-            .then(() => setImages(prev => prev.filter(img => img.id !== image.id)))
+            .then(() => {
+              setImages(prev => prev.filter(img => img.id !== image.id));
+              queryClient.invalidateQueries({ queryKey: queryKeys.property(propertyId) });
+            })
             .catch(() => Alert.alert('Error', 'Failed to delete image'));
         },
       },

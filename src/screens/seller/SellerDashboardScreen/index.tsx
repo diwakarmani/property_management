@@ -77,6 +77,7 @@ const SellerDashboardScreen = ({ navigation }: any) => {
     { icon: 'time', title: 'Pending', value: stats.pending, color: colors.warning, bg: colors.warningSurface },
     { icon: 'pricetag', title: 'Closed', value: stats.closed, color: colors.info, bg: colors.infoSurface },
     { icon: 'eye', title: 'Views', value: stats.views, color: '#8E44AD', bg: '#F3E8FF' },
+    { icon: 'chatbubbles', title: 'Inquiries', value: stats.inquiries, color: '#0891B2', bg: '#E0F7FA' },
   ];
 
   return (

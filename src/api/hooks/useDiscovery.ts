@@ -12,7 +12,7 @@ export const useCityListingCountQuery = (city?: string) =>
       return res.data.data?.totalElements ?? 0;
     },
     enabled: !!city,
-    staleTime: STALE_TIME.SLOW,
+    staleTime: STALE_TIME.MEDIUM,
     retry: false,
   });
 
@@ -25,7 +25,7 @@ export const useHomeFeedQuery = (city?: string, lat?: number, lng?: number) =>
       return res.data.data as HomeDiscoveryResponse;
     },
     enabled: !!city || (lat != null && lng != null),
-    staleTime: STALE_TIME.SLOW,
+    staleTime: STALE_TIME.MEDIUM,
   });
 
 /**
@@ -39,7 +39,7 @@ export const useViewMoreInfiniteQuery = (
   useInfiniteQuery({
     queryKey: ['discovery', 'view-more', params.category, params.city, params.lat, params.lng] as const,
     initialPageParam: 0,
-    staleTime: STALE_TIME.SLOW,
+    staleTime: STALE_TIME.MEDIUM,
     queryFn: async ({ pageParam }) => {
       const res = await DiscoveryService.viewMore({ ...params, page: pageParam as number });
       return res.data.data;

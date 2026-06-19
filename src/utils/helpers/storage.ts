@@ -25,6 +25,21 @@ export const clearTokens = async () => {
   await SecureStore.deleteItemAsync(KEYS.REFRESH_TOKEN);
 };
 
+// Active role (persisted so user doesn't re-select on every app launch)
+const ACTIVE_ROLE_KEY = 'active_role';
+
+export const saveActiveRole = async (role: string): Promise<void> => {
+  await AsyncStorage.setItem(ACTIVE_ROLE_KEY, role);
+};
+
+export const getActiveRole = async (): Promise<string | null> => {
+  return AsyncStorage.getItem(ACTIVE_ROLE_KEY);
+};
+
+export const clearActiveRole = async (): Promise<void> => {
+  await AsyncStorage.removeItem(ACTIVE_ROLE_KEY);
+};
+
 // App storage
 export const set = async (key: string, value: any) => {
   await AsyncStorage.setItem(key, JSON.stringify(value));

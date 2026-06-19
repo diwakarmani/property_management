@@ -18,52 +18,80 @@ const stats = {
   newPropertiesThisMonth: 2,
 };
 
-describe('PlatformAnalyticsScreen navigation', () => {
-  it('opens users and status-filtered listing screens from metric cards', async () => {
+/**
+ * Bug 27/30/31 regression guard.
+ *
+ * Analytics listing links now push AdminListings onto the ANALYTICS stack
+ * (navigation.navigate) so that Back returns to analytics.
+ * They must NOT switch to the Listings tab (tabNavigation.navigate) which
+ * broke the back-stack in the old implementation.
+ *
+ * User links still switch to the Users tab (tabNavigation.navigate) — they
+ * have no back-stack requirement in the current design.
+ */
+describe('PlatformAnalyticsScreen navigation — Bug 27/30/31', () => {
+  let navigation: { getParent: jest.Mock; navigate: jest.Mock };
+  let tabs: { navigate: jest.Mock };
+
+  beforeEach(() => {
     (AnalyticsService.getPlatformStats as jest.Mock).mockResolvedValue({ data: { data: stats } });
-    const tabs = { navigate: jest.fn() };
-    const navigation = { getParent: jest.fn(() => tabs), navigate: jest.fn() };
+    tabs = { navigate: jest.fn() };
+    navigation = { getParent: jest.fn(() => tabs), navigate: jest.fn() };
+  });
+
+  it('pushes AdminListings onto the analytics stack for each listing status', async () => {
     const screen = render(<PlatformAnalyticsScreen navigation={navigation} />);
+    await waitFor(() => expect(screen.getByLabelText('View Total Properties')).toBeTruthy());
 
+    const listingCases: Array<[string, string]> = [
+      ['View Total Properties',  'ALL'],
+      ['View Active Listings',   'ACTIVE'],
+      ['View Pending Review',    'PENDING_APPROVAL'],
+      ['View Active',            'ACTIVE'],
+      ['View Pending Approval',  'PENDING_APPROVAL'],
+      ['View Sold',              'SOLD'],
+      ['View Rented',            'RENTED'],
+      ['View New Properties',    'ALL'],
+    ];
+
+    for (const [label, status] of listingCases) {
+      navigation.navigate.mockClear();
+      fireEvent.press(screen.getByLabelText(label));
+      expect(navigation.navigate).toHaveBeenCalledWith('AdminListings', { status });
+      // Must NOT switch tabs — that breaks back-stack navigation (Bug 27)
+      expect(tabs.navigate).not.toHaveBeenCalledWith('Listings', expect.anything());
+    }
+  });
+
+  it('switches to the Users tab for user-related metrics', async () => {
+    const screen = render(<PlatformAnalyticsScreen navigation={navigation} />);
     await waitFor(() => expect(screen.getByLabelText('View Total Users')).toBeTruthy());
-    fireEvent.press(screen.getByLabelText('View Total Users'));
-    expect(tabs.navigate).toHaveBeenLastCalledWith('Users', {
-      screen: 'ManageUsers', params: { roleFilter: null },
-    });
 
-    fireEvent.press(screen.getByLabelText('View Total Properties'));
-    expect(tabs.navigate).toHaveBeenLastCalledWith('Listings', {
-      screen: 'AdminListings', params: { status: 'ALL' },
-    });
+    const userCases = ['View Total Users', 'View New Users'];
+    for (const label of userCases) {
+      tabs.navigate.mockClear();
+      fireEvent.press(screen.getByLabelText(label));
+      expect(tabs.navigate).toHaveBeenCalledWith('Users', {
+        screen: 'ManageUsers', params: { roleFilter: null },
+      });
+    }
+  });
 
-    fireEvent.press(screen.getByLabelText('View Active Listings'));
-    expect(tabs.navigate).toHaveBeenLastCalledWith('Listings', {
-      screen: 'AdminListings', params: { status: 'ACTIVE' },
-    });
+  it('does not call tab navigate for any listing metric', async () => {
+    const screen = render(<PlatformAnalyticsScreen navigation={navigation} />);
+    await waitFor(() => expect(screen.getByLabelText('View Total Properties')).toBeTruthy());
 
-    fireEvent.press(screen.getByLabelText('View Pending Review'));
-    expect(tabs.navigate).toHaveBeenLastCalledWith('Listings', {
-      screen: 'AdminListings', params: { status: 'PENDING_APPROVAL' },
-    });
-
-    fireEvent.press(screen.getByLabelText('View Sold'));
-    expect(tabs.navigate).toHaveBeenLastCalledWith('Listings', {
-      screen: 'AdminListings', params: { status: 'SOLD' },
-    });
-
-    fireEvent.press(screen.getByLabelText('View Rented'));
-    expect(tabs.navigate).toHaveBeenLastCalledWith('Listings', {
-      screen: 'AdminListings', params: { status: 'RENTED' },
-    });
-
-    fireEvent.press(screen.getByLabelText('View New Users'));
-    expect(tabs.navigate).toHaveBeenLastCalledWith('Users', {
-      screen: 'ManageUsers', params: { roleFilter: null },
-    });
-
-    fireEvent.press(screen.getByLabelText('View New Properties'));
-    expect(tabs.navigate).toHaveBeenLastCalledWith('Listings', {
-      screen: 'AdminListings', params: { status: 'ALL' },
-    });
+    const listingLabels = [
+      'View Total Properties', 'View Active Listings', 'View Pending Review',
+      'View Active', 'View Pending Approval', 'View Sold', 'View Rented', 'View New Properties',
+    ];
+    for (const label of listingLabels) {
+      fireEvent.press(screen.getByLabelText(label));
+    }
+    // tabs.navigate may have been called for user metrics, but never for Listings
+    const listingTabCalls = tabs.navigate.mock.calls.filter(
+      ([route]: string[]) => route === 'Listings'
+    );
+    expect(listingTabCalls).toHaveLength(0);
   });
 });

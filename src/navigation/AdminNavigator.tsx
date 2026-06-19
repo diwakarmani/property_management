@@ -13,6 +13,7 @@ import PlatformAnalyticsScreen from '@/screens/admin/PlatformAnalyticsScreen';
 import SystemSettingsScreen from '@/screens/admin/SystemSettingsScreen';
 import PropertyConfigScreen from '@/screens/admin/PropertyConfigScreen';
 import LocationBootstrapScreen from '@/screens/admin/LocationBootstrapScreen';
+import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
 import ProfileStackNavigator from './ProfileStackNavigator';
 
 const Tab = createBottomTabNavigator();
@@ -53,12 +54,15 @@ const UsersStackScreen = () => (
 const ListingsStackScreen = () => (
   <ListingsStack.Navigator screenOptions={{ headerShown: false }}>
     <ListingsStack.Screen name="AdminListings" component={AdminListingsWrapped} />
+    <ListingsStack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
   </ListingsStack.Navigator>
 );
 
 const AnalyticsStackScreen = () => (
   <AnalyticsStack.Navigator screenOptions={{ headerShown: false }}>
     <AnalyticsStack.Screen name="PlatformAnalytics" component={PlatformAnalyticsWrapped} />
+    <AnalyticsStack.Screen name="AdminListings" component={AdminListingsWrapped} />
+    <AnalyticsStack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
   </AnalyticsStack.Navigator>
 );
 

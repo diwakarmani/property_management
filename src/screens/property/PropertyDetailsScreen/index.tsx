@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,17 @@ import {
   TouchableOpacity,
   Linking,
   Share,
-  SafeAreaView,
   Dimensions,
   Platform,
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing } from '@/theme';
 import { usePropertyQuery } from '@/api/hooks/useProperties';
+import { queryClient, queryKeys } from '@/api/queryClient';
 import {
   useFavoriteCheckQuery,
   useAddFavoriteMutation,
@@ -101,18 +102,17 @@ const SpecChip = ({
   icon,
   value,
   label,
-  empty,
 }: {
   icon: string;
   value: string;
   label: string;
   empty?: boolean;
 }) => (
-  <View style={[styles.specChip, empty && styles.specChipEmpty]}>
+  <View style={styles.specChip}>
     <View style={styles.specChipIcon}>
-      <Ionicons name={icon as any} size={18} color={empty ? colors.textLight : colors.primary} />
+      <Ionicons name={icon as any} size={18} color={colors.primary} />
     </View>
-    <Text style={[styles.specChipValue, empty && { color: colors.textLight }]}>{value}</Text>
+    <Text style={styles.specChipValue}>{value}</Text>
     <Text style={styles.specChipLabel}>{label}</Text>
   </View>
 );
@@ -121,7 +121,6 @@ const InfoRow = ({
   icon,
   label,
   value,
-  empty,
 }: {
   icon: string;
   label: string;
@@ -130,12 +129,10 @@ const InfoRow = ({
 }) => (
   <View style={styles.infoRow}>
     <View style={styles.infoRowLeft}>
-      <Ionicons name={icon as any} size={15} color={empty ? colors.textLight : colors.primary} />
+      <Ionicons name={icon as any} size={15} color={colors.primary} />
       <Text style={styles.infoRowLabel}>{label}</Text>
     </View>
-    <Text style={[styles.infoRowValue, empty && { color: colors.textLight, fontStyle: 'italic' as any }]}>
-      {value}
-    </Text>
+    <Text style={styles.infoRowValue}>{value}</Text>
   </View>
 );
 
@@ -168,12 +165,21 @@ const PropertyDetailScreen = () => {
   const navigation = useNavigation();
   const { id } = route.params as any;
   const isBuyer = useSelector((state: RootState) =>
-    isBuyerExperience(state.auth.user?.roles)
+    isBuyerExperience(state.auth.user?.roles, state.auth.activeRole)
   );
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [descExpanded, setDescExpanded] = useState(false);
+  const galleryRef = useRef<ScrollView>(null);
 
   const { data: property, isLoading, isError, error, refetch } = usePropertyQuery(id);
+
+  // Refetch when returning from PropertyImagesScreen (after upload/delete)
+  useFocusEffect(
+    useCallback(() => {
+      const state = queryClient.getQueryState(queryKeys.property(id));
+      if (state?.isInvalidated) refetch();
+    }, [id, refetch])
+  );
   const { data: isFavorite, isLoading: checkLoading } = useFavoriteCheckQuery(id, isBuyer);
   const addFavorite = useAddFavoriteMutation();
   const removeFavorite = useRemoveFavoriteMutation();
@@ -231,6 +237,21 @@ const PropertyDetailScreen = () => {
     ? (error as any)?.response?.data?.message ?? 'Could not load this property.'
     : null;
 
+  const imageUrls: string[] = property?.images?.length
+    ? (property.images.map((img: any) => img.imageUrl).filter(Boolean) as string[])
+    : property?.primaryImageUrl ? [property.primaryImageUrl] : [];
+
+  const goToPrev = () => {
+    const next = Math.max(0, activeImageIndex - 1);
+    galleryRef.current?.scrollTo({ x: next * SCREEN_WIDTH, animated: true });
+    setActiveImageIndex(next);
+  };
+  const goToNext = () => {
+    const next = Math.min(imageUrls.length - 1, activeImageIndex + 1);
+    galleryRef.current?.scrollTo({ x: next * SCREEN_WIDTH, animated: true });
+    setActiveImageIndex(next);
+  };
+
   if (isLoading || errorMessage || !property) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -245,11 +266,11 @@ const PropertyDetailScreen = () => {
     );
   }
 
-  const rawImages = property.images?.length
-    ? (property.images.map((img: any) => img.imageUrl).filter(Boolean) as string[])
-    : null;
-  const imageUrls: string[] = rawImages ?? (property.primaryImageUrl ? [property.primaryImageUrl] : []);
-  const listingLabel = property.listingType === 'SALE' ? 'FOR SALE' : property.listingType;
+  const listingLabel =
+    property.listingType === 'SALE' ? 'BUY'
+    : property.listingType === 'RENT' ? 'RENT'
+    : property.listingType === 'LEASE' ? 'LEASE'
+    : property.listingType;
   const isRecurringPrice = property.listingType === 'RENT' || property.listingType === 'LEASE';
   const isRealtorVerified = realtorProfile?.verificationStatus === 'VERIFIED';
   const descTooLong = (property.description?.length ?? 0) > 250;
@@ -269,21 +290,31 @@ const PropertyDetailScreen = () => {
     {}
   );
 
-  // Quick stats (always shown if value exists)
-  const quickStats = [
-    property.bedrooms != null && { icon: 'bed-outline', value: `${property.bedrooms}`, label: 'Beds' },
-    property.bathrooms != null && { icon: 'water-outline', value: `${property.bathrooms}`, label: 'Baths' },
-    (property.carpetArea ?? property.builtUpArea) != null && {
+  // Core stats always shown — use '--' when the value is absent so the bar never disappears.
+  const quickStats: { icon: string; value: string; label: string }[] = [
+    {
+      icon: 'bed-outline',
+      value: property.bedrooms != null ? `${property.bedrooms}` : '--',
+      label: 'Beds',
+    },
+    {
+      icon: 'water-outline',
+      value: property.bathrooms != null ? `${property.bathrooms}` : '--',
+      label: 'Baths',
+    },
+    {
       icon: 'resize-outline',
-      value: `${(property.carpetArea ?? property.builtUpArea)!.toLocaleString()}`,
+      value: (property.carpetArea ?? property.builtUpArea) != null
+        ? `${(property.carpetArea ?? property.builtUpArea)!.toLocaleString()}`
+        : '--',
       label: 'sq.ft',
     },
-    property.floorNumber != null && {
+    ...(property.floorNumber != null ? [{
       icon: 'business-outline',
       value: `${property.floorNumber}${property.totalFloors ? `/${property.totalFloors}` : ''}`,
       label: 'Floor',
-    },
-  ].filter(Boolean) as { icon: string; value: string; label: string }[];
+    }] : []),
+  ];
 
   // Spec grid — Furnishing and Parking always shown (with placeholder when absent);
   // area, floors, age, facing only shown when provided.
@@ -397,62 +428,48 @@ const PropertyDetailScreen = () => {
   ];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Property Details</Text>
-        <View style={styles.headerRight}>
-          {isBuyer ? (
-            <TouchableOpacity
-              onPress={toggleFavorite}
-              style={[styles.headerBtn, favoriteBlocked && { opacity: 0.45 }]}
-              disabled={favoriteBlocked}
-              accessibilityRole="button"
-              accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              <Ionicons
-                name={isFavorite ? 'heart' : 'heart-outline'}
-                size={20}
-                color={isFavorite ? colors.error : colors.text}
-              />
-            </TouchableOpacity>
-          ) : null}
-          <TouchableOpacity onPress={handleShare} style={styles.headerBtn}>
-            <Ionicons name="share-social-outline" size={20} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Image Gallery */}
+        {/* Image Gallery — full-bleed, no separate header bar */}
         {imageUrls.length > 0 ? (
           <View style={styles.galleryWrap}>
             <ScrollView
+              ref={galleryRef}
               horizontal
               pagingEnabled
-              style={styles.imageGallery}
               showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(e) => {
-                setActiveImageIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH));
+              scrollEventThrottle={16}
+              onScroll={(e) => {
+                const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                if (index !== activeImageIndex) setActiveImageIndex(index);
               }}
+              style={styles.galleryScroll}
             >
               {imageUrls.map((url, idx) => (
                 <Image key={idx} source={{ uri: url }} style={styles.image} />
               ))}
             </ScrollView>
-            {imageUrls.length > 1 && (
-              <View style={styles.imageDots}>
-                {imageUrls.map((_, i) => (
-                  <View key={i} style={[styles.dot, i === activeImageIndex && styles.dotActive]} />
-                ))}
-              </View>
+
+            {/* Left arrow */}
+            {imageUrls.length > 1 && activeImageIndex > 0 && (
+              <TouchableOpacity style={styles.arrowLeft} onPress={goToPrev} activeOpacity={0.8}>
+                <View style={styles.arrowBtn}>
+                  <Ionicons name="chevron-back" size={22} color={colors.white} />
+                </View>
+              </TouchableOpacity>
+            )}
+            {/* Right arrow */}
+            {imageUrls.length > 1 && activeImageIndex < imageUrls.length - 1 && (
+              <TouchableOpacity style={styles.arrowRight} onPress={goToNext} activeOpacity={0.8}>
+                <View style={styles.arrowBtn}>
+                  <Ionicons name="chevron-forward" size={22} color={colors.white} />
+                </View>
+              </TouchableOpacity>
             )}
             <LinearGradient
-              colors={['transparent', 'rgba(26,26,46,0.45)']}
+              colors={['rgba(0,0,0,0.35)', 'transparent', 'rgba(26,26,46,0.45)']}
               style={styles.galleryGradient}
+              pointerEvents="none"
             />
             <View style={[
               styles.listingTypeBadge,
@@ -468,6 +485,32 @@ const PropertyDetailScreen = () => {
                 <Text style={styles.photoCountText}>{activeImageIndex + 1}/{imageUrls.length}</Text>
               </View>
             )}
+            {/* Overlay nav controls — floated on top of the image */}
+            <View style={styles.imageHeaderOverlay}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.overlayBtn}>
+                <Ionicons name="arrow-back" size={20} color={colors.white} />
+              </TouchableOpacity>
+              <View style={styles.overlayRight}>
+                {isBuyer ? (
+                  <TouchableOpacity
+                    onPress={toggleFavorite}
+                    style={[styles.overlayBtn, favoriteBlocked && { opacity: 0.45 }]}
+                    disabled={favoriteBlocked}
+                    accessibilityRole="button"
+                    accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Ionicons
+                      name={isFavorite ? 'heart' : 'heart-outline'}
+                      size={20}
+                      color={isFavorite ? '#FF6B6B' : colors.white}
+                    />
+                  </TouchableOpacity>
+                ) : null}
+                <TouchableOpacity onPress={handleShare} style={styles.overlayBtn}>
+                  <Ionicons name="share-social-outline" size={20} color={colors.white} />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         ) : (
           <View style={styles.noImageWrap}>
@@ -480,6 +523,32 @@ const PropertyDetailScreen = () => {
                 : styles.saleBadge,
             ]}>
               <Text style={styles.listingTypeText}>{listingLabel}</Text>
+            </View>
+            {/* Overlay nav controls on the no-image placeholder */}
+            <View style={styles.imageHeaderOverlay}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.overlayBtnDark}>
+                <Ionicons name="arrow-back" size={20} color={colors.text} />
+              </TouchableOpacity>
+              <View style={styles.overlayRight}>
+                {isBuyer ? (
+                  <TouchableOpacity
+                    onPress={toggleFavorite}
+                    style={[styles.overlayBtnDark, favoriteBlocked && { opacity: 0.45 }]}
+                    disabled={favoriteBlocked}
+                    accessibilityRole="button"
+                    accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Ionicons
+                      name={isFavorite ? 'heart' : 'heart-outline'}
+                      size={20}
+                      color={isFavorite ? colors.error : colors.text}
+                    />
+                  </TouchableOpacity>
+                ) : null}
+                <TouchableOpacity onPress={handleShare} style={styles.overlayBtnDark}>
+                  <Ionicons name="share-social-outline" size={20} color={colors.text} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         )}
@@ -522,21 +591,19 @@ const PropertyDetailScreen = () => {
             </Text>
           </View>
 
-          {/* Quick Stats Bar */}
-          {quickStats.length > 0 && (
-            <View style={styles.quickStats}>
-              {quickStats.map((s, i) => (
-                <React.Fragment key={i}>
-                  <View style={styles.quickStat}>
-                    <Ionicons name={s.icon as any} size={14} color={colors.primary} />
-                    <Text style={styles.quickStatValue}>{s.value}</Text>
-                    <Text style={styles.quickStatLabel}>{s.label}</Text>
-                  </View>
-                  {i < quickStats.length - 1 && <View style={styles.quickStatDivider} />}
-                </React.Fragment>
-              ))}
-            </View>
-          )}
+          {/* Quick Stats Bar — always visible for all users */}
+          <View style={styles.quickStats}>
+            {quickStats.map((s, i) => (
+              <React.Fragment key={i}>
+                <View style={styles.quickStat}>
+                  <Ionicons name={s.icon as any} size={14} color={colors.primary} />
+                  <Text style={styles.quickStatValue}>{s.value}</Text>
+                  <Text style={styles.quickStatLabel}>{s.label}</Text>
+                </View>
+                {i < quickStats.length - 1 && <View style={styles.quickStatDivider} />}
+              </React.Fragment>
+            ))}
+          </View>
 
           {/* Property Overview — spec grid (always rendered; some chips may show "Not specified") */}
           <View style={styles.section}>
@@ -777,12 +844,18 @@ const PropertyDetailScreen = () => {
                           : '—'}
                       </Text>
                       <Text style={styles.trustLabel}>
-                        {realtorProfile.ratingCount ? `${realtorProfile.ratingCount} reviews` : 'No reviews'}
+                        {`${realtorProfile.ratingCount ?? 0} reviews`}
                       </Text>
                     </View>
                     <View style={styles.trustItem}>
                       <Ionicons name="people-outline" size={15} color={colors.primary} />
-                      <Text style={styles.trustValue}>{realtorProfile.totalUserInteractions ?? 0}</Text>
+                      <Text style={styles.trustValue}>
+                        {(realtorProfile.totalUserInteractions ?? 0) > 0
+                          ? realtorProfile.totalUserInteractions >= 1000
+                            ? `${(realtorProfile.totalUserInteractions / 1000).toFixed(1)}k`
+                            : `${realtorProfile.totalUserInteractions}`
+                          : '—'}
+                      </Text>
                       <Text style={styles.trustLabel}>Connects</Text>
                     </View>
                   </View>
@@ -835,44 +908,12 @@ const PropertyDetailScreen = () => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
 
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  headerBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text,
-    marginHorizontal: spacing.sm,
-  },
-  headerRight: { flexDirection: 'row', gap: 8 },
-
   container: { flex: 1 },
 
-  galleryWrap: { position: 'relative', height: 280 },
+  galleryWrap: { position: 'relative', height: 320, overflow: 'hidden' },
+  galleryScroll: { width: SCREEN_WIDTH, height: 320 },
   noImageWrap: {
-    height: 200,
+    height: 240,
     backgroundColor: colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -880,20 +921,68 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   noImageLabel: { fontSize: typography.fontSize.sm, color: colors.textLight, fontWeight: '500' as any },
-  imageGallery: { height: 280 },
-  image: { width: SCREEN_WIDTH, height: 280, resizeMode: 'cover' },
+  image: { width: SCREEN_WIDTH, height: 320, resizeMode: 'cover' },
   galleryGradient: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 100,
+    position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
   },
-  imageDots: {
+
+  // Overlay nav controls floated on image
+  imageHeaderOverlay: {
     position: 'absolute',
-    bottom: spacing.sm,
-    alignSelf: 'center',
+    top: 10,
+    left: spacing.md,
+    right: spacing.md,
     flexDirection: 'row',
-    gap: 4,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
   },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.5)' },
-  dotActive: { backgroundColor: colors.white, width: 18 },
+  overlayRight: { flexDirection: 'row', gap: 8 },
+  overlayBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overlayBtnDark: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowLeft: {
+    position: 'absolute',
+    left: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    zIndex: 5,
+  },
+  arrowRight: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    zIndex: 5,
+  },
+  arrowBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 5,
+  },
   photoCount: {
     position: 'absolute',
     bottom: spacing.sm,
@@ -908,7 +997,7 @@ const styles = StyleSheet.create({
   },
   photoCountText: { fontSize: 10, color: colors.white, fontWeight: '600' as any },
   listingTypeBadge: {
-    position: 'absolute', top: spacing.sm, right: spacing.sm,
+    position: 'absolute', bottom: 44, left: spacing.sm,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
   },
   saleBadge: { backgroundColor: colors.primary },
@@ -1018,11 +1107,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
-  },
-  specChipEmpty: {
-    borderStyle: 'dashed' as any,
-    backgroundColor: colors.backgroundSecondary,
-    borderColor: colors.borderLight,
   },
   specChipIcon: {
     width: 40, height: 40, borderRadius: 12,

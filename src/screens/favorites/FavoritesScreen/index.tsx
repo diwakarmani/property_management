@@ -7,26 +7,23 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import type { PropertyDTO } from '@/api/types/property.types';
-import { useFavoritesQuery, useRemoveFavoriteMutation } from '@/api/hooks/useFavorites';
+import { useFavoritesInfiniteQuery, useRemoveFavoriteMutation } from '@/api/hooks/useFavorites';
 import OptimizedImage from '@/components/common/OptimizedImage';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
 import { LinearGradient } from 'expo-linear-gradient';
-
-const formatPrice = (price: number) => {
-  if (price >= 1000000) return `$${(price / 1000000).toFixed(1)}M`;
-  if (price >= 1000) return `$${(price / 1000).toFixed(0)}K`;
-  return `$${price.toLocaleString('en-US')}`;
-};
+import { formatPrice } from '@/utils/helpers/formatPrice';
 
 const FavoritesScreen = () => {
   const navigation = useNavigation<any>();
-  const { data: favorites = [], isLoading, isError, error, refetch } =
-    useFavoritesQuery(0, 50);
+  const { data, isLoading, isError, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useFavoritesInfiniteQuery();
+  const favorites = data?.items ?? [];
   const removeFavorite = useRemoveFavoriteMutation();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -85,6 +82,9 @@ const FavoritesScreen = () => {
           data={favorites}
           keyExtractor={item => item.id.toString()}
           contentContainerStyle={styles.list}
+          onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={styles.loadMoreSpinner} color={colors.primary} /> : null}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -238,6 +238,7 @@ const styles = StyleSheet.create({
   },
 
   list: { padding: spacing.md, gap: spacing.md },
+  loadMoreSpinner: { paddingVertical: spacing.lg },
 
   card: {
     backgroundColor: colors.surface,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,17 +7,19 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import type { PropertyDTO } from '@/api/types/property.types';
 import {
-  useMyListingsQuery,
+  useMyListingsInfiniteQuery,
   useDeletePropertyMutation,
   usePublishPropertyMutation,
 } from '@/api/hooks/useProperties';
 import OptimizedImage from '@/components/common/OptimizedImage';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
+import { formatPrice } from '@/utils/helpers/formatPrice';
 
 const STATUS_TABS = [
   { key: 'ALL',              label: 'All',     icon: 'apps-outline',             color: colors.textSecondary },
@@ -117,24 +119,20 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 
-const formatPrice = (price: number) => {
-  if (price >= 1000000) return `$${(price / 1000000).toFixed(1)}M`;
-  if (price >= 1000) return `$${(price / 1000).toFixed(0)}K`;
-  return `$${price.toLocaleString('en-US')}`;
-};
-
 const MyListingsScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState<StatusTab>('ALL');
-  const { data: allListings = [], isLoading, isError, error, refetch, isFetching } =
-    useMyListingsQuery(0, 50);
+  const { data, isLoading, isError, error, refetch, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useMyListingsInfiniteQuery();
+  const allListings = data?.items ?? [];
   const deleteListing = useDeletePropertyMutation();
   const publishListing = usePublishPropertyMutation();
 
   const errorMessage = isError ? (error as any)?.response?.data?.message ?? 'Could not load your listings.' : null;
 
-  const filtered = activeTab === 'ALL'
-    ? allListings
-    : allListings.filter(p => p.status === activeTab);
+  const filtered = useMemo(
+    () => activeTab === 'ALL' ? allListings : allListings.filter(p => p.status === activeTab),
+    [allListings, activeTab],
+  );
 
   const activeTabCfg = STATUS_TABS.find(t => t.key === activeTab) ?? STATUS_TABS[0];
 
@@ -208,6 +206,9 @@ const MyListingsScreen = ({ navigation }: any) => {
           />
         )}
         contentContainerStyle={styles.list}
+        onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={styles.loadMoreSpinner} color={colors.primary} /> : null}
         refreshControl={
           <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
         }
@@ -290,6 +291,7 @@ const styles = StyleSheet.create({
   },
   listFlex: { flex: 1 },
   list: { padding: spacing.md, gap: spacing.md },
+  loadMoreSpinner: { paddingVertical: spacing.lg },
   card: {
     backgroundColor: colors.surface,
     borderRadius: 16,

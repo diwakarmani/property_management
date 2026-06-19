@@ -6,7 +6,7 @@ import ProfileScreen from '@/screens/profile/ProfileScreen';
 import EditProfileScreen from '@/screens/profile/EditProfileScreen';
 import ChangePasswordScreen from '@/screens/profile/ChangePasswordScreen';
 import AddressesScreen from '@/screens/profile/AddressesScreen';
-import NotificationsScreen from '@/screens/profile/NotificationsScreen';
+import SentInquiriesScreen from '@/screens/inquiry/SentInquiriesScreen';
 
 const Stack = createStackNavigator();
 
@@ -16,16 +16,17 @@ const ProfileMainWrapped = withLayout(ProfileScreen);
 const EditProfileWrapped = withLayout(EditProfileScreen);
 const ChangePasswordWrapped = withLayout(ChangePasswordScreen);
 const AddressesWrapped = withLayout(AddressesScreen);
+const SentInquiriesWrapped = withLayout(SentInquiriesScreen);
 
+// Notifications is registered ONLY at the root AppNavigator level so that
+// every entry point (header bell, profile menu) resolves to the same screen.
 const ProfileStackNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="ProfileMain" component={ProfileMainWrapped} />
     <Stack.Screen name="EditProfile" component={EditProfileWrapped} />
     <Stack.Screen name="ChangePassword" component={ChangePasswordWrapped} />
     <Stack.Screen name="Addresses" component={AddressesWrapped} />
-    {/* Notifications is a profile-stack screen so the tab bar stays visible
-        for all roles when navigating from the Header bell icon. */}
-    <Stack.Screen name="Notifications" component={NotificationsScreen} />
+    <Stack.Screen name="SentInquiries" component={SentInquiriesWrapped} />
   </Stack.Navigator>
 );
 

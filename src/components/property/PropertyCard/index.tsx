@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing } from '@/theme';
 import type { PropertyCardDTO } from '@/api/types/discovery.types';
 import OptimizedImage from '@/components/common/OptimizedImage';
+import { formatPrice } from '@/utils/helpers/formatPrice';
 
 interface PropertyCardProps {
   property: PropertyCardDTO;
@@ -22,12 +23,11 @@ interface PropertyCardProps {
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, isFavorited, onFavoriteToggle }) => {
-  const formatPrice = (price: number) => {
-    if (price >= 1_000_000) return `$${(price / 1_000_000).toFixed(1)}M`;
-    if (price >= 1_000) return `$${(price / 1_000).toFixed(0)}K`;
-    return `$${price.toLocaleString('en-US')}`;
-  };
-  const listingLabel = property.listingType === 'SALE' ? 'BUY' : property.listingType;
+  const listingLabel =
+    property.listingType === 'SALE' ? 'BUY'
+    : property.listingType === 'RENT' ? 'RENT'
+    : property.listingType === 'LEASE' ? 'LEASE'
+    : property.listingType;
   const isRecurringPrice = property.listingType === 'RENT' || property.listingType === 'LEASE';
 
   return (
@@ -53,28 +53,28 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, i
           style={styles.imageGradient}
         />
 
-        {/* Badges top-left */}
-        <View style={styles.badgesTop}>
-          {property.verified && (
-            <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={12} color={colors.white} />
-              <Text style={styles.badgeText}>Verified</Text>
-            </View>
-          )}
-          {property.premium && (
-            <View style={styles.premiumBadge}>
-              <Ionicons name="star" size={11} color={colors.white} />
-              <Text style={styles.badgeText}>Premium</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Listing type top-right */}
-        <View style={[
-          styles.listingTypeBadge,
-          property.listingType === 'RENT' ? styles.rentBadge : property.listingType === 'LEASE' ? styles.leaseBadge : styles.saleBadge,
-        ]}>
-          <Text style={styles.listingTypeText}>{listingLabel}</Text>
+        {/* Top row: status badges left, listing type right — all in one row, no overlap possible */}
+        <View style={styles.topBadgesRow}>
+          <View style={styles.badgesLeft}>
+            {property.verified && (
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="checkmark-circle" size={12} color={colors.white} />
+                <Text style={styles.badgeText}>Verified</Text>
+              </View>
+            )}
+            {property.premium && (
+              <View style={styles.premiumBadge}>
+                <Ionicons name="star" size={11} color={colors.white} />
+                <Text style={styles.badgeText}>Premium</Text>
+              </View>
+            )}
+          </View>
+          <View style={[
+            styles.listingTypeBadge,
+            property.listingType === 'RENT' ? styles.rentBadge : property.listingType === 'LEASE' ? styles.leaseBadge : styles.saleBadge,
+          ]}>
+            <Text style={styles.listingTypeText}>{listingLabel}</Text>
+          </View>
         </View>
 
         {/* Price on image bottom-left */}
@@ -188,12 +188,20 @@ const styles = StyleSheet.create({
     right: 0,
     height: 80,
   },
-  badgesTop: {
+  topBadgesRow: {
     position: 'absolute',
     top: spacing.sm,
     left: spacing.sm,
+    right: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  badgesLeft: {
     flexDirection: 'row',
     gap: 4,
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   verifiedBadge: {
     flexDirection: 'row',
@@ -220,12 +228,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   listingTypeBadge: {
-    position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+    flexShrink: 0,
   },
   saleBadge: { backgroundColor: colors.primary },
   rentBadge: { backgroundColor: '#2980B9' },

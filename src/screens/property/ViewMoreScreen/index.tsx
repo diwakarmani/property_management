@@ -22,7 +22,7 @@ const ViewMoreScreen = ({ navigation }: any) => {
   const { category, city } = route.params as any;
   const { coordinates } = useSelector((state: RootState) => state.location);
   const isBuyer = useSelector((state: RootState) =>
-    isBuyerExperience(state.auth.user?.roles)
+    isBuyerExperience(state.auth.user?.roles, state.auth.activeRole)
   );
 
   const { ids: favoriteIds, isLoading: idsLoading } = useFavoriteIdsSet(isBuyer);

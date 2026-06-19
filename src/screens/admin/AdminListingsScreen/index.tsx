@@ -19,16 +19,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { colors, typography, spacing } from '@/theme';
 import { AdminService } from '@/api/services/admin.service';
 import type { PropertyDTO } from '@/api/types/property.types';
+import { formatPrice } from '@/utils/helpers/formatPrice';
 
 // ── Status tabs config ────────────────────────────────────────────────────────
 
 const TABS = [
+  { key: 'ALL',              label: 'All',     icon: 'apps-outline', color: colors.textSecondary },
   { key: 'PENDING_APPROVAL', label: 'Pending', icon: 'time-outline', color: colors.warning },
   { key: 'ACTIVE',           label: 'Active',  icon: 'checkmark-circle-outline', color: colors.success },
   { key: 'REJECTED',         label: 'Rejected',icon: 'close-circle-outline', color: colors.error },
   { key: 'SOLD',             label: 'Sold',    icon: 'cash-outline', color: colors.info },
   { key: 'RENTED',           label: 'Rented',  icon: 'key-outline', color: colors.primary },
-  { key: 'ALL',              label: 'All',     icon: 'apps-outline', color: colors.textSecondary },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -170,6 +171,7 @@ export const PropertyCard = ({
   onReject,
   onToggleFeatured,
   onToggleVerified,
+  onPress,
   isPending,
 }: {
   property: PropertyDTO;
@@ -177,18 +179,13 @@ export const PropertyCard = ({
   onReject: () => void;
   onToggleFeatured: () => void;
   onToggleVerified: () => void;
+  onPress?: () => void;
   isPending: boolean;
 }) => {
-  const formatPrice = (price: number) => {
-    if (price >= 1_000_000) return `$${(price / 1_000_000).toFixed(1)}M`;
-    if (price >= 1_000) return `$${(price / 1_000).toFixed(0)}K`;
-    return `$${price.toLocaleString('en-US')}`;
-  };
-
   const isPendingStatus = property.status === 'PENDING_APPROVAL';
 
   return (
-    <View style={cardStyles.card}>
+    <TouchableOpacity style={cardStyles.card} activeOpacity={0.85} onPress={onPress}>
       {/* Image + status badge */}
       <View style={cardStyles.imageWrap}>
         {property.primaryImageUrl ? (
@@ -294,7 +291,7 @@ export const PropertyCard = ({
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -548,6 +545,7 @@ const AdminListingsScreen = ({ route }: any) => {
               onReject={() => setRejectTargetId(item.id)}
               onToggleFeatured={() => featuredMutation.mutate(item.id)}
               onToggleVerified={() => verifiedMutation.mutate(item.id)}
+              onPress={() => (navigation as any).navigate('PropertyDetail', { id: item.id })}
               isPending={isMutating}
             />
           )}

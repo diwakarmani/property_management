@@ -13,6 +13,8 @@ import {
   Alert,
   RefreshControl,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
@@ -325,138 +327,165 @@ const PropertyConfigScreen = () => {
 
       {/* ── Type Modal ─────────────────────────────────────────────────────── */}
       <Modal visible={typeModal} animationType="slide" transparent onRequestClose={() => setTypeModal(false)}>
-        <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.overlay}
+        >
           <SafeAreaView style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{editingType ? 'Edit Type' : 'Add Property Type'}</Text>
-              <TouchableOpacity onPress={() => setTypeModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.fieldLabel}>Name *</Text>
-            <TextInput
-              style={styles.input}
-              value={typeForm.name}
-              onChangeText={v => setTypeForm(f => ({ ...f, name: v }))}
-              placeholder="e.g. Residential"
-            />
-            <Text style={styles.fieldLabel}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={typeForm.description}
-              onChangeText={v => setTypeForm(f => ({ ...f, description: v }))}
-              placeholder="Optional description"
-              multiline
-              numberOfLines={3}
-            />
-            <View style={styles.switchRow}>
-              <Text style={styles.fieldLabel}>Active</Text>
-              <Switch
-                value={typeForm.isActive}
-                onValueChange={v => setTypeForm(f => ({ ...f, isActive: v }))}
-                trackColor={{ true: colors.primary }}
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.sheetContent}
+            >
+              <View style={styles.sheetHandle} />
+              <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>{editingType ? 'Edit Type' : 'Add Property Type'}</Text>
+                <TouchableOpacity onPress={() => setTypeModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.fieldLabel}>Name *</Text>
+              <TextInput
+                style={styles.input}
+                value={typeForm.name}
+                onChangeText={v => setTypeForm(f => ({ ...f, name: v }))}
+                placeholder="e.g. Residential"
               />
-            </View>
-            <TouchableOpacity style={[styles.saveBtn, savingType && styles.saveBtnDisabled]} onPress={submitType} disabled={savingType}>
-              {savingType ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveBtnText}>Save</Text>}
-            </TouchableOpacity>
+              <Text style={styles.fieldLabel}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={typeForm.description}
+                onChangeText={v => setTypeForm(f => ({ ...f, description: v }))}
+                placeholder="Optional description"
+                multiline
+                numberOfLines={3}
+              />
+              <View style={styles.switchRow}>
+                <Text style={styles.fieldLabel}>Active</Text>
+                <Switch
+                  value={typeForm.isActive}
+                  onValueChange={v => setTypeForm(f => ({ ...f, isActive: v }))}
+                  trackColor={{ true: colors.primary }}
+                />
+              </View>
+              <TouchableOpacity style={[styles.saveBtn, savingType && styles.saveBtnDisabled]} onPress={submitType} disabled={savingType}>
+                {savingType ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveBtnText}>Save</Text>}
+              </TouchableOpacity>
+            </ScrollView>
           </SafeAreaView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── SubType Modal ──────────────────────────────────────────────────── */}
       <Modal visible={subTypeModal} animationType="slide" transparent onRequestClose={() => setSubTypeModal(false)}>
-        <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.overlay}
+        >
           <SafeAreaView style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Add Sub-type</Text>
-              <TouchableOpacity onPress={() => setSubTypeModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            {parentTypeId && (
-              <Text style={styles.parentLabel}>
-                Under: {types.find(t => t.id === parentTypeId)?.name}
-              </Text>
-            )}
-            <Text style={styles.fieldLabel}>Name *</Text>
-            <TextInput
-              style={styles.input}
-              value={subTypeForm.name}
-              onChangeText={v => setSubTypeForm(f => ({ ...f, name: v }))}
-              placeholder="e.g. Apartment"
-            />
-            <Text style={styles.fieldLabel}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={subTypeForm.description}
-              onChangeText={v => setSubTypeForm(f => ({ ...f, description: v }))}
-              placeholder="Optional description"
-              multiline
-              numberOfLines={3}
-            />
-            <View style={styles.switchRow}>
-              <Text style={styles.fieldLabel}>Active</Text>
-              <Switch
-                value={subTypeForm.isActive}
-                onValueChange={v => setSubTypeForm(f => ({ ...f, isActive: v }))}
-                trackColor={{ true: colors.primary }}
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.sheetContent}
+            >
+              <View style={styles.sheetHandle} />
+              <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>Add Sub-type</Text>
+                <TouchableOpacity onPress={() => setSubTypeModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+              {parentTypeId && (
+                <Text style={styles.parentLabel}>
+                  Under: {types.find(t => t.id === parentTypeId)?.name}
+                </Text>
+              )}
+              <Text style={styles.fieldLabel}>Name *</Text>
+              <TextInput
+                style={styles.input}
+                value={subTypeForm.name}
+                onChangeText={v => setSubTypeForm(f => ({ ...f, name: v }))}
+                placeholder="e.g. Apartment"
               />
-            </View>
-            <TouchableOpacity style={[styles.saveBtn, savingSubType && styles.saveBtnDisabled]} onPress={submitSubType} disabled={savingSubType}>
-              {savingSubType ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveBtnText}>Save</Text>}
-            </TouchableOpacity>
+              <Text style={styles.fieldLabel}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={subTypeForm.description}
+                onChangeText={v => setSubTypeForm(f => ({ ...f, description: v }))}
+                placeholder="Optional description"
+                multiline
+                numberOfLines={3}
+              />
+              <View style={styles.switchRow}>
+                <Text style={styles.fieldLabel}>Active</Text>
+                <Switch
+                  value={subTypeForm.isActive}
+                  onValueChange={v => setSubTypeForm(f => ({ ...f, isActive: v }))}
+                  trackColor={{ true: colors.primary }}
+                />
+              </View>
+              <TouchableOpacity style={[styles.saveBtn, savingSubType && styles.saveBtnDisabled]} onPress={submitSubType} disabled={savingSubType}>
+                {savingSubType ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveBtnText}>Save</Text>}
+              </TouchableOpacity>
+            </ScrollView>
           </SafeAreaView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Amenity Modal ──────────────────────────────────────────────────── */}
       <Modal visible={amenityModal} animationType="slide" transparent onRequestClose={() => setAmenityModal(false)}>
-        <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.overlay}
+        >
           <SafeAreaView style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Add Amenity</Text>
-              <TouchableOpacity onPress={() => setAmenityModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.fieldLabel}>Name *</Text>
-            <TextInput
-              style={styles.input}
-              value={amenityForm.name}
-              onChangeText={v => setAmenityForm(f => ({ ...f, name: v }))}
-              placeholder="e.g. Swimming Pool"
-            />
-            <Text style={styles.fieldLabel}>Category</Text>
-            <TextInput
-              style={styles.input}
-              value={amenityForm.category}
-              onChangeText={v => setAmenityForm(f => ({ ...f, category: v }))}
-              placeholder="e.g. Outdoor, Indoor, Security"
-            />
-            <Text style={styles.fieldLabel}>Icon Class</Text>
-            <TextInput
-              style={styles.input}
-              value={amenityForm.iconClass}
-              onChangeText={v => setAmenityForm(f => ({ ...f, iconClass: v }))}
-              placeholder="e.g. fa-swimming-pool (optional)"
-            />
-            <View style={styles.switchRow}>
-              <Text style={styles.fieldLabel}>Active</Text>
-              <Switch
-                value={amenityForm.isActive}
-                onValueChange={v => setAmenityForm(f => ({ ...f, isActive: v }))}
-                trackColor={{ true: colors.primary }}
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.sheetContent}
+            >
+              <View style={styles.sheetHandle} />
+              <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>Add Amenity</Text>
+                <TouchableOpacity onPress={() => setAmenityModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.fieldLabel}>Name *</Text>
+              <TextInput
+                style={styles.input}
+                value={amenityForm.name}
+                onChangeText={v => setAmenityForm(f => ({ ...f, name: v }))}
+                placeholder="e.g. Swimming Pool"
               />
-            </View>
-            <TouchableOpacity style={[styles.saveBtn, savingAmenity && styles.saveBtnDisabled]} onPress={submitAmenity} disabled={savingAmenity}>
-              {savingAmenity ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveBtnText}>Save</Text>}
-            </TouchableOpacity>
+              <Text style={styles.fieldLabel}>Category</Text>
+              <TextInput
+                style={styles.input}
+                value={amenityForm.category}
+                onChangeText={v => setAmenityForm(f => ({ ...f, category: v }))}
+                placeholder="e.g. Outdoor, Indoor, Security"
+              />
+              <Text style={styles.fieldLabel}>Icon Class</Text>
+              <TextInput
+                style={styles.input}
+                value={amenityForm.iconClass}
+                onChangeText={v => setAmenityForm(f => ({ ...f, iconClass: v }))}
+                placeholder="e.g. fa-swimming-pool (optional)"
+              />
+              <View style={styles.switchRow}>
+                <Text style={styles.fieldLabel}>Active</Text>
+                <Switch
+                  value={amenityForm.isActive}
+                  onValueChange={v => setAmenityForm(f => ({ ...f, isActive: v }))}
+                  trackColor={{ true: colors.primary }}
+                />
+              </View>
+              <TouchableOpacity style={[styles.saveBtn, savingAmenity && styles.saveBtnDisabled]} onPress={submitAmenity} disabled={savingAmenity}>
+                {savingAmenity ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveBtnText}>Save</Text>}
+              </TouchableOpacity>
+            </ScrollView>
           </SafeAreaView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -611,8 +640,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  sheetContent: {
     padding: spacing.lg,
     gap: spacing.sm,
+    paddingBottom: spacing.xl,
   },
   sheetHandle: {
     width: 36,

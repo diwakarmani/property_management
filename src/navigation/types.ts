@@ -18,8 +18,11 @@ export type AuthStackParamList = {
 export type RootStackParamList = {
   Boot: undefined;
   Auth: NavigatorScreenParams<AuthStackParamList>;
-  LocationSelection: undefined;
+  RoleSelection: undefined;      // role picker popup for multi-role users
+  LocationSetup: undefined;      // first-run buyer gate (no back stack)
+  LocationSelection: undefined;  // re-selection from inside the app
   MainApp: undefined;
+  Notifications: undefined;
 };
 
 // ── Buyer / default flow ──────────────────────────────────────────────────

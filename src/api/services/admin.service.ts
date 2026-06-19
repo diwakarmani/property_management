@@ -23,9 +23,9 @@ export interface AdminUserDTO {
 
 export const AdminService = {
   // Users
-  getUsers: (page = 0, size = 20) =>
+  getUsers: (page = 0, size = 20, role?: string | null) =>
     axiosClient.get<ApiResponse<PageResponse<AdminUserDTO>>>('/api/users', {
-      params: { page, size, sortBy: 'id', sortDirection: 'DESC' },
+      params: { page, size, sortBy: 'id', sortDirection: 'DESC', ...(role ? { role } : {}) },
     }),
 
   searchUsers: (query: string, page = 0, size = 20) =>

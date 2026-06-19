@@ -72,10 +72,8 @@ const PlatformAnalyticsScreen = ({ navigation }: any) => {
     screen: 'ManageUsers',
     params: { roleFilter: null },
   });
-  const openListings = (status: AdminListingStatus) => tabNavigation.navigate('Listings', {
-    screen: 'AdminListings',
-    params: { status },
-  });
+  const openListings = (status: AdminListingStatus) =>
+    navigation.navigate('AdminListings', { status });
 
   if (loading) {
     return (
