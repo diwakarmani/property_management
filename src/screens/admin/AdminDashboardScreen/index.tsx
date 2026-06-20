@@ -31,7 +31,6 @@ const QUICK_ACTIONS: { icon: string; title: string; route: string; showPending: 
   { icon: 'bar-chart-outline',  title: 'Platform Analytics', route: 'Analytics',         showPending: false },
   { icon: 'layers-outline',     title: 'Property Config',    route: 'PropertyConfig',    showPending: false },
   { icon: 'location-outline',   title: 'Location Bootstrap', route: 'LocationBootstrap', showPending: false },
-  { icon: 'settings-outline',   title: 'System Settings',   route: 'SystemSettings',    showPending: false },
 ];
 
 const AdminDashboardScreen = ({ navigation }: any) => {

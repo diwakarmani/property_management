@@ -27,7 +27,8 @@ export interface PropertyDTO {
   ownerId?: number;
   ownerName?: string;
   ownerEmail?: string;
-  ownerPhone?: string;
+  ownerPhone?: string;           // deprecated — kept for backward compat; prefer ownerPhoneMasked
+  ownerPhoneMasked?: string;     // masked phone shown before reveal (e.g. "+91 98XXXXXX10")
   ownerIsRealtor?: boolean;
   listingType: string;
   price: number;
@@ -68,12 +69,51 @@ export interface PropertyDTO {
   rejectionReason?: string;
   viewCount?: number;
   inquiryCount?: number;
+  contactCount?: number;
   publishedAt?: string;
   images?: PropertyImageDTO[];
   primaryImageUrl?: string;
   amenities?: PropertyAmenityDTO[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface PropertyCompareDTO {
+  id: number;
+  title: string;
+  primaryImageUrl?: string;
+  propertyTypeName?: string;
+  propertySubTypeName?: string;
+  listingType: string;
+  price: number;
+  depositAmount?: number;
+  maintenanceCharge?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  balconies?: number;
+  carpetArea?: number;
+  builtUpArea?: number;
+  plotArea?: number;
+  floorNumber?: number;
+  totalFloors?: number;
+  ageOfProperty?: number;
+  furnishedStatus?: string;
+  kitchenType?: string;
+  parkingCovered?: number;
+  parkingOpen?: number;
+  waterSupply?: string;
+  ownershipType?: string;
+  possessionStatus?: string;
+  facingDirection?: string;
+  availableFrom?: string;
+  locality?: string;
+  city?: string;
+  verified: boolean;
+  featured: boolean;
+  premium: boolean;
+  viewCount?: number;
+  inquiryCount?: number;
+  amenities?: PropertyAmenityDTO[];
 }
 
 export interface PageResponse<T> {
@@ -145,4 +185,11 @@ export interface ConnectRealtorResponse {
   propertyId?: number;
   totalUserInteractions: number;
   conversationId?: number;
+}
+
+export interface ContactRevealResponse {
+  phone?: string;
+  email?: string;
+  ownerName?: string;
+  alreadyContacted: boolean;
 }

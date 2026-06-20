@@ -3,7 +3,7 @@ import { InquiryService } from '@/api/services/inquiry.service';
 import { queryKeys, STALE_TIME } from '@/api/queryClient';
 import type { InquiryDTO, CreateInquiryRequest } from '@/api/types/inquiry.types';
 
-export const useReceivedInquiriesQuery = (page = 0, size = 50) =>
+export const useReceivedInquiriesQuery = (page = 0, size = 50, enabled = true) =>
   useQuery({
     queryKey: [...queryKeys.inquiriesReceived, page, size] as const,
     queryFn: async () => {
@@ -11,6 +11,7 @@ export const useReceivedInquiriesQuery = (page = 0, size = 50) =>
       return res.data.data?.content ?? ([] as InquiryDTO[]);
     },
     staleTime: STALE_TIME.MEDIUM,
+    enabled,
   });
 
 export const useSentInquiriesQuery = (page = 0, size = 50) =>
@@ -61,8 +62,8 @@ export const useSentInquiriesInfiniteQuery = (pageSize = 20) =>
     staleTime: STALE_TIME.MEDIUM,
   });
 
-export const useNewInquiryCount = () => {
-  const { data: inquiries = [] } = useReceivedInquiriesQuery(0, 50);
+export const useNewInquiryCount = (enabled = true) => {
+  const { data: inquiries = [] } = useReceivedInquiriesQuery(0, 50, enabled);
   return inquiries.filter((i) => i.status === 'NEW').length;
 };
 

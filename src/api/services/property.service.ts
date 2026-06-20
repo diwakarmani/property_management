@@ -1,6 +1,6 @@
 import axiosClient from '../client/axiosClient';
 import type { ApiResponse } from '../types/auth.types';
-import type { PropertyDTO, PropertyTypeDTO, PropertyAmenityDTO, PropertyImageDTO, PageResponse } from '../types/property.types';
+import type { PropertyDTO, PropertyTypeDTO, PropertyAmenityDTO, PropertyImageDTO, PageResponse, ContactRevealResponse } from '../types/property.types';
 
 export const PropertyService = {
   getById: (id: number) =>
@@ -29,8 +29,8 @@ export const PropertyService = {
   updateProperty: (id: number, data: Record<string, any>) =>
     axiosClient.put<ApiResponse<PropertyDTO>>(`/api/properties/${id}`, data),
 
-  deleteProperty: (id: number) =>
-    axiosClient.delete<ApiResponse<void>>(`/api/properties/${id}`),
+  requestDeletion: (id: number) =>
+    axiosClient.post<ApiResponse<PropertyDTO>>(`/api/properties/${id}/request-deletion`),
 
   getImages: (propertyId: number) =>
     axiosClient.get<ApiResponse<PropertyImageDTO[]>>(`/api/properties/${propertyId}/images`),
@@ -46,4 +46,9 @@ export const PropertyService = {
 
   setPrimaryImage: (propertyId: number, imageId: number) =>
     axiosClient.patch<ApiResponse<void>>(`/api/properties/${propertyId}/images/${imageId}/set-primary`),
+
+  revealContact: (propertyId: number) =>
+    axiosClient.post<ApiResponse<ContactRevealResponse>>(`/api/properties/${propertyId}/reveal-contact`, undefined, {
+      skipSuccessToast: true,
+    } as any),
 };

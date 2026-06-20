@@ -16,7 +16,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mithilasoftech.propertyapp",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "PropertyApp uses your location to show properties near you."
+        "NSLocationWhenInUseUsageDescription": "PropertyApp uses your location to show properties near you.",
+        "LSApplicationQueriesSchemes": ["tel", "telprompt", "mailto"]
       }
     },
     "android": {

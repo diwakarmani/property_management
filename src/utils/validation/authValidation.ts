@@ -23,9 +23,8 @@ export const registerSchema = yup.object().shape({
   email: yup.string().email('Invalid email').required('Email is required'),
   phone: yup
     .string()
-    .transform((value) => value || undefined)
-    .matches(REGEX.PHONE, 'Invalid phone number')
-    .optional(),
+    .required('Phone number is required')
+    .matches(/^[0-9\s\-().]{7,15}$/, 'Enter a valid local phone number'),
   password: yup
     .string()
     .matches(

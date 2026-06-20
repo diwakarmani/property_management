@@ -61,4 +61,8 @@ export const queryKeys = {
   inquiriesSent: ['inquiries', 'sent'] as const,
   realtorStats: ['realtor', 'stats'] as const,
   realtorProfile: (realtorId: number) => ['realtor', 'profile', realtorId] as const,
+  realtorRatings: (realtorId: number) => ['realtor', 'ratings', realtorId] as const,
+  myRating: (realtorId: number, propertyId: number) => ['realtor', 'ratings', realtorId, propertyId, 'my'] as const,
+  compareProperties: (ids: number[]) =>
+    ['favorites', 'compare', [...ids].sort((a, b) => a - b).join(',')] as const,
 };

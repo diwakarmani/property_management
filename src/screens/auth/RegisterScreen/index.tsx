@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,9 +32,22 @@ interface Props {
   navigation: RegisterScreenNavigationProp;
 }
 
+const COUNTRY_CODES = [
+  { code: '+1',   flag: '🇺🇸', label: 'USA / Canada' },
+  { code: '+44',  flag: '🇬🇧', label: 'United Kingdom' },
+  { code: '+61',  flag: '🇦🇺', label: 'Australia' },
+  { code: '+91',  flag: '🇮🇳', label: 'India' },
+  { code: '+971', flag: '🇦🇪', label: 'UAE' },
+  { code: '+65',  flag: '🇸🇬', label: 'Singapore' },
+  { code: '+49',  flag: '🇩🇪', label: 'Germany' },
+  { code: '+33',  flag: '🇫🇷', label: 'France' },
+];
+
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
+  const [countryCode, setCountryCode] = useState('+1');
+  const [codePickerVisible, setCodePickerVisible] = useState(false);
 
   const { control, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(registerSchema),
@@ -39,12 +55,13 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
   const onSubmit = async (data: any) => {
     dispatch(clearError());
+    const localPhone = data.phone.trim().replace(/^0+/, ''); // strip leading zeros
     const payload = {
       ...data,
       email: data.email.trim().toLowerCase(),
       firstName: data.firstName.trim(),
       lastName: data.lastName.trim(),
-      phone: data.phone?.trim() || undefined,
+      phone: `${countryCode}${localPhone}`,
     };
     const result = await dispatch(registerUser(payload));
     if (registerUser.fulfilled.match(result)) {
@@ -142,21 +159,81 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               )}
             />
 
-            <Controller
-              control={control}
-              name="phone"
-              render={({ field: { onChange, value } }) => (
-                <Input
-                  label="Phone Number (Optional)"
-                  placeholder="Enter phone number"
-                  value={value}
-                  onChangeText={onChange}
-                  error={errors.phone?.message}
-                  keyboardType="phone-pad"
-                  leftIcon="call-outline"
+            {/* Phone with country code picker */}
+            <View style={phoneStyles.wrapper}>
+              <Text style={phoneStyles.label}>Phone Number</Text>
+              <View style={[phoneStyles.row, !!errors.phone && phoneStyles.rowError]}>
+                <TouchableOpacity
+                  style={phoneStyles.codeBtn}
+                  onPress={() => setCodePickerVisible(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={phoneStyles.codeText}>
+                    {COUNTRY_CODES.find(c => c.code === countryCode)?.flag ?? '🇺🇸'} {countryCode}
+                  </Text>
+                  <Ionicons name="chevron-down" size={12} color={colors.textSecondary} />
+                </TouchableOpacity>
+                <View style={phoneStyles.divider} />
+                <Controller
+                  control={control}
+                  name="phone"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={phoneStyles.input}
+                      placeholder="(555) 000-0000"
+                      placeholderTextColor={colors.textLight}
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="phone-pad"
+                    />
+                  )}
                 />
+              </View>
+              {!!errors.phone && (
+                <Text style={phoneStyles.errorText}>{errors.phone.message}</Text>
               )}
-            />
+            </View>
+
+            {/* Country code picker modal */}
+            <Modal
+              visible={codePickerVisible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setCodePickerVisible(false)}
+            >
+              <TouchableOpacity
+                style={phoneStyles.modalBackdrop}
+                activeOpacity={1}
+                onPress={() => setCodePickerVisible(false)}
+              >
+                <View style={phoneStyles.pickerSheet}>
+                  <Text style={phoneStyles.pickerTitle}>Select Country Code</Text>
+                  <FlatList
+                    data={COUNTRY_CODES}
+                    keyExtractor={item => item.code}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={[
+                          phoneStyles.codeOption,
+                          item.code === countryCode && phoneStyles.codeOptionSelected,
+                        ]}
+                        onPress={() => {
+                          setCountryCode(item.code);
+                          setCodePickerVisible(false);
+                        }}
+                      >
+                        <Text style={phoneStyles.codeOptionText}>
+                          {item.flag}  {item.code}  {item.label}
+                        </Text>
+                        {item.code === countryCode && (
+                          <Ionicons name="checkmark" size={16} color={colors.primary} />
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  />
+                </View>
+              </TouchableOpacity>
+            </Modal>
 
             <Controller
               control={control}
@@ -311,6 +388,91 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.md,
     color: colors.primary,
     fontWeight: typography.fontWeight.bold,
+  },
+});
+
+const phoneStyles = StyleSheet.create({
+  wrapper: { marginBottom: spacing.sm },
+  label: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text,
+    marginBottom: 6,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  rowError: { borderColor: colors.error },
+  codeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 14,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  codeText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text,
+  },
+  divider: { width: 1, height: 24, backgroundColor: colors.border },
+  input: {
+    flex: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 14,
+    fontSize: typography.fontSize.md,
+    color: colors.text,
+  },
+  errorText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.error,
+    marginTop: 4,
+    marginLeft: 2,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: spacing.md,
+    paddingBottom: 36,
+    maxHeight: 420,
+  },
+  pickerTitle: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text,
+    textAlign: 'center',
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.lg,
+  },
+  codeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  codeOptionSelected: { backgroundColor: colors.primarySurface },
+  codeOptionText: {
+    fontSize: typography.fontSize.md,
+    color: colors.text,
   },
 });
 

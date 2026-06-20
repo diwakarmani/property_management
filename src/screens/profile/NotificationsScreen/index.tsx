@@ -13,23 +13,48 @@ import AsyncBoundary from '@/components/common/AsyncBoundary';
 import { toast } from '@/utils/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+// ── Notification type → icon/color config ────────────────────────────────────
+
+interface NotifStyle {
+  icon: string;
+  color: string;
+  bg: string;
+}
+
+const NOTIF_STYLE: Record<string, NotifStyle> = {
+  CONTACT_REVEALED: { icon: 'call',                color: '#7C3AED', bg: '#EDE9FE' },
+  INQUIRY_RECEIVED: { icon: 'chatbubble-ellipses', color: '#0EA5E9', bg: '#E0F2FE' },
+  PROPERTY_VIEWED:  { icon: 'eye',                 color: '#059669', bg: '#D1FAE5' },
+  LISTING_APPROVED: { icon: 'checkmark-circle',    color: '#16A34A', bg: '#DCFCE7' },
+  LISTING_REJECTED: { icon: 'close-circle',        color: '#DC2626', bg: '#FEE2E2' },
+  DEFAULT:          { icon: 'notifications',       color: colors.primary, bg: colors.primarySurface },
+};
+
+const getNotifStyle = (type?: string): NotifStyle =>
+  (type && NOTIF_STYLE[type]) ? NOTIF_STYLE[type] : NOTIF_STYLE.DEFAULT;
+
 const formatDate = (iso?: string) => {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
   const sameDay =
     d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
-  return sameDay ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString();
+  return sameDay
+    ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString([], { day: 'numeric', month: 'short' });
 };
 
-/**
- * In-app notifications inbox (RF-06) — migrated to TanStack Query (FE-09).
- * Loading / error / refetch / optimistic mark-read are now handled by the
- * shared {@code QueryClient} + dedicated mutation hooks.
- */
+// ── Main screen ───────────────────────────────────────────────────────────────
+
 const NotificationsScreen = () => {
   const navigation = useNavigation();
   const { data: notifications = [], isLoading, isError, error, refetch, isFetching } =
@@ -37,9 +62,15 @@ const NotificationsScreen = () => {
   const markRead = useMarkReadMutation();
   const markAll = useMarkAllReadMutation();
 
-  const onMarkRead = (n: NotificationDTO) => {
-    if (n.read) return;
-    markRead.mutate(n.id);
+  const onTapNotification = (n: NotificationDTO) => {
+    if (!n.read) markRead.mutate(n.id);
+    // Navigate to property if entityType is PROPERTY
+    if (n.entityType === 'PROPERTY' && n.entityId) {
+      (navigation as any).navigate('HomeStack', {
+        screen: 'PropertyDetail',
+        params: { id: n.entityId },
+      });
+    }
   };
 
   const onMarkAll = () => {
@@ -49,36 +80,41 @@ const NotificationsScreen = () => {
     });
   };
 
-  const renderItem = ({ item }: { item: NotificationDTO }) => (
-    <TouchableOpacity
-      style={[styles.row, !item.read && styles.rowUnread]}
-      onPress={() => onMarkRead(item)}
-      accessibilityRole="button"
-      accessibilityLabel={`Notification ${item.title}${item.read ? '' : ', unread'}`}
-    >
-      <View style={styles.iconCircle}>
-        <Ionicons
-          name={item.read ? 'mail-open-outline' : 'mail'}
-          size={20}
-          color={item.read ? colors.textSecondary : colors.primary}
-        />
-      </View>
-      <View style={styles.rowBody}>
-        <View style={styles.rowHeader}>
-          <Text style={[styles.title, !item.read && styles.titleUnread]} numberOfLines={1}>
-            {item.title}
-          </Text>
-          <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
+  const renderItem = ({ item }: { item: NotificationDTO }) => {
+    const ns = getNotifStyle(item.type);
+    return (
+      <TouchableOpacity
+        style={[styles.row, !item.read && styles.rowUnread]}
+        onPress={() => onTapNotification(item)}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.title}${item.read ? '' : ', unread'}`}
+      >
+        <View style={[styles.iconCircle, { backgroundColor: ns.bg }]}>
+          <Ionicons name={ns.icon as any} size={20} color={ns.color} />
         </View>
-        {!!item.body && (
-          <Text style={styles.body} numberOfLines={2}>
-            {item.body}
-          </Text>
-        )}
-      </View>
-      {!item.read && <View style={styles.unreadDot} />}
-    </TouchableOpacity>
-  );
+        <View style={styles.rowBody}>
+          <View style={styles.rowHeader}>
+            <Text style={[styles.title, !item.read && styles.titleUnread]} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
+          </View>
+          {!!item.body && (
+            <Text style={styles.body} numberOfLines={2}>
+              {item.body}
+            </Text>
+          )}
+          {item.entityType === 'PROPERTY' && item.entityId && (
+            <View style={styles.tapHint}>
+              <Ionicons name="home-outline" size={11} color={colors.textLight} />
+              <Text style={styles.tapHintText}>Tap to view property</Text>
+            </View>
+          )}
+        </View>
+        {!item.read && <View style={styles.unreadDot} />}
+      </TouchableOpacity>
+    );
+  };
 
   const hasUnread = notifications.some((n) => !n.read);
   const errorMessage = isError ? (error as any)?.response?.data?.message ?? 'Could not load notifications.' : null;
@@ -123,7 +159,11 @@ const NotificationsScreen = () => {
           keyExtractor={(n) => String(n.id)}
           renderItem={renderItem}
           refreshControl={
-            <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary} />
+            <RefreshControl
+              refreshing={isFetching && !isLoading}
+              onRefresh={() => refetch()}
+              tintColor={colors.primary}
+            />
           }
         />
       </AsyncBoundary>
@@ -137,11 +177,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing.md, paddingBottom: spacing.xl },
 
   listHeader: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm },
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   backBtn: {
     width: 32,
     height: 32,
@@ -169,9 +205,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
   },
+
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: colors.surface,
     borderRadius: 14,
     padding: spacing.md,
@@ -189,13 +226,13 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   iconCircle: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     borderRadius: 14,
-    backgroundColor: colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
+    flexShrink: 0,
   },
   rowBody: { flex: 1 },
   rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
@@ -207,12 +244,22 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.medium,
   },
   titleUnread: { fontWeight: typography.fontWeight.bold, color: colors.primary },
-  date: { fontSize: typography.fontSize.xs, color: colors.textLight },
+  date: { fontSize: typography.fontSize.xs, color: colors.textLight, flexShrink: 0 },
   body: {
     fontSize: typography.fontSize.xs,
     color: colors.textSecondary,
     marginTop: 4,
     lineHeight: 16,
+  },
+  tapHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  tapHintText: {
+    fontSize: 10,
+    color: colors.textLight,
   },
   unreadDot: {
     width: 8,
@@ -220,6 +267,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: colors.primary,
     marginLeft: spacing.sm,
+    marginTop: 6,
     flexShrink: 0,
   },
 });

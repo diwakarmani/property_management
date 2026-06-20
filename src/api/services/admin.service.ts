@@ -101,4 +101,10 @@ export const AdminService = {
 
   toggleVerified: (id: number) =>
     axiosClient.patch<ApiResponse<PropertyDTO>>(`/api/admin/properties/${id}/toggle-verified`),
+
+  approveDeletion: (id: number) =>
+    axiosClient.post<ApiResponse<PropertyDTO>>(`/api/admin/properties/${id}/approve-deletion`),
+
+  rejectDeletion: (id: number, reason?: string) =>
+    axiosClient.post<ApiResponse<PropertyDTO>>(`/api/admin/properties/${id}/reject-deletion`, { reason }),
 };

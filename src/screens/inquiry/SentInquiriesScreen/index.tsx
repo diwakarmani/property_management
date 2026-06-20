@@ -1,5 +1,8 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import {
+  View, Text, FlatList, StyleSheet, TouchableOpacity,
+  RefreshControl, ActivityIndicator,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
@@ -21,8 +24,20 @@ const formatDate = (iso?: string) => {
     : d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-const InquiryCard = ({ item, onPressProperty }: { item: InquiryDTO; onPressProperty: () => void }) => {
+// ── Inquiry card ──────────────────────────────────────────────────────────────
+
+const InquiryCard = ({
+  item,
+  onPressProperty,
+  onPressRate,
+}: {
+  item: InquiryDTO;
+  onPressProperty: () => void;
+  onPressRate: () => void;
+}) => {
   const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.NEW;
+  // Show rate CTA when contacted/closed AND the property owner is a realtor
+  const canRate = (item.status === 'CONTACTED' || item.status === 'CLOSED') && !!item.realtorId;
 
   return (
     <View style={[styles.card, item.status === 'NEW' && styles.cardPending]}>
@@ -35,7 +50,7 @@ const InquiryCard = ({ item, onPressProperty }: { item: InquiryDTO; onPressPrope
         <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
       </TouchableOpacity>
 
-      {/* Status badge (read-only) */}
+      {/* Status + date row */}
       <View style={styles.statusRow}>
         <View style={[styles.statusBadge, { backgroundColor: cfg.bg }]}>
           <Ionicons name={cfg.icon as any} size={12} color={cfg.color} />
@@ -49,9 +64,22 @@ const InquiryCard = ({ item, onPressProperty }: { item: InquiryDTO; onPressPrope
 
       {/* Message preview */}
       <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
+
+      {/* Rate CTA — only for realtor-owned inquiries that have been acknowledged */}
+      {canRate && (
+        <TouchableOpacity style={styles.rateBtn} onPress={onPressRate} activeOpacity={0.8}>
+          <Ionicons name="star-outline" size={14} color={colors.primary} />
+          <Text style={styles.rateBtnText}>
+            {item.realtorName ? `Rate ${item.realtorName}` : 'Rate this Realtor'}
+          </Text>
+          <Ionicons name="chevron-forward" size={13} color={colors.primary} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
+
+// ── Screen ────────────────────────────────────────────────────────────────────
 
 const SentInquiriesScreen = () => {
   const navigation = useNavigation<any>();
@@ -88,7 +116,11 @@ const SentInquiriesScreen = () => {
         keyExtractor={(item) => String(item.id)}
         onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
         onEndReachedThreshold={0.4}
-        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={styles.footer} color={colors.primary} /> : null}
+        ListFooterComponent={
+          isFetchingNextPage
+            ? <ActivityIndicator style={styles.footer} color={colors.primary} />
+            : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={isFetching && !isLoading}
@@ -110,12 +142,21 @@ const SentInquiriesScreen = () => {
             onPressProperty={() =>
               navigation.navigate('PropertyDetail', { id: item.propertyId })
             }
+            onPressRate={() =>
+              navigation.navigate('RateRealtor', {
+                realtorId: item.realtorId,
+                realtorName: item.realtorName,
+                propertyId: item.propertyId,
+              })
+            }
           />
         )}
       />
     </AsyncBoundary>
   );
 };
+
+// ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
@@ -159,23 +200,13 @@ const styles = StyleSheet.create({
     elevation: 2,
     gap: spacing.sm,
   },
-  cardPending: {
-    borderColor: colors.warning,
-    borderWidth: 1.5,
-  },
+  cardPending: { borderColor: colors.warning, borderWidth: 1.5 },
 
-  propertyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
+  propertyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   propertyIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    width: 28, height: 28, borderRadius: 8,
     backgroundColor: colors.primarySurface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   propertyTitle: {
     flex: 1,
@@ -184,31 +215,16 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
 
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: spacing.sm, paddingVertical: 4,
+    borderRadius: 10, alignSelf: 'flex-start',
   },
   statusText: { fontSize: 11, fontWeight: typography.fontWeight.bold },
 
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  date: {
-    fontSize: typography.fontSize.xs,
-    color: colors.textLight,
-  },
+  dateRow:  { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  date:     { fontSize: typography.fontSize.xs, color: colors.textLight },
 
   message: {
     fontSize: typography.fontSize.sm,
@@ -217,6 +233,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderRadius: 10,
     padding: spacing.sm,
+  },
+
+  rateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primarySurface,
+    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignSelf: 'flex-start',
+  },
+  rateBtnText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.primary,
   },
 });
 

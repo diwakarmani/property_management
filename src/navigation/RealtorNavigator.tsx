@@ -2,9 +2,11 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useSelector } from 'react-redux';
 import { colors } from '@/theme';
 import { withLayout } from '@/utils/withLayout';
 import { useNewInquiryCount } from '@/api/hooks/useInquiries';
+import type { RootState } from '@/store';
 
 import RealtorDashboardScreen from '@/screens/realtor/RealtorDashboardScreen';
 import MyListingsScreen from '@/screens/realtor/MyListingsScreen';
@@ -45,7 +47,8 @@ const MyListingsStackScreen = () => (
 );
 
 const RealtorNavigator = () => {
-  const newInquiryCount = useNewInquiryCount();
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const newInquiryCount = useNewInquiryCount(isAuthenticated);
   return (
   <Tab.Navigator
     screenOptions={({ route }) => ({

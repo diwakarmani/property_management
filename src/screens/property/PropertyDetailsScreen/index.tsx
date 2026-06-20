@@ -10,14 +10,18 @@ import {
   Share,
   Dimensions,
   Platform,
+  Modal,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing } from '@/theme';
-import { usePropertyQuery } from '@/api/hooks/useProperties';
+import { usePropertyQuery, useRevealContactMutation } from '@/api/hooks/useProperties';
 import { queryClient, queryKeys } from '@/api/queryClient';
 import {
   useFavoriteCheckQuery,
@@ -28,6 +32,7 @@ import { useRealtorProfileQuery } from '@/api/hooks/useStats';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
 import type { RootState } from '@/store';
 import { isBuyerExperience } from '@/utils/rbac/permissions';
+import type { ContactRevealResponse } from '@/api/types/property.types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -158,27 +163,190 @@ const ActivityStat = ({
   </View>
 );
 
+// ── Contact Reveal Modal ──────────────────────────────────────────────────────
+
+interface ContactRevealModalProps {
+  visible: boolean;
+  propertyTitle?: string;
+  maskedPhone?: string;
+  revealedData?: ContactRevealResponse | null;
+  isLoading: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+  onDial: (phone: string) => void;
+}
+
+const ContactRevealModal = ({
+  visible,
+  propertyTitle,
+  maskedPhone,
+  revealedData,
+  isLoading,
+  onConfirm,
+  onClose,
+  onDial,
+}: ContactRevealModalProps) => {
+  const isRevealed = !!revealedData;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={modalStyles.backdrop}>
+        <View style={modalStyles.sheet}>
+          {/* Header */}
+          <View style={modalStyles.header}>
+            <View style={modalStyles.iconCircle}>
+              <Ionicons name="call" size={24} color={colors.primary} />
+            </View>
+            <TouchableOpacity style={modalStyles.closeBtn} onPress={onClose}>
+              <Ionicons name="close" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          {!isRevealed ? (
+            /* ── Pre-reveal: confirmation ── */
+            <>
+              <Text style={modalStyles.title}>View Contact Details?</Text>
+              <Text style={modalStyles.subtitle}>
+                You're about to reveal the owner's contact for
+              </Text>
+              <Text style={modalStyles.propertyName} numberOfLines={2}>
+                {propertyTitle}
+              </Text>
+
+              {/* Masked number preview */}
+              <View style={modalStyles.maskedRow}>
+                <Ionicons name="call-outline" size={16} color={colors.textSecondary} />
+                <Text style={modalStyles.maskedPhone}>{maskedPhone ?? 'XXXXXXXXXX'}</Text>
+                <View style={modalStyles.lockedBadge}>
+                  <Ionicons name="lock-closed" size={10} color={colors.textLight} />
+                </View>
+              </View>
+
+              <Text style={modalStyles.note}>
+                The owner will be notified that someone viewed their contact details.
+              </Text>
+
+              <TouchableOpacity
+                style={[modalStyles.confirmBtn, isLoading && { opacity: 0.7 }]}
+                onPress={onConfirm}
+                disabled={isLoading}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={[colors.primary, colors.primaryDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={modalStyles.confirmGradient}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={colors.white} size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="eye-outline" size={18} color={colors.white} />
+                      <Text style={modalStyles.confirmText}>Reveal Contact</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={modalStyles.cancelBtn} onPress={onClose}>
+                <Text style={modalStyles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            /* ── Post-reveal: show real details ── */
+            <>
+              <View style={modalStyles.successBadge}>
+                <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                <Text style={modalStyles.successText}>
+                  {revealedData.alreadyContacted ? 'Already contacted' : 'Contact revealed!'}
+                </Text>
+              </View>
+
+              <Text style={modalStyles.title}>{revealedData.ownerName}</Text>
+              <Text style={modalStyles.subtitle}>Owner / Listed by</Text>
+
+              {revealedData.phone ? (
+                <TouchableOpacity
+                  style={modalStyles.contactRow}
+                  onPress={() => onDial(revealedData.phone!)}
+                  activeOpacity={0.75}
+                >
+                  <View style={modalStyles.contactIconWrap}>
+                    <Ionicons name="call" size={18} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={modalStyles.contactLabel}>Phone</Text>
+                    <Text style={modalStyles.contactValue}>{revealedData.phone}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textLight} />
+                </TouchableOpacity>
+              ) : null}
+
+              {revealedData.email ? (
+                <View style={modalStyles.contactRow}>
+                  <View style={modalStyles.contactIconWrap}>
+                    <Ionicons name="mail" size={18} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={modalStyles.contactLabel}>Email</Text>
+                    <Text style={modalStyles.contactValue}>{revealedData.email}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              <TouchableOpacity style={modalStyles.doneBtn} onPress={onClose}>
+                <Text style={modalStyles.doneText}>Done</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 const PropertyDetailScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { id } = route.params as any;
+  const userId = useSelector((state: RootState) => state.auth.user?.id);
   const isBuyer = useSelector((state: RootState) =>
     isBuyerExperience(state.auth.user?.roles, state.auth.activeRole)
   );
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [descExpanded, setDescExpanded] = useState(false);
   const galleryRef = useRef<ScrollView>(null);
 
+  // Contact reveal state
+  const [revealModalVisible, setRevealModalVisible] = useState(false);
+  const [revealedContact, setRevealedContact] = useState<ContactRevealResponse | null>(null);
+  const revealContact = useRevealContactMutation();
+
   const { data: property, isLoading, isError, error, refetch } = usePropertyQuery(id);
 
-  // Refetch when returning from PropertyImagesScreen (after upload/delete)
+  // Refetch on focus + restore cached revealed contact
   useFocusEffect(
     useCallback(() => {
       const state = queryClient.getQueryState(queryKeys.property(id));
       if (state?.isInvalidated) refetch();
-    }, [id, refetch])
+      // Restore previously revealed contact from cache (no re-confirmation needed)
+      if (isAuthenticated && userId && !revealedContact) {
+        AsyncStorage.getItem(`revealed_contact_${userId}_${id}`).then((cached) => {
+          if (cached) {
+            try { setRevealedContact(JSON.parse(cached)); } catch {}
+          }
+        });
+      }
+    }, [id, refetch, isAuthenticated, revealedContact])
   );
   const { data: isFavorite, isLoading: checkLoading } = useFavoriteCheckQuery(id, isBuyer);
   const addFavorite = useAddFavoriteMutation();
@@ -191,9 +359,34 @@ const PropertyDetailScreen = () => {
     await Share.share({ message: `Check out this property: ${property.title}` });
   };
 
-  const handleContact = () => {
-    if (!property?.ownerPhone) return;
-    Linking.openURL(`tel:${property.ownerPhone}`);
+  const handleDial = (phone: string) => {
+    const cleaned = phone.replace(/[\s\-().]/g, '');
+    const url = Platform.OS === 'ios' ? `telprompt:${cleaned}` : `tel:${cleaned}`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Call', phone, [{ text: 'OK' }]);
+    });
+  };
+
+  const openRevealModal = () => {
+    if (!isAuthenticated) {
+      (navigation as any).navigate('Login');
+      return;
+    }
+    if (!isBuyer) return; // non-buyers cannot reveal contact
+    setRevealModalVisible(true);
+  };
+
+  const handleRevealConfirm = () => {
+    revealContact.mutate(id, {
+      onSuccess: (data) => {
+        // Show phone/email in modal (switches to post-reveal view); user closes manually.
+        // On next visit the AsyncStorage key restores state so button shows "Call" directly.
+        setRevealedContact(data);
+        if (userId) {
+          AsyncStorage.setItem(`revealed_contact_${userId}_${id}`, JSON.stringify(data));
+        }
+      },
+    });
   };
 
   const openInquiry = () => {
@@ -290,7 +483,7 @@ const PropertyDetailScreen = () => {
     {}
   );
 
-  // Core stats always shown — use '--' when the value is absent so the bar never disappears.
+  // Core stats always shown
   const quickStats: { icon: string; value: string; label: string }[] = [
     {
       icon: 'bed-outline',
@@ -316,8 +509,6 @@ const PropertyDetailScreen = () => {
     }] : []),
   ];
 
-  // Spec grid — Furnishing and Parking always shown (with placeholder when absent);
-  // area, floors, age, facing only shown when provided.
   const specItems: { icon: string; value: string; label: string; empty?: boolean }[] = [
     {
       icon: 'cube-outline',
@@ -376,7 +567,6 @@ const PropertyDetailScreen = () => {
     }] : []),
   ];
 
-  // Property Profile — the 4 core fields always shown; conditionals appended when present.
   const profileItems: { icon: string; label: string; value: string; empty?: boolean }[] = [
     {
       icon: 'document-text-outline',
@@ -427,10 +617,14 @@ const PropertyDetailScreen = () => {
     }] : []),
   ];
 
+  // Contact state
+  const hasPhone = !!(property.ownerPhoneMasked ?? property.ownerPhone);
+  const isContacted = revealedContact !== null;
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Image Gallery — full-bleed, no separate header bar */}
+        {/* Image Gallery */}
         {imageUrls.length > 0 ? (
           <View style={styles.galleryWrap}>
             <ScrollView
@@ -450,7 +644,6 @@ const PropertyDetailScreen = () => {
               ))}
             </ScrollView>
 
-            {/* Left arrow */}
             {imageUrls.length > 1 && activeImageIndex > 0 && (
               <TouchableOpacity style={styles.arrowLeft} onPress={goToPrev} activeOpacity={0.8}>
                 <View style={styles.arrowBtn}>
@@ -458,7 +651,6 @@ const PropertyDetailScreen = () => {
                 </View>
               </TouchableOpacity>
             )}
-            {/* Right arrow */}
             {imageUrls.length > 1 && activeImageIndex < imageUrls.length - 1 && (
               <TouchableOpacity style={styles.arrowRight} onPress={goToNext} activeOpacity={0.8}>
                 <View style={styles.arrowBtn}>
@@ -485,7 +677,6 @@ const PropertyDetailScreen = () => {
                 <Text style={styles.photoCountText}>{activeImageIndex + 1}/{imageUrls.length}</Text>
               </View>
             )}
-            {/* Overlay nav controls — floated on top of the image */}
             <View style={styles.imageHeaderOverlay}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.overlayBtn}>
                 <Ionicons name="arrow-back" size={20} color={colors.white} />
@@ -524,7 +715,6 @@ const PropertyDetailScreen = () => {
             ]}>
               <Text style={styles.listingTypeText}>{listingLabel}</Text>
             </View>
-            {/* Overlay nav controls on the no-image placeholder */}
             <View style={styles.imageHeaderOverlay}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.overlayBtnDark}>
                 <Ionicons name="arrow-back" size={20} color={colors.text} />
@@ -591,7 +781,7 @@ const PropertyDetailScreen = () => {
             </Text>
           </View>
 
-          {/* Quick Stats Bar — always visible for all users */}
+          {/* Quick Stats Bar */}
           <View style={styles.quickStats}>
             {quickStats.map((s, i) => (
               <React.Fragment key={i}>
@@ -605,7 +795,7 @@ const PropertyDetailScreen = () => {
             ))}
           </View>
 
-          {/* Property Overview — spec grid (always rendered; some chips may show "Not specified") */}
+          {/* Property Overview */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Property Overview</Text>
             <View style={styles.specGrid}>
@@ -621,7 +811,7 @@ const PropertyDetailScreen = () => {
             </View>
           </View>
 
-          {/* Property Profile — always rendered; missing rows show "Not specified" in muted italic */}
+          {/* Property Profile */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Property Profile</Text>
             <View style={styles.profileCard}>
@@ -658,8 +848,8 @@ const PropertyDetailScreen = () => {
               />
               <View style={styles.activityDivider} />
               <ActivityStat
-                icon="chatbubble-ellipses-outline"
-                value={property.inquiryCount ?? 0}
+                icon="call-outline"
+                value={property.contactCount ?? property.inquiryCount ?? 0}
                 label="Contacts"
                 color={colors.success}
               />
@@ -692,7 +882,7 @@ const PropertyDetailScreen = () => {
             </View>
           ) : null}
 
-          {/* Amenities — grouped by category */}
+          {/* Amenities */}
           {Object.keys(amenitiesByCategory).length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Amenities</Text>
@@ -762,14 +952,10 @@ const PropertyDetailScreen = () => {
           {/* Meta dates */}
           <View style={styles.metaDates}>
             {property.publishedAt && (
-              <Text style={styles.metaDate}>
-                Posted {formatDate(property.publishedAt)}
-              </Text>
+              <Text style={styles.metaDate}>Posted {formatDate(property.publishedAt)}</Text>
             )}
             {property.updatedAt && (
-              <Text style={styles.metaDate}>
-                Updated {formatDate(property.updatedAt)}
-              </Text>
+              <Text style={styles.metaDate}>Updated {formatDate(property.updatedAt)}</Text>
             )}
           </View>
 
@@ -801,9 +987,7 @@ const PropertyDetailScreen = () => {
                     <Text style={styles.ownerName}>{realtorProfile?.name ?? property.ownerName}</Text>
                     <Text style={styles.ownerRole}>
                       {property.ownerIsRealtor
-                        ? isRealtorVerified
-                          ? 'Verified Realtor'
-                          : 'Real Estate Agent'
+                        ? isRealtorVerified ? 'Verified Realtor' : 'Real Estate Agent'
                         : 'Property Owner'}
                     </Text>
                   </View>
@@ -811,10 +995,6 @@ const PropertyDetailScreen = () => {
                     <View style={styles.ownerChevronWrap}>
                       <Ionicons name="chevron-forward" size={16} color={colors.textLight} />
                     </View>
-                  ) : property.ownerPhone ? (
-                    <TouchableOpacity style={styles.ownerCallBtn} onPress={handleContact}>
-                      <Ionicons name="call-outline" size={16} color={colors.primary} />
-                    </TouchableOpacity>
                   ) : null}
                 </View>
 
@@ -843,9 +1023,7 @@ const PropertyDetailScreen = () => {
                           ? realtorProfile.ratingAverage.toFixed(1)
                           : '—'}
                       </Text>
-                      <Text style={styles.trustLabel}>
-                        {`${realtorProfile.ratingCount ?? 0} reviews`}
-                      </Text>
+                      <Text style={styles.trustLabel}>{`${realtorProfile.ratingCount ?? 0} reviews`}</Text>
                     </View>
                     <View style={styles.trustItem}>
                       <Ionicons name="people-outline" size={15} color={colors.primary} />
@@ -877,12 +1055,35 @@ const PropertyDetailScreen = () => {
 
       {/* Footer */}
       <View style={styles.footer}>
-        {property.ownerPhone && (
-          <TouchableOpacity style={styles.callButton} onPress={handleContact}>
-            <Ionicons name="call" size={18} color={colors.primary} />
-            <Text style={styles.callButtonText}>Call</Text>
+        {/* Call button: BUYER only — masked until revealed; once revealed shows real number and dials directly */}
+        {hasPhone && isBuyer && (
+          <TouchableOpacity
+            style={[styles.callButton, isContacted && styles.callButtonContacted]}
+            onPress={isContacted && revealedContact?.phone
+              ? () => handleDial(revealedContact.phone!)
+              : openRevealModal
+            }
+            activeOpacity={0.85}
+          >
+            {isContacted && revealedContact?.phone ? (
+              <>
+                <Ionicons name="call" size={16} color={colors.success} />
+                <Text style={[styles.callButtonText, { color: colors.success }]}>Call</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="call-outline" size={16} color={colors.primary} />
+                <View style={styles.maskedPhoneWrap}>
+                  <Text style={styles.callButtonText} numberOfLines={1}>
+                    {property.ownerPhoneMasked ?? 'Show Phone'}
+                  </Text>
+                  <Ionicons name="lock-closed" size={10} color={colors.textLight} />
+                </View>
+              </>
+            )}
           </TouchableOpacity>
         )}
+
         <TouchableOpacity
           style={styles.inquiryButton}
           onPress={openInquiry}
@@ -899,15 +1100,229 @@ const PropertyDetailScreen = () => {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      {/* Contacted badge — shown above footer when user has contacted */}
+      {isContacted && (
+        <View style={styles.contactedBanner}>
+          <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+          <Text style={styles.contactedBannerText}>You've contacted the owner</Text>
+        </View>
+      )}
+
+      {/* Contact Reveal Modal */}
+      <ContactRevealModal
+        visible={revealModalVisible}
+        propertyTitle={property.title}
+        maskedPhone={property.ownerPhoneMasked ?? property.ownerPhone}
+        revealedData={revealedContact}
+        isLoading={revealContact.isPending}
+        onConfirm={handleRevealConfirm}
+        onClose={() => setRevealModalVisible(false)}
+        onDial={handleDial}
+      />
     </SafeAreaView>
   );
 };
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ── Modal Styles ──────────────────────────────────────────────────────────────
+
+const modalStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: spacing.lg,
+    paddingBottom: 36,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    position: 'relative',
+  },
+  iconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.primarySurface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeBtn: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  propertyName: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.primary,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  maskedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  maskedPhone: {
+    flex: 1,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textSecondary,
+    letterSpacing: 1,
+  },
+  lockedBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    backgroundColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  note: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textLight,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    lineHeight: 18,
+    paddingHorizontal: spacing.sm,
+  },
+  confirmBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+  },
+  confirmGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    height: 52,
+  },
+  confirmText: {
+    color: colors.white,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.bold,
+  },
+  cancelBtn: {
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelText: {
+    fontSize: typography.fontSize.md,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+  },
+  successBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.successSurface,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    alignSelf: 'center',
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: '#C6F6D5',
+  },
+  successText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.success,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 14,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  contactIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.primarySurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contactLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  contactValue: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text,
+  },
+  doneBtn: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: colors.primarySurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  doneText: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.primary,
+  },
+});
+
+// ── Screen Styles ─────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-
   container: { flex: 1 },
 
   galleryWrap: { position: 'relative', height: 320, overflow: 'hidden' },
@@ -926,7 +1341,6 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
   },
 
-  // Overlay nav controls floated on image
   imageHeaderOverlay: {
     position: 'absolute',
     top: 10,
@@ -1052,7 +1466,6 @@ const styles = StyleSheet.create({
   },
   locationText: { fontSize: typography.fontSize.sm, color: colors.textSecondary, flex: 1 },
 
-  // Quick stats bar
   quickStats: {
     flexDirection: 'row',
     backgroundColor: colors.primarySurface,
@@ -1063,20 +1476,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  quickStat: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 3,
-  },
+  quickStat: { flex: 1, alignItems: 'center', gap: 3 },
   quickStatValue: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text,
+    fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.text,
   },
   quickStatLabel: { fontSize: 10, color: colors.textSecondary, fontWeight: typography.fontWeight.medium },
   quickStatDivider: { width: 1, backgroundColor: colors.border, marginVertical: spacing.xs },
 
-  // Section
   section: { marginBottom: spacing.lg },
   sectionTitle: {
     fontSize: typography.fontSize.xs,
@@ -1087,12 +1493,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
 
-  // Spec grid
-  specGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
+  specGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   specChip: {
     width: '47%',
     backgroundColor: colors.surface,
@@ -1116,11 +1517,8 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold,
     color: colors.text, textAlign: 'center',
   },
-  specChipLabel: {
-    fontSize: typography.fontSize.xs, color: colors.textSecondary, textAlign: 'center',
-  },
+  specChipLabel: { fontSize: typography.fontSize.xs, color: colors.textSecondary, textAlign: 'center' },
 
-  // Property profile card
   profileCard: {
     backgroundColor: colors.surface,
     borderRadius: 14,
@@ -1137,8 +1535,7 @@ const styles = StyleSheet.create({
   },
   infoRowLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   infoRowLabel: {
-    fontSize: typography.fontSize.sm, color: colors.textSecondary,
-    fontWeight: typography.fontWeight.medium,
+    fontSize: typography.fontSize.sm, color: colors.textSecondary, fontWeight: typography.fontWeight.medium,
   },
   infoRowValue: {
     fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.text,
@@ -1146,7 +1543,6 @@ const styles = StyleSheet.create({
   },
   infoRowDivider: { height: 1, backgroundColor: colors.borderLight, marginHorizontal: spacing.md },
 
-  // Activity
   activityCard: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
@@ -1163,7 +1559,6 @@ const styles = StyleSheet.create({
   activityLabel: { fontSize: typography.fontSize.xs, color: colors.textSecondary, fontWeight: typography.fontWeight.medium },
   activityDivider: { width: 1, backgroundColor: colors.borderLight, marginVertical: spacing.sm },
 
-  // Description
   descCard: {
     backgroundColor: colors.surface,
     borderRadius: 14,
@@ -1172,25 +1567,14 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
     gap: spacing.sm,
   },
-  description: {
-    fontSize: typography.fontSize.md,
-    color: colors.textSecondary,
-    lineHeight: 24,
-  },
+  description: { fontSize: typography.fontSize.md, color: colors.textSecondary, lineHeight: 24 },
   showMoreBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    alignSelf: 'flex-start',
-    paddingVertical: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4,
   },
   showMoreText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.primary,
-    fontWeight: typography.fontWeight.semibold,
+    fontSize: typography.fontSize.sm, color: colors.primary, fontWeight: typography.fontWeight.semibold,
   },
 
-  // Amenities
   amenitiesWrap: { gap: spacing.md },
   amenityGroup: {
     backgroundColor: colors.surface,
@@ -1218,7 +1602,6 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs, color: colors.text, fontWeight: typography.fontWeight.medium,
   },
 
-  // Location
   locationCard: {
     backgroundColor: colors.surface, borderRadius: 14, padding: spacing.md,
     borderWidth: 1, borderColor: colors.borderLight, gap: spacing.md,
@@ -1242,16 +1625,11 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm, color: colors.primary, fontWeight: typography.fontWeight.semibold,
   },
 
-  // Meta dates
   metaDates: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-    paddingHorizontal: 2,
+    flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.lg, paddingHorizontal: 2,
   },
   metaDate: { fontSize: typography.fontSize.xs, color: colors.textLight },
 
-  // Listed by
   ownerCard: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     backgroundColor: colors.surface, borderRadius: 14, padding: spacing.md,
@@ -1269,10 +1647,6 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 8, backgroundColor: colors.backgroundSecondary,
     alignItems: 'center', justifyContent: 'center',
   },
-  ownerCallBtn: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primarySurface,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border,
-  },
   trustGrid: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
   trustItem: {
     flex: 1, backgroundColor: colors.backgroundSecondary, borderRadius: 12,
@@ -1283,12 +1657,10 @@ const styles = StyleSheet.create({
   trustValue: { fontSize: typography.fontSize.sm, color: colors.text, fontWeight: typography.fontWeight.bold },
   trustLabel: { fontSize: typography.fontSize.xs, color: colors.textSecondary },
   realtorBio: {
-    marginTop: spacing.sm, fontSize: typography.fontSize.sm,
-    color: colors.textSecondary, lineHeight: 20,
+    marginTop: spacing.sm, fontSize: typography.fontSize.sm, color: colors.textSecondary, lineHeight: 20,
   },
   viewProfileHint: {
-    marginTop: spacing.xs, fontSize: typography.fontSize.xs,
-    color: colors.primary, textAlign: 'right',
+    marginTop: spacing.xs, fontSize: typography.fontSize.xs, color: colors.primary, textAlign: 'right',
   },
 
   bottomSpacer: { height: 20 },
@@ -1302,17 +1674,44 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 6,
   },
   callButton: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
-    paddingHorizontal: spacing.lg, height: 52, borderRadius: 14,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingHorizontal: spacing.md, height: 52, borderRadius: 14,
     borderWidth: 1.5, borderColor: colors.primary, backgroundColor: colors.primarySurface,
+    maxWidth: 160,
   },
-  callButtonText: { color: colors.primary, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold },
+  callButtonContacted: {
+    borderColor: colors.success,
+    backgroundColor: colors.successSurface,
+  },
+  maskedPhoneWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1,
+  },
+  callButtonText: {
+    color: colors.primary, fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.bold, flexShrink: 1,
+  },
   inquiryButton: { flex: 1, borderRadius: 14, overflow: 'hidden' },
   inquiryGradient: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: spacing.sm, height: 52,
   },
   inquiryButtonText: { color: colors.white, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold },
+
+  contactedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.successSurface,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#C6F6D5',
+  },
+  contactedBannerText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.success,
+    fontWeight: typography.fontWeight.semibold,
+  },
 });
 
 export default PropertyDetailScreen;

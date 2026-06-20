@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   TextInput,
   Modal,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,12 +25,13 @@ import { formatPrice } from '@/utils/helpers/formatPrice';
 // ── Status tabs config ────────────────────────────────────────────────────────
 
 const TABS = [
-  { key: 'ALL',              label: 'All',     icon: 'apps-outline', color: colors.textSecondary },
-  { key: 'PENDING_APPROVAL', label: 'Pending', icon: 'time-outline', color: colors.warning },
-  { key: 'ACTIVE',           label: 'Active',  icon: 'checkmark-circle-outline', color: colors.success },
-  { key: 'REJECTED',         label: 'Rejected',icon: 'close-circle-outline', color: colors.error },
-  { key: 'SOLD',             label: 'Sold',    icon: 'cash-outline', color: colors.info },
-  { key: 'RENTED',           label: 'Rented',  icon: 'key-outline', color: colors.primary },
+  { key: 'ALL',                label: 'All',       icon: 'apps-outline',            color: colors.textSecondary },
+  { key: 'PENDING_APPROVAL',   label: 'Pending',   icon: 'time-outline',            color: colors.warning },
+  { key: 'ACTIVE',             label: 'Active',    icon: 'checkmark-circle-outline',color: colors.success },
+  { key: 'DELETION_REQUESTED', label: 'Del. Req.', icon: 'trash-outline',           color: '#E67E22' },
+  { key: 'REJECTED',           label: 'Rejected',  icon: 'close-circle-outline',    color: colors.error },
+  { key: 'SOLD',               label: 'Sold',      icon: 'cash-outline',            color: colors.info },
+  { key: 'RENTED',             label: 'Rented',    icon: 'key-outline',             color: colors.primary },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -40,13 +42,14 @@ export const normalizeAdminListingStatus = (status?: string): TabKey =>
 // ── Status badge ──────────────────────────────────────────────────────────────
 
 const statusConfig: Record<string, { label: string; bg: string; fg: string }> = {
-  PENDING_APPROVAL: { label: 'Pending',  bg: colors.warningSurface,  fg: colors.warning },
-  ACTIVE:           { label: 'Active',   bg: colors.successSurface,  fg: colors.success },
-  REJECTED:         { label: 'Rejected', bg: colors.errorSurface,    fg: colors.error   },
-  DRAFT:            { label: 'Draft',    bg: colors.backgroundSecondary, fg: colors.textSecondary },
-  SOLD:             { label: 'Sold',     bg: colors.infoSurface,     fg: colors.info    },
-  RENTED:           { label: 'Rented',   bg: colors.primarySurface,  fg: colors.primary },
-  INACTIVE:         { label: 'Inactive', bg: colors.backgroundSecondary, fg: colors.textLight },
+  PENDING_APPROVAL:   { label: 'Pending',     bg: colors.warningSurface,      fg: colors.warning },
+  ACTIVE:             { label: 'Active',      bg: colors.successSurface,      fg: colors.success },
+  REJECTED:           { label: 'Rejected',    bg: colors.errorSurface,        fg: colors.error   },
+  DELETION_REQUESTED: { label: 'Del. Request',bg: '#FDF2E9',                  fg: '#E67E22'      },
+  DRAFT:              { label: 'Draft',       bg: colors.backgroundSecondary, fg: colors.textSecondary },
+  SOLD:               { label: 'Sold',        bg: colors.infoSurface,         fg: colors.info    },
+  RENTED:             { label: 'Rented',      bg: colors.primarySurface,      fg: colors.primary },
+  INACTIVE:           { label: 'Inactive',    bg: colors.backgroundSecondary, fg: colors.textLight },
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -169,6 +172,8 @@ export const PropertyCard = ({
   property,
   onApprove,
   onReject,
+  onApproveDeletion,
+  onRejectDeletion,
   onToggleFeatured,
   onToggleVerified,
   onPress,
@@ -177,12 +182,15 @@ export const PropertyCard = ({
   property: PropertyDTO;
   onApprove: () => void;
   onReject: () => void;
+  onApproveDeletion: () => void;
+  onRejectDeletion: () => void;
   onToggleFeatured: () => void;
   onToggleVerified: () => void;
   onPress?: () => void;
   isPending: boolean;
 }) => {
   const isPendingStatus = property.status === 'PENDING_APPROVAL';
+  const isDeletionRequested = property.status === 'DELETION_REQUESTED';
 
   return (
     <TouchableOpacity style={cardStyles.card} activeOpacity={0.85} onPress={onPress}>
@@ -256,6 +264,27 @@ export const PropertyCard = ({
               >
                 <Ionicons name="close" size={14} color={colors.error} />
                 <Text style={cardStyles.rejectBtnText}>Reject</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {isDeletionRequested && (
+            <>
+              <TouchableOpacity
+                style={[cardStyles.actionBtn, cardStyles.approveBtn]}
+                onPress={onApproveDeletion}
+                disabled={isPending}
+              >
+                <Ionicons name="trash" size={14} color={colors.white} />
+                <Text style={cardStyles.approveBtnText}>Approve Del.</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[cardStyles.actionBtn, cardStyles.rejectBtn]}
+                onPress={onRejectDeletion}
+                disabled={isPending}
+              >
+                <Ionicons name="refresh-outline" size={14} color={colors.error} />
+                <Text style={cardStyles.rejectBtnText}>Restore</Text>
               </TouchableOpacity>
             </>
           )}
@@ -387,6 +416,7 @@ const AdminListingsScreen = ({ route }: any) => {
   );
   const [page, setPage] = useState(0);
   const [rejectTargetId, setRejectTargetId] = useState<number | null>(null);
+  const [rejectDeletionTargetId, setRejectDeletionTargetId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!route?.params?.status) return;
@@ -432,6 +462,30 @@ const AdminListingsScreen = ({ route }: any) => {
     },
   });
 
+  const approveDeletionMutation = useMutation({
+    mutationFn: (id: number) => AdminService.approveDeletion(id),
+    onSuccess: () => {
+      Alert.alert('Deletion Approved', 'Property is now inactive.');
+      onMutationSuccess();
+    },
+    onError: (err: any) => {
+      Alert.alert('Error', err?.response?.data?.message ?? 'Could not approve deletion.');
+    },
+  });
+
+  const rejectDeletionMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      AdminService.rejectDeletion(id, reason),
+    onSuccess: () => {
+      Alert.alert('Deletion Rejected', 'Property restored to active.');
+      setRejectDeletionTargetId(null);
+      onMutationSuccess();
+    },
+    onError: (err: any) => {
+      Alert.alert('Error', err?.response?.data?.message ?? 'Could not reject deletion.');
+    },
+  });
+
   const featuredMutation = useMutation({
     mutationFn: (id: number) => AdminService.toggleFeatured(id),
     onSuccess: () => onMutationSuccess(),
@@ -462,6 +516,8 @@ const AdminListingsScreen = ({ route }: any) => {
   const isMutating =
     approveMutation.isPending ||
     rejectMutation.isPending ||
+    approveDeletionMutation.isPending ||
+    rejectDeletionMutation.isPending ||
     featuredMutation.isPending ||
     verifiedMutation.isPending;
 
@@ -490,25 +546,37 @@ const AdminListingsScreen = ({ route }: any) => {
         </TouchableOpacity>
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabBar}>
-        {TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => handleTabChange(tab.key)}
-          >
-            <Ionicons
-              name={tab.icon as any}
-              size={14}
-              color={activeTab === tab.key ? tab.color : colors.textLight}
-            />
-            <Text style={[styles.tabLabel, activeTab === tab.key && { color: tab.color }]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* Horizontal chip tabs */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chipScroll}
+        contentContainerStyle={styles.chipRow}
+      >
+        {TABS.map((tab) => {
+          const active = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[
+                styles.chip,
+                active && { backgroundColor: tab.color + '18', borderColor: tab.color },
+              ]}
+              onPress={() => handleTabChange(tab.key)}
+              activeOpacity={0.75}
+            >
+              <Ionicons
+                name={tab.icon as any}
+                size={13}
+                color={active ? tab.color : colors.textLight}
+              />
+              <Text style={[styles.chipLabel, active && { color: tab.color }]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
       {/* Content */}
       {isLoading ? (
@@ -543,6 +611,17 @@ const AdminListingsScreen = ({ route }: any) => {
               property={item}
               onApprove={() => handleApprove(item.id)}
               onReject={() => setRejectTargetId(item.id)}
+              onApproveDeletion={() => {
+                Alert.alert(
+                  'Approve Deletion',
+                  `Mark "${item.title}" as inactive? This cannot be undone without admin action.`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Approve', style: 'destructive', onPress: () => approveDeletionMutation.mutate(item.id) },
+                  ]
+                );
+              }}
+              onRejectDeletion={() => setRejectDeletionTargetId(item.id)}
               onToggleFeatured={() => featuredMutation.mutate(item.id)}
               onToggleVerified={() => verifiedMutation.mutate(item.id)}
               onPress={() => (navigation as any).navigate('PropertyDetail', { id: item.id })}
@@ -577,13 +656,24 @@ const AdminListingsScreen = ({ route }: any) => {
         />
       )}
 
-      {/* Reject modal */}
+      {/* Reject listing modal */}
       <RejectModal
         visible={rejectTargetId !== null}
         onCancel={() => setRejectTargetId(null)}
         onConfirm={(reason) => {
           if (rejectTargetId !== null) {
             rejectMutation.mutate({ id: rejectTargetId, reason });
+          }
+        }}
+      />
+
+      {/* Reject deletion request modal */}
+      <RejectModal
+        visible={rejectDeletionTargetId !== null}
+        onCancel={() => setRejectDeletionTargetId(null)}
+        onConfirm={(reason) => {
+          if (rejectDeletionTargetId !== null) {
+            rejectDeletionMutation.mutate({ id: rejectDeletionTargetId, reason });
           }
         }}
       />
@@ -628,26 +718,33 @@ const styles = StyleSheet.create({
   },
   countText: { fontSize: typography.fontSize.xs, color: colors.white, fontWeight: typography.fontWeight.bold },
 
-  tabBar: {
-    flexDirection: 'row',
+  chipScroll: {
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
-    paddingHorizontal: spacing.md,
+    flexGrow: 0,
+    flexShrink: 0,
   },
-  tab: {
-    flex: 1,
+  chipRow: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    gap: 7,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: spacing.sm + 2,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
   },
-  tabActive: { borderBottomColor: colors.primary },
-  tabLabel: {
-    fontSize: typography.fontSize.xs,
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  chipLabel: {
+    fontSize: 12,
     fontWeight: typography.fontWeight.semibold,
     color: colors.textLight,
   },

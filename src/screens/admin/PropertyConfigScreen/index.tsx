@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   },
   tabBtn: {
     flex: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 2,
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',

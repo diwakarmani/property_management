@@ -1,6 +1,6 @@
 import axiosClient from '@/api/client/axiosClient';
 import type { ApiResponse } from '@/api/types/auth.types';
-import type { PropertyDTO } from '@/api/types/property.types';
+import type { PropertyCompareDTO, PropertyDTO } from '@/api/types/property.types';
 
 export interface FavoritesPageResponse {
   content: PropertyDTO[];
@@ -28,6 +28,11 @@ export const FavoriteService = {
 
   checkFavorite: (propertyId: number) =>
     axiosClient.get<ApiResponse<boolean>>(`/api/favorites/${propertyId}/check`, {
-      skipErrorToast: true,  // heart defaults to false on error; PropertyDetailsScreen shows no inline state for this
+      skipErrorToast: true,
+    }),
+
+  compareProperties: (ids: number[]) =>
+    axiosClient.get<ApiResponse<PropertyCompareDTO[]>>('/api/favorites/compare', {
+      params: { ids: [...ids].sort((a, b) => a - b).join(',') },
     }),
 };

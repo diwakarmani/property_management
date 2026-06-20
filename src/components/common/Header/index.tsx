@@ -13,8 +13,8 @@ const LISTING_ROLES = ['SUPER_ADMIN', 'REALTOR', 'SELLER'];
 const Header = () => {
   const navigation = useNavigation();
   const { selectedCity } = useSelector((state: RootState) => state.location);
-  const { user } = useSelector((state: RootState) => state.auth);
-  const { data: unreadCount = 0, refetch: refetchUnreadCount } = useUnreadCountQuery();
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { data: unreadCount = 0, refetch: refetchUnreadCount } = useUnreadCountQuery(isAuthenticated);
 
   const isListingRole = user?.roles?.some((r: string) => LISTING_ROLES.includes(r)) ?? false;
   const openNotifications = () => {

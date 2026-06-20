@@ -9,85 +9,140 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSelector } from 'react-redux';
 import { colors, typography, spacing } from '@/theme';
 import { useRealtorProfileQuery, useConnectRealtorMutation } from '@/api/hooks/useStats';
+import { useMyRatingQuery, useRatingsInfiniteQuery } from '@/api/hooks/useRatings';
+import type { RatingDTO } from '@/api/types/rating.types';
 import type { RootState } from '@/store';
+import { isBuyerExperience } from '@/utils/rbac/permissions';
 
-// ── Star rating display ───────────────────────────────────────────────────────
+// ── Star rating ───────────────────────────────────────────────────────────────
 
 const StarRating = ({ rating, count }: { rating: number | null | undefined; count: number | undefined }) => {
   const hasRating = rating != null && rating > 0;
-
-  if (!hasRating) {
-    return (
-      <View style={starStyles.newTag}>
-        <Ionicons name="sparkles-outline" size={12} color={colors.primary} />
-        <Text style={starStyles.newTagText}>New Realtor</Text>
-      </View>
-    );
-  }
+  if (!hasRating) return null;
 
   const filled = Math.floor(rating);
   const hasHalf = rating - filled >= 0.5;
 
   return (
     <View style={starStyles.row}>
-      <View style={starStyles.stars}>
-        {[1, 2, 3, 4, 5].map((i) => (
-          <Ionicons
-            key={i}
-            name={i <= filled ? 'star' : hasHalf && i === filled + 1 ? 'star-half' : 'star-outline'}
-            size={16}
-            color={colors.warning}
-          />
-        ))}
-      </View>
-      <Text style={starStyles.ratingValue}>{rating.toFixed(1)}</Text>
-      {count ? <Text style={starStyles.ratingCount}>({count} reviews)</Text> : null}
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Ionicons
+          key={i}
+          name={i <= filled ? 'star' : hasHalf && i === filled + 1 ? 'star-half' : 'star-outline'}
+          size={15}
+          color={colors.warning}
+        />
+      ))}
+      <Text style={starStyles.value}>{rating.toFixed(1)}</Text>
+      {count ? <Text style={starStyles.count}>({count})</Text> : null}
     </View>
   );
 };
 
 const starStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  stars: { flexDirection: 'row', gap: 2 },
-  ratingValue: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text,
+  row: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  value: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: colors.text, marginLeft: 3 },
+  count: { fontSize: typography.fontSize.xs, color: colors.textSecondary },
+});
+
+// ── Review card ───────────────────────────────────────────────────────────────
+
+const STAR_COLORS = ['', '#E74C3C', '#E67E22', '#F1C40F', '#27AE60', '#6C5CE7'];
+
+const ReviewCard = ({ review }: { review: RatingDTO }) => {
+  const initial = review.raterName?.charAt(0)?.toUpperCase() ?? '?';
+  const starColor = STAR_COLORS[review.rating] ?? colors.warning;
+  const date = review.createdAt
+    ? new Date(review.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '';
+
+  return (
+    <View style={reviewStyles.card}>
+      <View style={reviewStyles.row}>
+        {review.raterPhotoUrl ? (
+          <Image source={{ uri: review.raterPhotoUrl }} style={reviewStyles.avatar} />
+        ) : (
+          <View style={reviewStyles.avatarFallback}>
+            <Text style={reviewStyles.avatarInitial}>{initial}</Text>
+          </View>
+        )}
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={reviewStyles.name}>{review.raterName}</Text>
+          <View style={reviewStyles.starsRow}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Ionicons
+                key={i}
+                name={i <= review.rating ? 'star' : 'star-outline'}
+                size={13}
+                color={i <= review.rating ? starColor : colors.border}
+              />
+            ))}
+            <Text style={[reviewStyles.starValue, { color: starColor }]}>{review.rating}.0</Text>
+          </View>
+        </View>
+        <Text style={reviewStyles.date}>{date}</Text>
+      </View>
+      {!!review.comment && (
+        <Text style={reviewStyles.comment}>{review.comment}</Text>
+      )}
+    </View>
+  );
+};
+
+const reviewStyles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    gap: spacing.sm,
   },
-  ratingCount: {
-    fontSize: typography.fontSize.xs,
-    color: colors.textSecondary,
-  },
-  newTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  row:  { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  avatar: { width: 40, height: 40, borderRadius: 20 },
+  avatarFallback: {
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: colors.primarySurface,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
+    alignItems: 'center', justifyContent: 'center',
   },
-  newTagText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
+  avatarInitial: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.bold,
     color: colors.primary,
+  },
+  name: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.text },
+  starsRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  starValue: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.bold, marginLeft: 3 },
+  date: { fontSize: typography.fontSize.xs, color: colors.textLight },
+  comment: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    padding: spacing.sm,
   },
 });
 
-// ── Trust metric card ─────────────────────────────────────────────────────────
+// ── Metric tile ───────────────────────────────────────────────────────────────
 
-const MetricCard = ({ icon, value, label }: { icon: string; value: string | number; label: string }) => (
-  <View style={metricStyles.card}>
+const MetricTile = ({ icon, value, label }: { icon: string; value: string | number; label: string }) => (
+  <View style={metricStyles.tile}>
     <View style={metricStyles.iconWrap}>
-      <Ionicons name={icon as any} size={20} color={colors.primary} />
+      <Ionicons name={icon as any} size={18} color={colors.primary} />
     </View>
     <Text style={metricStyles.value}>{value}</Text>
     <Text style={metricStyles.label}>{label}</Text>
@@ -95,47 +150,48 @@ const MetricCard = ({ icon, value, label }: { icon: string; value: string | numb
 );
 
 const metricStyles = StyleSheet.create({
-  card: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-    padding: spacing.sm,
-  },
+  tile: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm, gap: 3 },
   iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: colors.primarySurface,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
   },
-  value: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text,
-  },
-  label: {
-    fontSize: typography.fontSize.xs,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
+  value: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.text },
+  label: { fontSize: typography.fontSize.xs, color: colors.textSecondary, textAlign: 'center' },
 });
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 const RealtorProfileScreen = () => {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { realtorId, propertyId, propertyTitle } = route.params as {
     realtorId: number;
     propertyId?: number;
     propertyTitle?: string;
   };
+  const user            = useSelector((state: RootState) => state.auth.user);
+  const activeRole      = useSelector((state: RootState) => state.auth.activeRole);
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  const isBuyer         = isAuthenticated && isBuyerExperience(user?.roles, activeRole);
 
+  const insets = useSafeAreaInsets();
   const { data: profile, isLoading, isError, error, refetch } = useRealtorProfileQuery(realtorId);
-  const connectRealtor = useConnectRealtorMutation(realtorId);
+  const connectRealtor  = useConnectRealtorMutation(realtorId);
+  const { data: myRating, isError: myRatingError } = useMyRatingQuery(
+    isBuyer && realtorId && propertyId ? realtorId : null,
+    isBuyer && realtorId && propertyId ? propertyId : null,
+  );
+  const {
+    data: reviewsData,
+    fetchNextPage: fetchMoreReviews,
+    hasNextPage: hasMoreReviews,
+    isFetchingNextPage: loadingMoreReviews,
+  } = useRatingsInfiniteQuery(realtorId);
+  const reviews = reviewsData?.items ?? [];
 
   const handleConnect = async () => {
     if (!isAuthenticated) {
@@ -143,7 +199,6 @@ const RealtorProfileScreen = () => {
       return;
     }
     if (propertyId) {
-      // Navigate directly to inquiry form when we have a property context
       connectRealtor.mutate({ propertyId });
       (navigation as any).navigate('ContactAgent', { propertyId, propertyTitle });
       return;
@@ -163,36 +218,38 @@ const RealtorProfileScreen = () => {
     }
   };
 
+  // ── Loading state ────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.inlineHeader}>
+        <View style={styles.loadingHeader}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
-        <View style={styles.loadingCenter}>
+        <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading profile...</Text>
+          <Text style={styles.centerText}>Loading profile...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  // ── Error state ──────────────────────────────────────────────────────────────
   if (isError || !profile) {
     const msg = isError
       ? (error as any)?.response?.data?.message ?? 'Could not load realtor profile.'
       : 'Realtor not found.';
     return (
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.inlineHeader}>
+        <View style={styles.loadingHeader}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
-        <View style={styles.loadingCenter}>
+        <View style={styles.center}>
           <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
-          <Text style={styles.errorText}>{msg}</Text>
+          <Text style={styles.centerText}>{msg}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
@@ -205,181 +262,187 @@ const RealtorProfileScreen = () => {
   const hasRating = profile.ratingAverage != null && profile.ratingAverage > 0;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
-        {/* Hero — full-bleed gradient with overlay back button */}
+    <View style={styles.safeArea}>
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* ── Hero gradient fills from y=0 (behind status bar) — no background hack ── */}
         <LinearGradient
           colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.hero}
         >
-          {/* Overlay back button — consistent with PropertyDetailScreen */}
-          <View style={styles.heroTopRow}>
+          {/* Back button — absolute, top = status bar height + 10, matches PropertyDetailsScreen */}
+          <View style={[styles.heroNav, { top: insets.top + 10 }]}>
             <TouchableOpacity style={styles.overlayBtn} onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={20} color={colors.white} />
             </TouchableOpacity>
           </View>
 
-          {profile.profilePhotoUrl ? (
-            <Image source={{ uri: profile.profilePhotoUrl }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarFallback}>
-              <Text style={styles.avatarInitial}>
-                {profile.name?.charAt(0)?.toUpperCase() ?? '?'}
-              </Text>
+          {/* Profile info — centered in hero */}
+          <View style={styles.heroBody}>
+            {profile.profilePhotoUrl ? (
+              <Image source={{ uri: profile.profilePhotoUrl }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Text style={styles.avatarInitial}>
+                  {profile.name?.charAt(0)?.toUpperCase() ?? '?'}
+                </Text>
+              </View>
+            )}
+
+            <Text style={styles.heroName}>{profile.name}</Text>
+            <Text style={styles.heroRole}>Real Estate Agent</Text>
+
+            <View style={styles.heroBadges}>
+              {isVerified && (
+                <View style={styles.verifiedPill}>
+                  <Ionicons name="shield-checkmark" size={12} color={colors.success} />
+                  <Text style={styles.verifiedText}>Verified</Text>
+                </View>
+              )}
+              {!hasRating && (
+                <View style={styles.newPill}>
+                  <Ionicons name="sparkles-outline" size={12} color="rgba(255,255,255,0.9)" />
+                  <Text style={styles.newPillText}>New Realtor</Text>
+                </View>
+              )}
+              {hasRating && <StarRating rating={profile.ratingAverage} count={profile.ratingCount} />}
             </View>
-          )}
-
-          <Text style={styles.heroName}>{profile.name}</Text>
-          <Text style={styles.heroSubtitle}>Real Estate Agent</Text>
-
-          <View style={styles.heroBadgeRow}>
-            {isVerified && (
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="shield-checkmark" size={13} color={colors.success} />
-                <Text style={styles.verifiedText}>Verified</Text>
-              </View>
-            )}
-            {!hasRating && (
-              <View style={styles.newBadge}>
-                <Ionicons name="sparkles-outline" size={13} color={colors.primaryLight} />
-                <Text style={styles.newBadgeText}>New Realtor</Text>
-              </View>
-            )}
           </View>
         </LinearGradient>
 
-        {/* Trust metrics row */}
+        {/* ── Metrics card — overlaps hero bottom with elevation ── */}
         <View style={styles.metricsCard}>
-          <MetricCard
-            icon="home-outline"
-            value={profile.activeListingsCount ?? 0}
-            label="Active Listings"
-          />
-          <View style={styles.metricDivider} />
-          <MetricCard
-            icon="people-outline"
-            value={profile.totalUserInteractions ?? 0}
-            label="Connects"
-          />
-          <View style={styles.metricDivider} />
-          <MetricCard
+          <MetricTile icon="home-outline" value={profile.activeListingsCount ?? 0} label="Active Listings" />
+          <View style={styles.divider} />
+          <MetricTile icon="people-outline" value={profile.totalUserInteractions ?? 0} label="Connects" />
+          <View style={styles.divider} />
+          <MetricTile
             icon={hasRating ? 'star' : 'star-outline'}
             value={hasRating ? (profile.ratingAverage as number).toFixed(1) : '–'}
             label={hasRating ? `${profile.ratingCount ?? 0} Reviews` : 'No Reviews'}
           />
         </View>
 
-        {/* Rating section */}
+        {/* ── Verification ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Rating</Text>
+          <Text style={styles.sectionLabel}>Trust & Verification</Text>
+          <View style={[styles.card, isVerified ? styles.cardVerified : styles.cardPending]}>
+            <Ionicons
+              name={isVerified ? 'shield-checkmark' : 'shield-outline'}
+              size={22}
+              color={isVerified ? colors.success : colors.textLight}
+            />
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={[styles.cardTitle, { color: isVerified ? colors.success : colors.textSecondary }]}>
+                {isVerified ? 'Identity Verified' : 'Not Yet Verified'}
+              </Text>
+              <Text style={styles.cardSub}>
+                {isVerified
+                  ? 'Email or mobile number confirmed on this account.'
+                  : 'Document verification — Phase 2.'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Rating ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Rating</Text>
           <View style={styles.ratingCard}>
             {hasRating ? (
               <View style={styles.ratingRow}>
                 <Text style={styles.bigRating}>{(profile.ratingAverage as number).toFixed(1)}</Text>
-                <View style={styles.ratingRight}>
+                <View style={{ flex: 1, gap: 6 }}>
                   <StarRating rating={profile.ratingAverage} count={profile.ratingCount} />
-                  <Text style={styles.ratingNote}>
-                    Based on {profile.ratingCount} review{profile.ratingCount === 1 ? '' : 's'}
-                  </Text>
+                  <Text style={styles.cardSub}>Based on {profile.ratingCount} review{profile.ratingCount === 1 ? '' : 's'}</Text>
                 </View>
               </View>
             ) : (
               <View style={styles.noRatingRow}>
-                <View style={styles.noRatingIconWrap}>
-                  <Ionicons name="star-outline" size={28} color={colors.textLight} />
+                <View style={styles.noRatingIcon}>
+                  <Ionicons name="star-outline" size={24} color={colors.textLight} />
                 </View>
-                <View style={styles.noRatingText}>
-                  <Text style={styles.noRatingTitle}>No reviews yet</Text>
-                  <Text style={styles.noRatingSubtitle}>
-                    This realtor hasn't received any reviews yet.{'\n'}Reviews will appear here once clients rate them.
-                  </Text>
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text style={styles.cardTitle}>No reviews yet</Text>
+                  <Text style={styles.cardSub}>Reviews appear here once clients rate this realtor.</Text>
                 </View>
               </View>
             )}
           </View>
         </View>
 
-        {/* Verification */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Trust & Verification</Text>
-          <View style={[styles.verificationCard, isVerified ? styles.verificationCardVerified : styles.verificationCardPending]}>
-            <Ionicons
-              name={isVerified ? 'shield-checkmark' : 'shield-outline'}
-              size={24}
-              color={isVerified ? colors.success : colors.textLight}
-            />
-            <View style={styles.verificationText}>
-              <Text style={[styles.verificationTitle, isVerified ? styles.verifiedColor : styles.unverifiedColor]}>
-                {isVerified ? 'Identity Verified' : 'Not Yet Verified'}
-              </Text>
-              <Text style={styles.verificationSub}>
-                {isVerified
-                  ? 'Email or mobile number confirmed on this account.'
-                  : 'Document verification coming soon — Phase 2.'}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* About */}
+        {/* ── Bio ── */}
         {profile.bio ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>About</Text>
+            <Text style={styles.sectionLabel}>About</Text>
             <Text style={styles.bioText}>{profile.bio}</Text>
           </View>
         ) : null}
 
-        {/* Contact */}
+        {/* ── Reviews ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact</Text>
-          <View style={styles.contactCard}>
-            {profile.email ? (
-              <View style={styles.contactRow}>
-                <View style={styles.contactIcon}>
-                  <Ionicons name="mail-outline" size={16} color={colors.primary} />
-                </View>
-                <Text style={styles.contactText}>{profile.email}</Text>
-              </View>
-            ) : null}
-            {profile.phone ? (
-              <View style={[styles.contactRow, { borderBottomWidth: 0 }]}>
-                <View style={styles.contactIcon}>
-                  <Ionicons name="call-outline" size={16} color={colors.primary} />
-                </View>
-                <Text style={styles.contactText}>{profile.phone}</Text>
-              </View>
-            ) : null}
-            {!profile.email && !profile.phone && (
-              <Text style={styles.noContactText}>No contact details available</Text>
+          <View style={styles.reviewsHeader}>
+            <Text style={styles.sectionLabel}>
+              Reviews{reviewsData?.totalElements ? ` (${reviewsData.totalElements})` : ''}
+            </Text>
+            {/* Rate button: visible to BUYER when a property context is available */}
+            {isBuyer && !!propertyId && (
+              <TouchableOpacity
+                style={styles.rateBtn}
+                onPress={() =>
+                  navigation.navigate('RateRealtor', {
+                    realtorId,
+                    realtorName: profile.name,
+                    propertyId,
+                  })
+                }
+                activeOpacity={0.8}
+              >
+                <Ionicons name={myRating ? 'star' : 'star-outline'} size={13} color={colors.primary} />
+                <Text style={styles.rateBtnText}>
+                  {myRating ? 'Edit Review' : 'Rate'}
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
+
+          {reviews.length === 0 ? (
+            <View style={styles.noReviewsBox}>
+              <Ionicons name="chatbubble-ellipses-outline" size={32} color={colors.textLight} />
+              <Text style={styles.noReviewsText}>No reviews yet</Text>
+              <Text style={styles.noReviewsSub}>Reviews from buyers appear here.</Text>
+            </View>
+          ) : (
+            <>
+              {reviews.map((r) => <ReviewCard key={r.id} review={r} />)}
+              {hasMoreReviews && (
+                <TouchableOpacity
+                  style={styles.loadMoreBtn}
+                  onPress={() => fetchMoreReviews()}
+                  disabled={loadingMoreReviews}
+                  activeOpacity={0.7}
+                >
+                  {loadingMoreReviews
+                    ? <ActivityIndicator size="small" color={colors.primary} />
+                    : <Text style={styles.loadMoreText}>Load more reviews</Text>}
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
 
-        {/* Areas served */}
-        {profile.areasServed && profile.areasServed.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Areas Served</Text>
-            <View style={styles.tagRow}>
-              {profile.areasServed.map((area, i) => (
-                <View key={i} style={styles.tag}>
-                  <Ionicons name="location-outline" size={12} color={colors.primary} />
-                  <Text style={styles.tagText}>{area}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        ) : null}
-
-        <View style={styles.bottomSpacer} />
+        <View style={{ height: spacing.xl }} />
       </ScrollView>
 
-      {/* Footer */}
-      <View style={styles.footer}>
+      {/* ── Footer CTA ── */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
         <TouchableOpacity
-          style={[styles.connectBtn, connectRealtor.isPending && styles.connectBtnDisabled]}
+          style={[styles.connectBtn, connectRealtor.isPending && { opacity: 0.7 }]}
           disabled={connectRealtor.isPending}
           onPress={handleConnect}
           activeOpacity={0.85}
@@ -400,26 +463,23 @@ const RealtorProfileScreen = () => {
               />
             )}
             <Text style={styles.connectText}>
-              {connectRealtor.isPending
-                ? 'Connecting...'
-                : propertyId
-                  ? 'Send Enquiry'
-                  : 'Connect with Realtor'}
+              {connectRealtor.isPending ? 'Connecting...' : propertyId ? 'Send Enquiry' : 'Connect with Realtor'}
             </Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  // Same as every other screen — no color hack needed
   safeArea: { flex: 1, backgroundColor: colors.background },
 
-  // Inline back bar for loading/error states (no gradient)
-  inlineHeader: {
+  // Loading / error states
+  loadingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
@@ -436,69 +496,70 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  container: { flex: 1 },
-  scrollContent: { paddingBottom: 0 },
-
-  loadingCenter: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-    padding: spacing.xl,
-  },
-  loadingText: { fontSize: typography.fontSize.sm, color: colors.textSecondary },
-  errorText: { fontSize: typography.fontSize.sm, color: colors.textSecondary, textAlign: 'center' },
-  retryBtn: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.primarySurface,
-    borderRadius: 12,
-  },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl, backgroundColor: colors.background },
+  centerText: { fontSize: typography.fontSize.sm, color: colors.textSecondary, textAlign: 'center' },
+  retryBtn: { paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, backgroundColor: colors.primarySurface, borderRadius: 12 },
   retryText: { fontSize: typography.fontSize.sm, color: colors.primary, fontWeight: typography.fontWeight.semibold },
 
-  // Hero — full-bleed gradient (no margin so it fills to screen edges)
+  scroll: { flex: 1, backgroundColor: colors.background },
+  scrollContent: { paddingBottom: 0 },
+
+  // ── Hero — fixed 280px, matches property photo area proportionally ──────────
   hero: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xl,
-    paddingTop: 10,
+    height: 280,
+    position: 'relative',
+  },
+
+  // Back button — absolute, top: 10 — matches PropertyDetailsScreen exactly
+  heroNav: {
+    position: 'absolute',
+    top: 10,
+    left: spacing.md,
+    right: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: spacing.xs,
+    zIndex: 10,
   },
-  heroTopRow: {
-    alignSelf: 'stretch',
-    paddingBottom: spacing.md,
-  },
-  // Semi-transparent overlay button — matches PropertyDetailScreen
   overlayBtn: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.32)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.5)',
-    marginBottom: spacing.sm,
-  },
-  avatarFallback: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // Profile content — centred below status bar + back button
+  // paddingTop: 56 = 46px (typical status bar) + 10px gap — no runtime insets needed here
+  heroBody: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 56,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+    gap: 6,
+  },
+  avatar: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.55)',
+  },
+  avatarFallback: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-    marginBottom: spacing.sm,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   avatarInitial: {
-    fontSize: 40,
+    fontSize: 36,
     fontWeight: typography.fontWeight.bold,
     color: colors.white,
   },
@@ -506,85 +567,87 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
     color: colors.white,
+    textAlign: 'center',
   },
-  heroSubtitle: {
+  heroRole: {
     fontSize: typography.fontSize.sm,
-    color: 'rgba(255,255,255,0.75)',
-    marginBottom: spacing.sm,
+    color: 'rgba(255,255,255,0.78)',
+    textAlign: 'center',
   },
-  heroBadgeRow: {
+  heroBadges: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.sm,
     flexWrap: 'wrap',
-    justifyContent: 'center',
+    marginTop: 2,
   },
-  verifiedBadge: {
+  verifiedPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: colors.successSurface,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 12,
   },
-  verifiedText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.success,
-  },
-  newBadge: {
+  verifiedText: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.success },
+  newPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
     paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 12,
   },
-  newBadgeText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
-    color: 'rgba(255,255,255,0.9)',
-  },
+  newPillText: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: 'rgba(255,255,255,0.9)' },
 
-  // Metrics
+  // ── Metrics card — slightly overlaps hero, elevated ──────────────────────────
   metricsCard: {
     flexDirection: 'row',
     marginHorizontal: spacing.md,
+    marginTop: -20,
     marginBottom: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: 16,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 12,
+    elevation: 4,
+    zIndex: 5,
   },
-  metricDivider: {
-    width: 1,
-    backgroundColor: colors.borderLight,
-    marginVertical: spacing.sm,
-  },
+  divider: { width: 1, backgroundColor: colors.borderLight, marginVertical: spacing.sm },
 
-  // Sections
-  section: {
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
+  // ── Sections ─────────────────────────────────────────────────────────────────
+  section: { marginHorizontal: spacing.md, marginBottom: spacing.md },
+  sectionLabel: {
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.semibold,
     color: colors.textSecondary,
-    marginBottom: spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+    marginBottom: spacing.sm,
   },
+
+  card: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: 14,
+  },
+  cardVerified: { backgroundColor: colors.successSurface },
+  cardPending: { backgroundColor: colors.backgroundSecondary },
+  cardTitle: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.text },
+  cardSub: { fontSize: typography.fontSize.xs, color: colors.textSecondary, lineHeight: 18 },
 
   // Rating
   ratingCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: spacing.md,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 1 },
@@ -593,53 +656,16 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  bigRating: {
-    fontSize: 48,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text,
-    lineHeight: 56,
-  },
-  ratingRight: { flex: 1, gap: spacing.xs },
-  ratingNote: { fontSize: typography.fontSize.xs, color: colors.textSecondary },
+  bigRating: { fontSize: 44, fontWeight: typography.fontWeight.bold, color: colors.text, lineHeight: 52 },
   noRatingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  noRatingIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  noRatingIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noRatingText: { flex: 1, gap: 4 },
-  noRatingTitle: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text,
-  },
-  noRatingSubtitle: {
-    fontSize: typography.fontSize.xs,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-
-  // Verification
-  verificationCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: 16,
-  },
-  verificationCardVerified: { backgroundColor: colors.successSurface },
-  verificationCardPending: { backgroundColor: colors.backgroundSecondary },
-  verificationText: { flex: 1, gap: 4 },
-  verificationTitle: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  verifiedColor: { color: colors.success },
-  unverifiedColor: { color: colors.textSecondary },
-  verificationSub: { fontSize: typography.fontSize.xs, color: colors.textSecondary, lineHeight: 18 },
 
   // Bio
   bioText: {
@@ -648,43 +674,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     backgroundColor: colors.surface,
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: 14,
   },
 
-  // Contact
-  contactCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  contactRow: {
+  // Reviews
+  reviewsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
   },
-  contactIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primarySurface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  contactText: { fontSize: typography.fontSize.sm, color: colors.text },
-  noContactText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.textLight,
-    padding: spacing.md,
-    textAlign: 'center',
-  },
-
-  // Tags
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  tag: {
+  rateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -692,25 +692,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 5,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  tagText: {
+  rateBtnText: {
     fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
     color: colors.primary,
-    fontWeight: typography.fontWeight.medium,
+  },
+  noReviewsBox: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  noReviewsText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textSecondary,
+  },
+  noReviewsSub: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textLight,
+  },
+  loadMoreBtn: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.primarySurface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: spacing.xs,
+  },
+  loadMoreText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.primary,
   },
 
-  bottomSpacer: { height: 96 },
-
-  // Footer
+  // ── Footer CTA ───────────────────────────────────────────────────────────────
   footer: {
-    padding: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.borderLight,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 6,
   },
   connectBtn: { borderRadius: 14, overflow: 'hidden' },
-  connectBtnDisabled: { opacity: 0.7 },
   connectGradient: {
     flexDirection: 'row',
     alignItems: 'center',

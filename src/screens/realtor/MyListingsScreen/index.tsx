@@ -8,290 +8,285 @@ import {
   Alert,
   RefreshControl,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import type { PropertyDTO } from '@/api/types/property.types';
 import {
   useMyListingsInfiniteQuery,
-  useDeletePropertyMutation,
+  useRequestDeletionMutation,
   usePublishPropertyMutation,
 } from '@/api/hooks/useProperties';
 import OptimizedImage from '@/components/common/OptimizedImage';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
 import { formatPrice } from '@/utils/helpers/formatPrice';
 
+// ── Tab config ────────────────────────────────────────────────────────────────
+
 const STATUS_TABS = [
-  { key: 'ALL',              label: 'All',     icon: 'apps-outline',             color: colors.textSecondary },
-  { key: 'DRAFT',            label: 'Draft',   icon: 'document-outline',         color: colors.textLight },
-  { key: 'ACTIVE',           label: 'Active',  icon: 'checkmark-circle-outline', color: colors.success },
-  { key: 'PENDING_APPROVAL', label: 'Pending', icon: 'time-outline',             color: colors.warning },
-  { key: 'SOLD',             label: 'Sold',    icon: 'cash-outline',             color: colors.info },
-  { key: 'RENTED',           label: 'Rented',  icon: 'key-outline',              color: colors.primary },
+  { key: 'ALL',                label: 'All',       icon: 'apps-outline',             color: colors.textSecondary },
+  { key: 'ACTIVE',             label: 'Active',    icon: 'checkmark-circle-outline', color: '#27AE60' },
+  { key: 'DRAFT',              label: 'Draft',     icon: 'document-outline',         color: '#95A5A6' },
+  { key: 'PENDING_APPROVAL',   label: 'Pending',   icon: 'time-outline',             color: '#F39C12' },
+  { key: 'DELETION_REQUESTED', label: 'Del. Req.', icon: 'hourglass-outline',        color: '#E67E22' },
+  { key: 'SOLD',               label: 'Sold',      icon: 'cash-outline',             color: '#2980B9' },
+  { key: 'RENTED',             label: 'Rented',    icon: 'key-outline',              color: '#8E44AD' },
+  { key: 'INACTIVE',           label: 'Removed',   icon: 'archive-outline',          color: '#C0392B' },
 ] as const;
 
 type StatusTab = typeof STATUS_TABS[number]['key'];
 
+const STATUS_COLORS: Record<string, string> = {
+  ACTIVE: '#27AE60',
+  DRAFT: '#95A5A6',
+  PENDING_APPROVAL: '#F39C12',
+  DELETION_REQUESTED: '#E67E22',
+  SOLD: '#2980B9',
+  RENTED: '#8E44AD',
+  INACTIVE: '#C0392B',
+};
+
+// ── Chip tab bar ──────────────────────────────────────────────────────────────
+
+type ChipBarProps = {
+  activeTab: StatusTab;
+  onSelect: (k: StatusTab) => void;
+  counts: Record<string, number>;
+};
+
+const ChipBar = ({ activeTab, onSelect, counts }: ChipBarProps) => (
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    style={chipStyles.scroll}
+    contentContainerStyle={chipStyles.row}
+  >
+    {STATUS_TABS.map((tab) => {
+      const active = activeTab === tab.key;
+      const count = counts[tab.key] ?? 0;
+      return (
+        <TouchableOpacity
+          key={tab.key}
+          style={[
+            chipStyles.chip,
+            active && { backgroundColor: tab.color + '18', borderColor: tab.color },
+          ]}
+          onPress={() => onSelect(tab.key)}
+          activeOpacity={0.75}
+        >
+          <Ionicons
+            name={tab.icon as any}
+            size={13}
+            color={active ? tab.color : colors.textLight}
+          />
+          <Text style={[chipStyles.label, active && { color: tab.color }]}>
+            {tab.label}
+          </Text>
+          {count > 0 && (
+            <View style={[chipStyles.badge, active && { backgroundColor: tab.color }]}>
+              <Text style={[chipStyles.badgeText, active && { color: colors.white }]}>
+                {count}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      );
+    })}
+  </ScrollView>
+);
+
+const chipStyles = StyleSheet.create({
+  scroll: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  row: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    gap: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: colors.textLight,
+  },
+  badge: {
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: {
+    fontSize: 9,
+    fontWeight: '700' as const,
+    color: colors.textSecondary,
+  },
+});
+
+// ── Status banner (for non-actionable states) ─────────────────────────────────
+
+type BannerCfg = { icon: string; color: string; bg: string; text: string };
+
+const STATUS_BANNERS: Record<string, BannerCfg> = {
+  PENDING_APPROVAL:   { icon: 'time-outline',      color: '#F39C12', bg: '#FEF9E7', text: 'Under review — awaiting listing approval' },
+  DELETION_REQUESTED: { icon: 'hourglass-outline', color: '#E67E22', bg: '#FDF2E9', text: 'Deletion request submitted — awaiting admin approval' },
+  SOLD:               { icon: 'cash-outline',      color: '#2980B9', bg: '#EBF5FB', text: 'This property has been sold' },
+  RENTED:             { icon: 'key-outline',       color: '#8E44AD', bg: '#F5EEF8', text: 'This property is currently rented' },
+  INACTIVE:           { icon: 'archive-outline',   color: '#C0392B', bg: '#FDEDEC', text: 'Removed — deletion approved by admin' },
+};
+
+const StatusBanner = ({ status }: { status: string }) => {
+  const cfg = STATUS_BANNERS[status];
+  if (!cfg) return null;
+  return (
+    <View style={[bannerStyles.wrap, { backgroundColor: cfg.bg }]}>
+      <Ionicons name={cfg.icon as any} size={14} color={cfg.color} />
+      <Text style={[bannerStyles.text, { color: cfg.color }]}>{cfg.text}</Text>
+    </View>
+  );
+};
+
+const bannerStyles = StyleSheet.create({
+  wrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: spacing.sm,
+    borderRadius: 9,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+  },
+  text: { fontSize: 12, fontWeight: '600' as const, flex: 1 },
+});
+
+// ── Listing card ──────────────────────────────────────────────────────────────
+
 type ListingCardProps = {
   item: PropertyDTO;
   navigation: any;
-  onDelete: (p: PropertyDTO) => void;
+  onRequestDelete: (p: PropertyDTO) => void;
   onPublish: (p: PropertyDTO) => void;
 };
 
-const ListingCard = ({ item, navigation, onDelete, onPublish }: ListingCardProps) => {
+const EDITABLE_STATUSES = new Set(['ACTIVE', 'DRAFT']);
+
+const ListingCard = ({ item, navigation, onRequestDelete, onPublish }: ListingCardProps) => {
   const statusColor = STATUS_COLORS[item.status] ?? colors.textSecondary;
   const statusLabel = STATUS_TABS.find(t => t.key === item.status)?.label ?? item.status;
+  const showActions = EDITABLE_STATUSES.has(item.status);
+  const showBanner = !!STATUS_BANNERS[item.status];
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[
+        cardStyles.card,
+        item.status === 'INACTIVE' && cardStyles.cardInactive,
+        item.status === 'DELETION_REQUESTED' && cardStyles.cardDeletion,
+      ]}
       onPress={() => navigation.navigate('PropertyDetail', { id: item.id })}
-      activeOpacity={0.9}
+      activeOpacity={0.88}
     >
-      <View style={styles.cardImageWrap}>
-        <OptimizedImage uri={item.primaryImageUrl ?? ''} style={styles.cardImage} />
-        <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-          <Text style={styles.statusText}>{statusLabel}</Text>
+      {/* Image */}
+      <View style={cardStyles.imageWrap}>
+        <OptimizedImage uri={item.primaryImageUrl ?? ''} style={cardStyles.image} />
+        {/* Status pill */}
+        <View style={[cardStyles.statusPill, { backgroundColor: statusColor }]}>
+          <Text style={cardStyles.statusPillText}>{statusLabel}</Text>
         </View>
+        {/* Dim overlay for inactive */}
+        {item.status === 'INACTIVE' && <View style={cardStyles.inactiveOverlay} />}
       </View>
 
-      <View style={styles.cardBody}>
-        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.cardPrice}>{formatPrice(item.price)}</Text>
-        <Text style={styles.cardLocation} numberOfLines={1}>
+      {/* Body */}
+      <View style={cardStyles.body}>
+        <Text style={[cardStyles.title, item.status === 'INACTIVE' && cardStyles.titleDim]} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <Text style={cardStyles.price}>{formatPrice(item.price)}</Text>
+        <Text style={cardStyles.location} numberOfLines={1}>
           {item.locality}, {item.city}
         </Text>
 
-        <View style={styles.cardMeta}>
+        {/* Meta row */}
+        <View style={cardStyles.meta}>
           {item.bedrooms ? (
-            <View style={styles.metaItem}>
-              <Ionicons name="bed-outline" size={14} color={colors.textSecondary} />
-              <Text style={styles.metaText}>{item.bedrooms} BHK</Text>
+            <View style={cardStyles.metaItem}>
+              <Ionicons name="bed-outline" size={13} color={colors.textSecondary} />
+              <Text style={cardStyles.metaText}>{item.bedrooms} BHK</Text>
             </View>
           ) : null}
-          <View style={styles.metaItem}>
-            <Ionicons name="eye-outline" size={14} color={colors.textSecondary} />
-            <Text style={styles.metaText}>{item.viewCount ?? 0} views</Text>
+          <View style={cardStyles.metaItem}>
+            <Ionicons name="eye-outline" size={13} color={colors.textSecondary} />
+            <Text style={cardStyles.metaText}>{item.viewCount ?? 0} views</Text>
           </View>
         </View>
 
-        <View style={styles.cardActions}>
-          {item.status === 'DRAFT' && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.publishBtn]}
-              onPress={() => onPublish(item)}
-            >
-              <Text style={styles.actionBtnText}>Publish</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.imagesBtn]}
-            onPress={() => navigation.navigate('PropertyImages', { propertyId: item.id, propertyTitle: item.title })}
-          >
-            <Ionicons name="images-outline" size={16} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.editBtn]}
-            onPress={() => navigation.navigate('EditListing', { propertyId: item.id })}
-          >
-            <Ionicons name="create-outline" size={16} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.deleteBtn]}
-            onPress={() => onDelete(item)}
-          >
-            <Ionicons name="trash-outline" size={16} color={colors.error} />
-          </TouchableOpacity>
-        </View>
+        {/* Status banner for non-editable states */}
+        {showBanner && <StatusBanner status={item.status} />}
+
+        {/* Action row — only for ACTIVE and DRAFT */}
+        {showActions && (
+          <View style={cardStyles.actions}>
+            {item.status === 'DRAFT' && (
+              <TouchableOpacity
+                style={[cardStyles.actionBtn, cardStyles.publishBtn]}
+                onPress={() => onPublish(item)}
+              >
+                <Ionicons name="send-outline" size={13} color={colors.white} />
+                <Text style={cardStyles.publishBtnText}>Publish</Text>
+              </TouchableOpacity>
+            )}
+            <View style={cardStyles.iconActions}>
+              <TouchableOpacity
+                style={cardStyles.iconBtn}
+                onPress={() => navigation.navigate('PropertyImages', { propertyId: item.id, propertyTitle: item.title })}
+                accessibilityLabel="Manage images"
+              >
+                <Ionicons name="images-outline" size={16} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={cardStyles.iconBtn}
+                onPress={() => navigation.navigate('EditListing', { propertyId: item.id })}
+                accessibilityLabel="Edit listing"
+              >
+                <Ionicons name="create-outline" size={16} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[cardStyles.iconBtn, cardStyles.deleteIconBtn]}
+                onPress={() => onRequestDelete(item)}
+                accessibilityLabel="Request deletion"
+              >
+                <Ionicons name="trash-outline" size={16} color={colors.error} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: '#95A5A6',
-  ACTIVE: '#27AE60',
-  PENDING_APPROVAL: '#F39C12',
-  SOLD: '#2980B9',
-  RENTED: '#8E44AD',
-  INACTIVE: '#E74C3C',
-};
-
-
-const MyListingsScreen = ({ navigation }: any) => {
-  const [activeTab, setActiveTab] = useState<StatusTab>('ALL');
-  const { data, isLoading, isError, error, refetch, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useMyListingsInfiniteQuery();
-  const allListings = data?.items ?? [];
-  const deleteListing = useDeletePropertyMutation();
-  const publishListing = usePublishPropertyMutation();
-
-  const errorMessage = isError ? (error as any)?.response?.data?.message ?? 'Could not load your listings.' : null;
-
-  const filtered = useMemo(
-    () => activeTab === 'ALL' ? allListings : allListings.filter(p => p.status === activeTab),
-    [allListings, activeTab],
-  );
-
-  const activeTabCfg = STATUS_TABS.find(t => t.key === activeTab) ?? STATUS_TABS[0];
-
-  const handleDelete = (property: PropertyDTO) => {
-    Alert.alert(
-      'Delete Listing',
-      `Are you sure you want to delete "${property.title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () =>
-            deleteListing.mutate(property.id, {
-              onError: () => Alert.alert('Error', 'Failed to delete listing'),
-            }),
-        },
-      ]
-    );
-  };
-
-  const handlePublish = (property: PropertyDTO) => {
-    publishListing.mutate(property.id, {
-      onError: () => Alert.alert('Error', 'Failed to publish listing'),
-    });
-  };
-
-  return (
-    <AsyncBoundary loading={isLoading} error={errorMessage} onRetry={() => refetch()}>
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Listings</Text>
-        <Text style={styles.headerCount}>{allListings.length} total</Text>
-      </View>
-
-      {/* Status Tabs */}
-      <View style={styles.tabBar}>
-        {STATUS_TABS.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tab, isActive && styles.tabActive]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Ionicons
-                name={tab.icon as any}
-                size={14}
-                color={isActive ? tab.color : colors.textLight}
-              />
-              <Text style={[styles.tabLabel, isActive && { color: tab.color }]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Listings */}
-      <FlatList
-        style={styles.listFlex}
-        data={filtered}
-        keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) => (
-          <ListingCard
-            item={item}
-            navigation={navigation}
-            onDelete={handleDelete}
-            onPublish={handlePublish}
-          />
-        )}
-        contentContainerStyle={styles.list}
-        onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
-        onEndReachedThreshold={0.4}
-        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={styles.loadMoreSpinner} color={colors.primary} /> : null}
-        refreshControl={
-          <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
-        }
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>
-              {activeTab === 'ALL' ? 'No listings yet' : `No ${activeTabCfg.label.toLowerCase()} listings`}
-            </Text>
-            {activeTab === 'ALL' && (
-              <TouchableOpacity
-                style={styles.createBtn}
-                onPress={() => navigation.navigate('Create')}
-              >
-                <Text style={styles.createBtnText}>Create Your First Listing</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        }
-      />
-    </View>
-    </AsyncBoundary>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  headerTitle: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text,
-  },
-  headerCount: {
-    fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
-    backgroundColor: colors.backgroundSecondary,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-    fontWeight: typography.fontWeight.medium,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    paddingHorizontal: spacing.sm,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    paddingVertical: spacing.sm + 2,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: { borderBottomColor: colors.primary },
-  tabLabel: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textLight,
-  },
-  listFlex: { flex: 1 },
-  list: { padding: spacing.md, gap: spacing.md },
-  loadMoreSpinner: { paddingVertical: spacing.lg },
+const cardStyles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: 16,
@@ -304,22 +299,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
-  cardImageWrap: { position: 'relative', height: 160 },
-  cardImage: { width: '100%', height: '100%' },
-  statusBadge: {
+  cardInactive: { borderColor: '#C0392B', borderWidth: 1.5, opacity: 0.85 },
+  cardDeletion: { borderColor: '#E67E22', borderWidth: 1.5 },
+  imageWrap: { position: 'relative', height: 150 },
+  image: { width: '100%', height: '100%' },
+  inactiveOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+  },
+  statusPill: {
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: 20,
   },
-  statusText: { color: colors.white, fontSize: 10, fontWeight: typography.fontWeight.bold, letterSpacing: 0.3 },
-  cardBody: { padding: spacing.md },
-  cardTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.text },
-  cardPrice: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.extrabold, color: colors.primary, marginTop: 3 },
-  cardLocation: { fontSize: typography.fontSize.xs, color: colors.textSecondary, marginTop: 3 },
-  cardMeta: {
+  statusPillText: { color: '#fff', fontSize: 10, fontWeight: '700' as const, letterSpacing: 0.3 },
+  body: { padding: spacing.md },
+  title: { fontSize: 15, fontWeight: '600' as const, color: colors.text },
+  titleDim: { color: colors.textSecondary },
+  price: { fontSize: 17, fontWeight: '800' as const, color: colors.primary, marginTop: 2 },
+  location: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  meta: {
     flexDirection: 'row',
     gap: spacing.md,
     marginTop: spacing.sm,
@@ -328,35 +330,229 @@ const styles = StyleSheet.create({
     borderTopColor: colors.borderLight,
   },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: typography.fontSize.xs, color: colors.textSecondary },
-  cardActions: {
+  metaText: { fontSize: 12, color: colors.textSecondary },
+  actions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: spacing.sm,
+    gap: spacing.sm,
   },
+  iconActions: { flexDirection: 'row', gap: 8, marginLeft: 'auto' as any },
   actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     height: 34,
     paddingHorizontal: spacing.md,
     borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   publishBtn: { backgroundColor: colors.primary },
-  imagesBtn: { borderWidth: 1.5, borderColor: colors.primary, paddingHorizontal: spacing.sm },
-  editBtn: { borderWidth: 1.5, borderColor: colors.primary, paddingHorizontal: spacing.sm },
-  deleteBtn: { borderWidth: 1.5, borderColor: colors.error, paddingHorizontal: spacing.sm, backgroundColor: colors.errorSurface },
-  actionBtnText: { color: colors.white, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold },
-  empty: { alignItems: 'center', padding: spacing.xl, gap: spacing.md, paddingTop: 60 },
-  emptyText: { fontSize: typography.fontSize.md, color: colors.textSecondary },
-  createBtn: {
-    backgroundColor: colors.primary,
+  publishBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' as const },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  deleteIconBtn: { borderColor: colors.error, backgroundColor: colors.errorSurface ?? '#FDECEA' },
+});
+
+// ── Main screen ───────────────────────────────────────────────────────────────
+
+const MyListingsScreen = ({ navigation }: any) => {
+  const [activeTab, setActiveTab] = useState<StatusTab>('ALL');
+  const { data, isLoading, isError, error, refetch, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useMyListingsInfiniteQuery();
+  const allListings = data?.items ?? [];
+  const requestDeletion = useRequestDeletionMutation();
+  const publishListing = usePublishPropertyMutation();
+
+  const errorMessage = isError ? (error as any)?.response?.data?.message ?? 'Could not load your listings.' : null;
+
+  // Count per status for chip badges
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { ALL: allListings.length };
+    for (const p of allListings) {
+      c[p.status] = (c[p.status] ?? 0) + 1;
+    }
+    return c;
+  }, [allListings]);
+
+  const filtered = useMemo(
+    () => activeTab === 'ALL' ? allListings : allListings.filter(p => p.status === activeTab),
+    [allListings, activeTab],
+  );
+
+  const activeTabCfg = STATUS_TABS.find(t => t.key === activeTab) ?? STATUS_TABS[0];
+
+  const handleRequestDelete = (property: PropertyDTO) => {
+    Alert.alert(
+      'Request Deletion',
+      `Submit a deletion request for "${property.title}"?\n\nAn admin will review and either approve (property becomes inactive) or reject it.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Submit Request',
+          style: 'destructive',
+          onPress: () =>
+            requestDeletion.mutate(property.id, {
+              onSuccess: () => Alert.alert('Request Submitted', 'Awaiting admin approval. You can track it in the "Del. Req." tab.'),
+              onError: (e: any) => Alert.alert('Error', e?.response?.data?.message ?? 'Failed to submit deletion request.'),
+            }),
+        },
+      ]
+    );
+  };
+
+  const handlePublish = (property: PropertyDTO) => {
+    publishListing.mutate(property.id, {
+      onError: () => Alert.alert('Error', 'Failed to publish listing.'),
+    });
+  };
+
+  return (
+    <AsyncBoundary loading={isLoading} error={errorMessage} onRetry={() => refetch()}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>My Listings</Text>
+            <Text style={styles.headerSub}>{allListings.length} total properties</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.createBtn}
+            onPress={() => navigation.navigate('Create')}
+          >
+            <Ionicons name="add" size={18} color={colors.white} />
+            <Text style={styles.createBtnText}>New</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Horizontal chip filter */}
+        <ChipBar
+          activeTab={activeTab}
+          onSelect={setActiveTab}
+          counts={counts}
+        />
+
+        {/* List */}
+        <FlatList
+          style={styles.listFlex}
+          data={filtered}
+          keyExtractor={item => item.id.toString()}
+          renderItem={({ item }) => (
+            <ListingCard
+              item={item}
+              navigation={navigation}
+              onRequestDelete={handleRequestDelete}
+              onPublish={handlePublish}
+            />
+          )}
+          contentContainerStyle={styles.list}
+          onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            isFetchingNextPage
+              ? <ActivityIndicator style={styles.loadMoreSpinner} color={colors.primary} />
+              : null
+          }
+          refreshControl={
+            <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
+          }
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons
+                name={activeTab === 'INACTIVE' ? 'archive-outline' : 'document-text-outline'}
+                size={52}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.emptyTitle}>
+                {activeTab === 'ALL' ? 'No listings yet' :
+                 activeTab === 'INACTIVE' ? 'No removed properties' :
+                 `No ${activeTabCfg.label.toLowerCase()} listings`}
+              </Text>
+              {activeTab === 'INACTIVE' && (
+                <Text style={styles.emptySub}>
+                  Properties removed after admin approval will appear here as history.
+                </Text>
+              )}
+              {activeTab === 'ALL' && (
+                <TouchableOpacity
+                  style={styles.emptyCreateBtn}
+                  onPress={() => navigation.navigate('Create')}
+                >
+                  <Text style={styles.emptyCreateText}>Create Your First Listing</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          }
+        />
+      </View>
+    </AsyncBoundary>
+  );
+};
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: colors.text,
+  },
+  headerSub: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 1,
+  },
+  createBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  createBtnText: { color: colors.white, fontWeight: '700' as const, fontSize: 14 },
+
+  listFlex: { flex: 1 },
+  list: { padding: spacing.md, gap: spacing.md, paddingBottom: 32 },
+  loadMoreSpinner: { paddingVertical: spacing.lg },
+
+  empty: { alignItems: 'center', padding: spacing.xl, gap: spacing.md, paddingTop: 60 },
+  emptyTitle: { fontSize: 16, fontWeight: '600' as const, color: colors.textSecondary, textAlign: 'center' },
+  emptySub: { fontSize: 13, color: colors.textLight, textAlign: 'center', lineHeight: 20 },
+  emptyCreateBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
     borderRadius: 12,
     marginTop: spacing.sm,
   },
-  createBtnText: { color: colors.white, fontWeight: typography.fontWeight.bold, fontSize: typography.fontSize.md },
+  emptyCreateText: { color: colors.white, fontWeight: '700' as const, fontSize: 15 },
 });
 
 export default MyListingsScreen;

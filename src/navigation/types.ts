@@ -34,10 +34,19 @@ export type HomeStackParamList = {
   RealtorProfile: { realtorId: number; propertyId?: number; propertyTitle?: string };
 };
 
+export type FavoritesStackParamList = {
+  FavoritesMain: undefined;
+  CompareProperties: { ids: number[] };
+  PropertyDetail: { propertyId?: number; id?: number } | undefined;
+  ContactAgent: { propertyId: number; propertyTitle?: string };
+  RealtorProfile: { realtorId: number; propertyId?: number; propertyTitle?: string };
+  RateRealtor: { realtorId: number; realtorName?: string; propertyId?: number };
+};
+
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
   Search: NavigatorScreenParams<HomeStackParamList>;
-  Favorites: undefined;
+  Favorites: NavigatorScreenParams<FavoritesStackParamList>;
   Profile: NavigatorScreenParams<ProfileStackParamList>;
 };
 
@@ -71,4 +80,9 @@ export type ProfileStackParamList = {
   ChangePassword: undefined;
   Addresses: undefined;
   Notifications: undefined;
+  SentInquiries: undefined;
+  RateRealtor: { realtorId: number; realtorName?: string; propertyId?: number };
+  PropertyDetail: { propertyId?: number; id?: number } | undefined;
+  ContactAgent: { propertyId: number; propertyTitle?: string };
+  RealtorProfile: { realtorId: number; propertyId?: number; propertyTitle?: string };
 };

@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PropertyService } from '@/api/services/property.service';
 import { queryKeys, STALE_TIME } from '@/api/queryClient';
-import type { PropertyDTO } from '@/api/types/property.types';
+import type { ContactRevealResponse, PropertyDTO } from '@/api/types/property.types';
 
 /**
  * Infinite-scroll property search. The query key includes the filters so two
@@ -90,23 +90,10 @@ export const useMyListingsInfiniteQuery = (pageSize = 20) =>
     staleTime: STALE_TIME.MEDIUM,
   });
 
-export const useDeletePropertyMutation = () => {
+export const useRequestDeletionMutation = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => PropertyService.deleteProperty(id),
-    onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: queryKeys.myListings });
-      const previous = qc.getQueriesData<PropertyDTO[]>({ queryKey: queryKeys.myListings });
-      previous.forEach(([key, data]) => {
-        if (Array.isArray(data)) {
-          qc.setQueryData<PropertyDTO[]>(key, data.filter((p) => p.id !== id));
-        }
-      });
-      return { previous };
-    },
-    onError: (_err, _id, context) => {
-      context?.previous.forEach(([key, data]) => qc.setQueryData(key, data));
-    },
+    mutationFn: (id: number) => PropertyService.requestDeletion(id),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: queryKeys.myListings });
     },
@@ -122,3 +109,11 @@ export const usePublishPropertyMutation = () => {
     },
   });
 };
+
+export const useRevealContactMutation = () =>
+  useMutation<ContactRevealResponse, Error, number>({
+    mutationFn: async (propertyId: number) => {
+      const res = await PropertyService.revealContact(propertyId);
+      return res.data.data as ContactRevealResponse;
+    },
+  });

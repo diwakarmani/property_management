@@ -13,6 +13,7 @@ import EditListingScreen from '@/screens/realtor/EditListingScreen';
 import PropertyImagesScreen from '@/screens/realtor/PropertyImagesScreen';
 import CreateListingScreen from '@/screens/realtor/CreateListingScreen';
 import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
+import RealtorProfileScreen from '@/screens/realtor/RealtorProfileScreen';
 import ReceivedInquiriesScreen from '@/screens/inquiry/ReceivedInquiriesScreen';
 import ProfileStackNavigator from './ProfileStackNavigator';
 
@@ -37,8 +38,9 @@ const MyListingsStackScreen = () => (
   <ListingsStack.Navigator screenOptions={{ headerShown: false }}>
     <ListingsStack.Screen name="MyListingsMain" component={MyListingsWrapped} />
     <ListingsStack.Screen name="PropertyDetail" component={PropertyDetailWrapped} />
-    <ListingsStack.Screen name="EditListing" component={EditListingWrapped} />
+    <ListingsStack.Screen name="EditListing"    component={EditListingWrapped} />
     <ListingsStack.Screen name="PropertyImages" component={PropertyImagesWrapped} />
+    <ListingsStack.Screen name="RealtorProfile" component={RealtorProfileScreen} />
   </ListingsStack.Navigator>
 );
 

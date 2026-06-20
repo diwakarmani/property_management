@@ -9,27 +9,43 @@ import ViewMoreScreen from '@/screens/property/ViewMoreScreen';
 import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
 import ContactAgentScreen from '@/screens/property/ContactAgentScreen';
 import RealtorProfileScreen from '@/screens/realtor/RealtorProfileScreen';
+import RateRealtorScreen from '@/screens/inquiry/RateRealtorScreen';
 import SearchScreen from '@/screens/search/SearchScreen';
 import FavoritesScreen from '@/screens/favorites/FavoritesScreen';
+import CompareScreen from '@/screens/favorites/CompareScreen';
 import { withLayout } from '@/utils/withLayout';
 import ProfileStackNavigator from './ProfileStackNavigator';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createStackNavigator();
 const SearchStack = createStackNavigator();
+const FavoritesStack = createStackNavigator();
 
-const HomeMainScreen = withLayout(HomeScreen);
-const ViewMoreWrapped = withLayout(ViewMoreScreen);
-const SearchWrapped = withLayout(SearchScreen);
-const FavoritesWrapped = withLayout(FavoritesScreen);
+const HomeMainScreen    = withLayout(HomeScreen);
+const ViewMoreWrapped   = withLayout(ViewMoreScreen);
+const SearchWrapped     = withLayout(SearchScreen);
+const FavoritesWrapped  = withLayout(FavoritesScreen);
+const RateRealtorWrapped = withLayout(RateRealtorScreen);
+
+const FavoritesStackScreen = () => (
+  <FavoritesStack.Navigator screenOptions={{ headerShown: false }}>
+    <FavoritesStack.Screen name="FavoritesMain"    component={FavoritesWrapped} />
+    <FavoritesStack.Screen name="CompareProperties" component={CompareScreen} />
+    <FavoritesStack.Screen name="PropertyDetail"   component={PropertyDetailScreen} />
+    <FavoritesStack.Screen name="ContactAgent"     component={ContactAgentScreen} />
+    <FavoritesStack.Screen name="RealtorProfile"   component={RealtorProfileScreen} />
+    <FavoritesStack.Screen name="RateRealtor"      component={RateRealtorWrapped} />
+  </FavoritesStack.Navigator>
+);
 
 const HomeStackScreen = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
     <HomeStack.Screen name="HomeMain" component={HomeMainScreen} />
     <HomeStack.Screen name="ViewMore" component={ViewMoreWrapped} />
     <HomeStack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
-    <HomeStack.Screen name="ContactAgent" component={ContactAgentScreen} />
+    <HomeStack.Screen name="ContactAgent"   component={ContactAgentScreen} />
     <HomeStack.Screen name="RealtorProfile" component={RealtorProfileScreen} />
+    <HomeStack.Screen name="RateRealtor"    component={RateRealtorWrapped} />
   </HomeStack.Navigator>
 );
 
@@ -37,8 +53,9 @@ export const SearchStackScreen = ({ disableAnimations = false }: { disableAnimat
   <SearchStack.Navigator screenOptions={{ headerShown: false, animationEnabled: !disableAnimations }}>
     <SearchStack.Screen name="SearchMain" component={SearchWrapped} />
     <SearchStack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
-    <SearchStack.Screen name="ContactAgent" component={ContactAgentScreen} />
+    <SearchStack.Screen name="ContactAgent"   component={ContactAgentScreen} />
     <SearchStack.Screen name="RealtorProfile" component={RealtorProfileScreen} />
+    <SearchStack.Screen name="RateRealtor"    component={RateRealtorWrapped} />
   </SearchStack.Navigator>
 );
 
@@ -76,7 +93,7 @@ const MainTabNavigator = () => (
   >
     <Tab.Screen name="Home"      component={HomeStackScreen} />
     <Tab.Screen name="Search"    component={SearchStackScreen} />
-    <Tab.Screen name="Favorites" component={FavoritesWrapped} />
+    <Tab.Screen name="Favorites" component={FavoritesStackScreen} />
     <Tab.Screen
       name="Profile"
       component={ProfileStackNavigator}

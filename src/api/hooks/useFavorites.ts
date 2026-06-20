@@ -2,7 +2,7 @@ import React from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FavoriteService } from '@/api/services/favorite.service';
 import { queryKeys, STALE_TIME } from '@/api/queryClient';
-import type { PropertyDTO } from '@/api/types/property.types';
+import type { PropertyCompareDTO, PropertyDTO } from '@/api/types/property.types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -115,6 +115,18 @@ export const useFavoriteCheckQuery = (propertyId: number, enabled = true) =>
     },
     staleTime: STALE_TIME.MEDIUM,
     enabled,
+    retry: false,
+  });
+
+export const useCompareFavoritesQuery = (ids: number[]) =>
+  useQuery({
+    queryKey: queryKeys.compareProperties(ids),
+    queryFn: async (): Promise<PropertyCompareDTO[]> => {
+      const res = await FavoriteService.compareProperties(ids);
+      return res.data.data ?? [];
+    },
+    enabled: ids.length >= 2 && ids.length <= 3,
+    staleTime: STALE_TIME.MEDIUM,
     retry: false,
   });
 
