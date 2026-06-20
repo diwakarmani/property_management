@@ -67,10 +67,6 @@ describe('Admin listing feature and verify controls', () => {
     expect(screen.getByLabelText('Toggle verified').props.accessibilityState.disabled).toBe(true);
   });
 
-  /**
-   * Bug 10 / 39 regression guard — the card must be touchable and must call
-   * onPress when tapped so the admin can navigate to PropertyDetail.
-   */
   it('calls onPress when the card body is tapped (Bug 10/39)', () => {
     const onPress = jest.fn();
     const screen = render(
@@ -85,13 +81,12 @@ describe('Admin listing feature and verify controls', () => {
       />
     );
 
-    // Press the property title which is inside the touchable card wrapper
     fireEvent.press(screen.getByText('Contract property'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
   it('renders without error when onPress is omitted (optional prop)', () => {
-    // Confirm onPress is genuinely optional — no crash without it
+
     expect(() => render(
       <PropertyCard
         property={property}

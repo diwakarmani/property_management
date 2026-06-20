@@ -27,8 +27,6 @@ describe('useFavorites hooks', () => {
   beforeEach(() => { mock = new MockAdapter(axiosClient); });
   afterEach(() => mock.restore());
 
-  // ─── useFavoritesQuery ────────────────────────────────────────────────────
-
   it('useFavoritesQuery fetches and returns the favorites list', async () => {
     mock.onGet('/api/favorites').reply(200, {
       success: true,
@@ -53,8 +51,6 @@ describe('useFavorites hooks', () => {
     expect(result.current.data).toBeUndefined();
   });
 
-  // ─── useFavoriteIdsSet ────────────────────────────────────────────────────
-
   it('useFavoriteIdsSet builds a Set of IDs from the favorites list', async () => {
     mock.onGet('/api/favorites').reply(200, {
       success: true,
@@ -74,7 +70,6 @@ describe('useFavorites hooks', () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useFavoriteIdsSet(false), { wrapper: Wrapper });
 
-    // Query is disabled — stays in idle state with empty default data.
     expect(result.current.ids.size).toBe(0);
     expect(mock.history.get).toHaveLength(0);
   });
@@ -88,8 +83,6 @@ describe('useFavorites hooks', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.ids.size).toBe(0);
   });
-
-  // ─── useAddFavoriteMutation ───────────────────────────────────────────────
 
   it('useAddFavoriteMutation succeeds and seeds the per-id favorited flag', async () => {
     mock.onGet('/api/favorites').reply(200, { success: true, data: { content: [] } });
@@ -106,10 +99,8 @@ describe('useFavorites hooks', () => {
     expect(client.getQueryData(queryKeys.favoritesCheck(5))).toBe(true);
   });
 
-  // ─── useRemoveFavoriteMutation ────────────────────────────────────────────
-
   it('useRemoveFavoriteMutation removes item from flat IDs Set on success', async () => {
-    // First GET: seeds the IDs set with [1, 2]. Second GET (after invalidation): item 1 gone.
+
     mock.onGet('/api/favorites').replyOnce(200, {
       success: true,
       data: { content: [{ id: 1, title: 'A' }, { id: 2, title: 'B' }] },
@@ -128,7 +119,7 @@ describe('useFavorites hooks', () => {
     await act(async () => { await remove.current.mutateAsync(1); });
 
     await waitFor(() => expect(remove.current.isSuccess).toBe(true));
-    // After invalidation refetch (returns item 1 absent), check flag stays false.
+
     await waitFor(() => expect(client.getQueryData(queryKeys.favoritesCheck(1))).toBe(false));
   });
 
@@ -145,11 +136,11 @@ describe('useFavorites hooks', () => {
 
     const { result: remove } = renderHook(() => useRemoveFavoriteMutation(), { wrapper: Wrapper });
     await act(async () => {
-      try { await remove.current.mutateAsync(1); } catch { /* expected */ }
+      try { await remove.current.mutateAsync(1); } catch {  }
     });
 
     await waitFor(() => expect(remove.current.isError).toBe(true));
-    // Per-id flag rolled back to true (still favorited).
+
     expect(client.getQueryData(queryKeys.favoritesCheck(1))).toBe(true);
   });
 });

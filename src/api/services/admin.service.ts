@@ -6,7 +6,6 @@ export interface AdminCountryDTO { id: number; name: string; isoCode?: string; }
 export interface AdminStateDTO { id: number; name: string; countryId?: number; }
 export interface AdminCityDTO { id: number; name: string; stateId?: number; isActive?: boolean; }
 
-// UserDTO from admin perspective
 export interface AdminUserDTO {
   id: number;
   email: string;
@@ -22,7 +21,7 @@ export interface AdminUserDTO {
 }
 
 export const AdminService = {
-  // Users
+
   getUsers: (page = 0, size = 20, role?: string | null) =>
     axiosClient.get<ApiResponse<PageResponse<AdminUserDTO>>>('/api/users', {
       params: { page, size, sortBy: 'id', sortDirection: 'DESC', ...(role ? { role } : {}) },
@@ -45,11 +44,9 @@ export const AdminService = {
   deactivateUser: (id: number) =>
     axiosClient.post<ApiResponse<AdminUserDTO>>(`/api/users/${id}/deactivate`),
 
-  // Discovery
   refreshDiscoveryCache: () =>
     axiosClient.post<ApiResponse<void>>('/api/admin/discovery/refresh'),
 
-  // Property Config
   createPropertyType: (dto: { name: string; description?: string; isActive?: boolean }) =>
     axiosClient.post<ApiResponse<PropertyTypeDTO>>('/api/admin/property-config/types', dto),
 
@@ -62,7 +59,6 @@ export const AdminService = {
   createAmenity: (dto: { name: string; category?: string; iconClass?: string; isActive?: boolean }) =>
     axiosClient.post<ApiResponse<PropertyAmenityDTO>>('/api/admin/property-config/amenities', dto),
 
-  // Location Bootstrap
   getAdminCountries: () =>
     axiosClient.get<AdminCountryDTO[]>('/api/admin/locations/countries'),
 
@@ -84,7 +80,6 @@ export const AdminService = {
   activateCity: (cityId: number) =>
     axiosClient.post<void>(`/api/admin/locations/cities/${cityId}/activate`),
 
-  // Property moderation
   getAdminProperties: (status?: string, page = 0, size = 20) =>
     axiosClient.get<ApiResponse<PageResponse<PropertyDTO>>>('/api/admin/properties', {
       params: { status, page, size, sortBy: 'createdAt', sortDirection: 'DESC' },

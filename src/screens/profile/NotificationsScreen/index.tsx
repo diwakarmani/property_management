@@ -13,8 +13,6 @@ import AsyncBoundary from '@/components/common/AsyncBoundary';
 import { toast } from '@/utils/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ── Notification type → icon/color config ────────────────────────────────────
-
 interface NotifStyle {
   icon: string;
   color: string;
@@ -53,8 +51,6 @@ const formatDate = (iso?: string) => {
     : d.toLocaleDateString([], { day: 'numeric', month: 'short' });
 };
 
-// ── Main screen ───────────────────────────────────────────────────────────────
-
 const NotificationsScreen = () => {
   const navigation = useNavigation();
   const { data: notifications = [], isLoading, isError, error, refetch, isFetching } =
@@ -64,7 +60,7 @@ const NotificationsScreen = () => {
 
   const onTapNotification = (n: NotificationDTO) => {
     if (!n.read) markRead.mutate(n.id);
-    // Navigate to property if entityType is PROPERTY
+
     if (n.entityType === 'PROPERTY' && n.entityId) {
       (navigation as any).navigate('HomeStack', {
         screen: 'PropertyDetail',

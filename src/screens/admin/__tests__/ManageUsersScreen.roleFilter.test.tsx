@@ -33,10 +33,6 @@ const realtor = {
   isActive: true,
 };
 
-/**
- * Bug 38 regression guard — ManageUsersScreen must delegate role filtering to
- * the server via ?role= query param, not filter the full user list client-side.
- */
 describe('ManageUsersScreen — server-side role filter (Bug 38)', () => {
   beforeEach(() => {
     mockAxios = new MockAdapter(axiosClient);
@@ -83,7 +79,7 @@ describe('ManageUsersScreen — server-side role filter (Bug 38)', () => {
   });
 
   it('renders user cards from the server response without additional client-side filtering', async () => {
-    // Server returns both buyer and realtor when no role filter is applied
+
     mockAxios.onGet('/api/users').reply(200, pageOf([buyer, realtor]));
 
     const screen = render(<ManageUsersScreen route={{ params: {} }} />);

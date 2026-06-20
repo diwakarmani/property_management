@@ -101,7 +101,6 @@ const PlatformAnalyticsScreen = ({ navigation }: any) => {
         <Text style={styles.heroSub}>Live overview of all platform activity</Text>
       </LinearGradient>
 
-      {/* Top metric cards */}
       <View style={styles.metricsGrid}>
         <MetricCard
           title="Total Users"
@@ -127,7 +126,6 @@ const PlatformAnalyticsScreen = ({ navigation }: any) => {
         />
       </View>
 
-      {/* Properties breakdown */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Properties by Status</Text>
         <StatRow label="Active" value={stats?.activeListings ?? 0} iconName="checkmark-circle" color={colors.success} onPress={() => openListings('ACTIVE')} />
@@ -136,7 +134,6 @@ const PlatformAnalyticsScreen = ({ navigation }: any) => {
         <StatRow label="Rented" value={stats?.rentedProperties ?? 0} iconName="key" color="#8E44AD" onPress={() => openListings('RENTED')} />
       </View>
 
-      {/* This Month */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>This Month</Text>
         <StatRow label="New Users" value={stats?.newUsersThisMonth ?? 0} iconName="person-add" color={colors.primary} onPress={openUsers} />

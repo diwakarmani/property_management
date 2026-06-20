@@ -36,7 +36,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, i
       onPress={onPress}
       activeOpacity={0.92}
     >
-      {/* Image with gradient overlay */}
+
       <View style={styles.imageContainer}>
         {property.primaryImageUrl ? (
           <OptimizedImage uri={property.primaryImageUrl} style={styles.image} />
@@ -47,13 +47,11 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, i
           </View>
         )}
 
-        {/* Bottom gradient for readability */}
         <LinearGradient
           colors={['transparent', 'rgba(26,26,46,0.75)']}
           style={styles.imageGradient}
         />
 
-        {/* Top row: status badges left, listing type right — all in one row, no overlap possible */}
         <View style={styles.topBadgesRow}>
           <View style={styles.badgesLeft}>
             {property.verified && (
@@ -77,7 +75,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, i
           </View>
         </View>
 
-        {/* Price on image bottom-left */}
         <View style={styles.priceOnImage}>
           <Text style={styles.priceText}>{formatPrice(property.price)}</Text>
           {isRecurringPrice && (
@@ -85,7 +82,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, i
           )}
         </View>
 
-        {/* Heart button bottom-right — only rendered for BUYER users */}
         {onFavoriteToggle && (
           <TouchableOpacity
             style={styles.heartBtn}
@@ -104,7 +100,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, i
         )}
       </View>
 
-      {/* Content */}
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={1}>
           {property.title}

@@ -24,8 +24,6 @@ const formatDate = (iso?: string) => {
     : d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-// ── Inquiry card ──────────────────────────────────────────────────────────────
-
 const InquiryCard = ({
   item,
   onPressProperty,
@@ -36,12 +34,12 @@ const InquiryCard = ({
   onPressRate: () => void;
 }) => {
   const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.NEW;
-  // Show rate CTA when contacted/closed AND the property owner is a realtor
+
   const canRate = (item.status === 'CONTACTED' || item.status === 'CLOSED') && !!item.realtorId;
 
   return (
     <View style={[styles.card, item.status === 'NEW' && styles.cardPending]}>
-      {/* Property row */}
+
       <TouchableOpacity style={styles.propertyRow} onPress={onPressProperty} activeOpacity={0.8}>
         <View style={styles.propertyIconWrap}>
           <Ionicons name="home-outline" size={16} color={colors.primary} />
@@ -50,7 +48,6 @@ const InquiryCard = ({
         <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
       </TouchableOpacity>
 
-      {/* Status + date row */}
       <View style={styles.statusRow}>
         <View style={[styles.statusBadge, { backgroundColor: cfg.bg }]}>
           <Ionicons name={cfg.icon as any} size={12} color={cfg.color} />
@@ -62,10 +59,8 @@ const InquiryCard = ({
         </View>
       </View>
 
-      {/* Message preview */}
       <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
 
-      {/* Rate CTA — only for realtor-owned inquiries that have been acknowledged */}
       {canRate && (
         <TouchableOpacity style={styles.rateBtn} onPress={onPressRate} activeOpacity={0.8}>
           <Ionicons name="star-outline" size={14} color={colors.primary} />
@@ -78,8 +73,6 @@ const InquiryCard = ({
     </View>
   );
 };
-
-// ── Screen ────────────────────────────────────────────────────────────────────
 
 const SentInquiriesScreen = () => {
   const navigation = useNavigation<any>();
@@ -155,8 +148,6 @@ const SentInquiriesScreen = () => {
     </AsyncBoundary>
   );
 };
-
-// ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },

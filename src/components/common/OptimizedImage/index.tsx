@@ -6,8 +6,7 @@ import { colors } from '@/theme';
 interface OptimizedImageProps {
   uri: string;
   style?: any;
-  // Mirrors expo-image's ImageContentFit. (`'center'` removed — not a valid
-  // value in expo-image and produced a pre-existing tsc error.)
+
   resizeMode?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
   placeholder?: boolean;
 }
@@ -21,7 +20,6 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // No URI — skip network load entirely, render placeholder directly.
   if (!uri || uri.trim() === '') {
     return <View style={[styles.container, style, styles.errorPlaceholder]} />;
   }

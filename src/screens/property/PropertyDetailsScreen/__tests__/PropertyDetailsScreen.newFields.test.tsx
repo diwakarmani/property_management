@@ -159,10 +159,10 @@ describe('PropertyDetailScreen — Property Overview section', () => {
       totalFloors: null,
     });
     const screen = render(<PropertyDetailScreen />);
-    // Section always renders; placeholder text shown for absent fields
+
     expect(screen.getByText('Property Overview')).toBeTruthy();
     const notSpecified = screen.getAllByText('Not specified');
-    expect(notSpecified.length).toBeGreaterThanOrEqual(2); // furnishing + parking
+    expect(notSpecified.length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -220,13 +220,13 @@ describe('PropertyDetailScreen — Property Profile section', () => {
       depositAmount: null,
     });
     const screen = render(<PropertyDetailScreen />);
-    // Section always renders with all 4 rows
+
     expect(screen.getByText('Property Profile')).toBeTruthy();
     expect(screen.getByText('Ownership')).toBeTruthy();
     expect(screen.getByText('Possession')).toBeTruthy();
     expect(screen.getByText('Kitchen')).toBeTruthy();
     expect(screen.getByText('Water Supply')).toBeTruthy();
-    // All 4 show placeholder since no values provided
+
     const notSpecified = screen.getAllByText('Not specified');
     expect(notSpecified.length).toBeGreaterThanOrEqual(4);
   });

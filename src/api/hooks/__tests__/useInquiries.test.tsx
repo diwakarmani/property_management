@@ -50,7 +50,7 @@ describe('useInquiries hooks', () => {
         message: 'interested',
       });
     });
-    // mutateAsync resolves with the axios response — verifying the body proves the POST landed.
+
     expect(returned?.data?.data?.id).toBe(99);
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
   });

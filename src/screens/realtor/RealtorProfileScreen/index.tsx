@@ -21,8 +21,6 @@ import type { RatingDTO } from '@/api/types/rating.types';
 import type { RootState } from '@/store';
 import { isBuyerExperience } from '@/utils/rbac/permissions';
 
-// ── Star rating ───────────────────────────────────────────────────────────────
-
 const StarRating = ({ rating, count }: { rating: number | null | undefined; count: number | undefined }) => {
   const hasRating = rating != null && rating > 0;
   if (!hasRating) return null;
@@ -51,8 +49,6 @@ const starStyles = StyleSheet.create({
   value: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: colors.text, marginLeft: 3 },
   count: { fontSize: typography.fontSize.xs, color: colors.textSecondary },
 });
-
-// ── Review card ───────────────────────────────────────────────────────────────
 
 const STAR_COLORS = ['', '#E74C3C', '#E67E22', '#F1C40F', '#27AE60', '#6C5CE7'];
 
@@ -137,8 +133,6 @@ const reviewStyles = StyleSheet.create({
   },
 });
 
-// ── Metric tile ───────────────────────────────────────────────────────────────
-
 const MetricTile = ({ icon, value, label }: { icon: string; value: string | number; label: string }) => (
   <View style={metricStyles.tile}>
     <View style={metricStyles.iconWrap}>
@@ -162,8 +156,6 @@ const metricStyles = StyleSheet.create({
   value: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.text },
   label: { fontSize: typography.fontSize.xs, color: colors.textSecondary, textAlign: 'center' },
 });
-
-// ── Main screen ───────────────────────────────────────────────────────────────
 
 const RealtorProfileScreen = () => {
   const route = useRoute();
@@ -218,7 +210,6 @@ const RealtorProfileScreen = () => {
     }
   };
 
-  // ── Loading state ────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -235,7 +226,6 @@ const RealtorProfileScreen = () => {
     );
   }
 
-  // ── Error state ──────────────────────────────────────────────────────────────
   if (isError || !profile) {
     const msg = isError
       ? (error as any)?.response?.data?.message ?? 'Could not load realtor profile.'
@@ -268,21 +258,20 @@ const RealtorProfileScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* ── Hero gradient fills from y=0 (behind status bar) — no background hack ── */}
+
         <LinearGradient
           colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.hero}
         >
-          {/* Back button — absolute, top = status bar height + 10, matches PropertyDetailsScreen */}
+
           <View style={[styles.heroNav, { top: insets.top + 10 }]}>
             <TouchableOpacity style={styles.overlayBtn} onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={20} color={colors.white} />
             </TouchableOpacity>
           </View>
 
-          {/* Profile info — centered in hero */}
           <View style={styles.heroBody}>
             {profile.profilePhotoUrl ? (
               <Image source={{ uri: profile.profilePhotoUrl }} style={styles.avatar} />
@@ -315,7 +304,6 @@ const RealtorProfileScreen = () => {
           </View>
         </LinearGradient>
 
-        {/* ── Metrics card — overlaps hero bottom with elevation ── */}
         <View style={styles.metricsCard}>
           <MetricTile icon="home-outline" value={profile.activeListingsCount ?? 0} label="Active Listings" />
           <View style={styles.divider} />
@@ -328,7 +316,6 @@ const RealtorProfileScreen = () => {
           />
         </View>
 
-        {/* ── Verification ── */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Trust & Verification</Text>
           <View style={[styles.card, isVerified ? styles.cardVerified : styles.cardPending]}>
@@ -350,7 +337,6 @@ const RealtorProfileScreen = () => {
           </View>
         </View>
 
-        {/* ── Rating ── */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Rating</Text>
           <View style={styles.ratingCard}>
@@ -376,7 +362,6 @@ const RealtorProfileScreen = () => {
           </View>
         </View>
 
-        {/* ── Bio ── */}
         {profile.bio ? (
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>About</Text>
@@ -384,13 +369,12 @@ const RealtorProfileScreen = () => {
           </View>
         ) : null}
 
-        {/* ── Reviews ── */}
         <View style={styles.section}>
           <View style={styles.reviewsHeader}>
             <Text style={styles.sectionLabel}>
               Reviews{reviewsData?.totalElements ? ` (${reviewsData.totalElements})` : ''}
             </Text>
-            {/* Rate button: visible to BUYER when a property context is available */}
+
             {isBuyer && !!propertyId && (
               <TouchableOpacity
                 style={styles.rateBtn}
@@ -439,7 +423,6 @@ const RealtorProfileScreen = () => {
         <View style={{ height: spacing.xl }} />
       </ScrollView>
 
-      {/* ── Footer CTA ── */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
         <TouchableOpacity
           style={[styles.connectBtn, connectRealtor.isPending && { opacity: 0.7 }]}
@@ -472,13 +455,10 @@ const RealtorProfileScreen = () => {
   );
 };
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  // Same as every other screen — no color hack needed
+
   safeArea: { flex: 1, backgroundColor: colors.background },
 
-  // Loading / error states
   loadingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -504,13 +484,11 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: colors.background },
   scrollContent: { paddingBottom: 0 },
 
-  // ── Hero — fixed 280px, matches property photo area proportionally ──────────
   hero: {
     height: 280,
     position: 'relative',
   },
 
-  // Back button — absolute, top: 10 — matches PropertyDetailsScreen exactly
   heroNav: {
     position: 'absolute',
     top: 10,
@@ -530,8 +508,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Profile content — centred below status bar + back button
-  // paddingTop: 56 = 46px (typical status bar) + 10px gap — no runtime insets needed here
   heroBody: {
     flex: 1,
     alignItems: 'center',
@@ -603,7 +579,6 @@ const styles = StyleSheet.create({
   },
   newPillText: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: 'rgba(255,255,255,0.9)' },
 
-  // ── Metrics card — slightly overlaps hero, elevated ──────────────────────────
   metricsCard: {
     flexDirection: 'row',
     marginHorizontal: spacing.md,
@@ -621,7 +596,6 @@ const styles = StyleSheet.create({
   },
   divider: { width: 1, backgroundColor: colors.borderLight, marginVertical: spacing.sm },
 
-  // ── Sections ─────────────────────────────────────────────────────────────────
   section: { marginHorizontal: spacing.md, marginBottom: spacing.md },
   sectionLabel: {
     fontSize: typography.fontSize.xs,
@@ -644,7 +618,6 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.text },
   cardSub: { fontSize: typography.fontSize.xs, color: colors.textSecondary, lineHeight: 18 },
 
-  // Rating
   ratingCard: {
     backgroundColor: colors.surface,
     borderRadius: 14,
@@ -667,7 +640,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Bio
   bioText: {
     fontSize: typography.fontSize.sm,
     color: colors.textSecondary,
@@ -677,7 +649,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
 
-  // Reviews
   reviewsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -733,7 +704,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
 
-  // ── Footer CTA ───────────────────────────────────────────────────────────────
   footer: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,

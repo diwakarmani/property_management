@@ -20,8 +20,6 @@ import { colors, typography, spacing } from '@/theme';
 import { AdminService, type AdminUserDTO } from '@/api/services/admin.service';
 import type { RootState } from '@/store';
 
-// ─── Role metadata ────────────────────────────────────────────────────────────
-
 const ALL_ROLES = ['BUYER', 'SELLER', 'REALTOR', 'SUPER_ADMIN'] as const;
 type RoleKey = typeof ALL_ROLES[number];
 
@@ -39,8 +37,6 @@ const ROLE_CONFIG: Record<RoleKey, {
 
 const roleOf = (role: string) =>
   ROLE_CONFIG[role as RoleKey] ?? { label: role, description: '', icon: 'person', color: colors.primary };
-
-// ─── Role Assignment Sheet ────────────────────────────────────────────────────
 
 const RoleAssignSheet = ({
   user,
@@ -66,16 +62,13 @@ const RoleAssignSheet = ({
 
   return (
     <View style={sheet.overlay}>
-      {/* Tap backdrop to dismiss */}
+
       <TouchableOpacity style={sheet.backdrop} activeOpacity={1} onPress={onClose} />
 
-      {/* Sheet panel */}
       <View style={[sheet.panel, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
 
-        {/* Drag handle */}
         <View style={sheet.handle} />
 
-        {/* Header row: title + close */}
         <View style={sheet.headerRow}>
           <Text style={sheet.title}>Assign Roles</Text>
           <TouchableOpacity style={sheet.closeBtn} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -83,7 +76,6 @@ const RoleAssignSheet = ({
           </TouchableOpacity>
         </View>
 
-        {/* User summary card */}
         <View style={[sheet.userCard, { borderLeftColor: primaryCfg.color }]}>
           <View style={[sheet.userAvatar, { backgroundColor: primaryCfg.color + '22' }]}>
             <Text style={[sheet.userAvatarText, { color: primaryCfg.color }]}>
@@ -98,10 +90,8 @@ const RoleAssignSheet = ({
           </View>
         </View>
 
-        {/* Section label */}
         <Text style={sheet.sectionLabel}>Select roles for this user</Text>
 
-        {/* Role options */}
         <View style={sheet.roleList}>
           {ALL_ROLES.map(role => {
             const cfg    = roleOf(role);
@@ -118,12 +108,11 @@ const RoleAssignSheet = ({
                 onPress={() => !locked && onToggle(role)}
                 activeOpacity={locked ? 1 : 0.72}
               >
-                {/* Icon badge */}
+
                 <View style={[sheet.roleIcon, { backgroundColor: (locked ? colors.textLight : cfg.color) + '1E' }]}>
                   <Ionicons name={cfg.icon as any} size={20} color={locked ? colors.textLight : cfg.color} />
                 </View>
 
-                {/* Label + description */}
                 <View style={sheet.roleText}>
                   <Text style={[
                     sheet.roleLabel,
@@ -138,7 +127,6 @@ const RoleAssignSheet = ({
                   </Text>
                 </View>
 
-                {/* Checkbox */}
                 <View style={[
                   sheet.checkbox,
                   locked
@@ -154,7 +142,6 @@ const RoleAssignSheet = ({
           })}
         </View>
 
-        {/* Save button */}
         <TouchableOpacity
           style={[sheet.saveBtn, saving && { opacity: 0.55 }]}
           onPress={onSave}
@@ -198,7 +185,6 @@ const sheet = StyleSheet.create({
     elevation: 28,
   },
 
-  // handle
   handle: {
     width: 38,
     height: 4,
@@ -209,7 +195,6 @@ const sheet = StyleSheet.create({
     marginBottom: 18,
   },
 
-  // header
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -230,7 +215,6 @@ const sheet = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // user card
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -268,7 +252,6 @@ const sheet = StyleSheet.create({
     marginTop: 2,
   },
 
-  // section label
   sectionLabel: {
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.semibold,
@@ -278,7 +261,6 @@ const sheet = StyleSheet.create({
     marginBottom: 10,
   },
 
-  // role list
   roleList: { gap: 10 },
   roleRow: {
     flexDirection: 'row',
@@ -326,7 +308,6 @@ const sheet = StyleSheet.create({
     flexShrink: 0,
   },
 
-  // save button
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -349,8 +330,6 @@ const sheet = StyleSheet.create({
   },
 });
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
-
 const ManageUsersScreen = ({ route }: any) => {
   const roleFilter: string | null = route?.params?.roleFilter ?? null;
   const currentUserId = useSelector((state: RootState) => state.auth.user?.id);
@@ -367,8 +346,6 @@ const ManageUsersScreen = ({ route }: any) => {
   const [roleModalUser, setRoleModalUser] = useState<AdminUserDTO | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [savingRoles, setSavingRoles]     = useState(false);
-
-  // ── Data loading ──────────────────────────────────────────────────────────
 
   const fetchUsers = useCallback((reset = false) => {
     const currentPage = reset ? 0 : page;
@@ -394,8 +371,6 @@ const ManageUsersScreen = ({ route }: any) => {
       .catch(() => {})
       .finally(() => setSearching(false));
   }, [search]);
-
-  // ── Role modal ────────────────────────────────────────────────────────────
 
   const openRoleModal = (user: AdminUserDTO) => {
     setRoleModalUser(user);
@@ -425,8 +400,6 @@ const ManageUsersScreen = ({ route }: any) => {
       .finally(() => setSavingRoles(false));
   };
 
-  // ── Delete ────────────────────────────────────────────────────────────────
-
   const handleDelete = (user: AdminUserDTO) =>
     Alert.alert(
       'Delete User',
@@ -443,8 +416,6 @@ const ManageUsersScreen = ({ route }: any) => {
       ]
     );
 
-  // ── User card ─────────────────────────────────────────────────────────────
-
   const UserCard = ({ user }: { user: AdminUserDTO }) => {
     const visibleRoles = (user.roles ?? []).filter(r => ALL_ROLES.includes(r as RoleKey));
     const primaryCfg   = roleOf(visibleRoles[0] ?? 'BUYER');
@@ -452,7 +423,6 @@ const ManageUsersScreen = ({ route }: any) => {
     return (
       <View style={[styles.card, !user.isActive && styles.cardInactive]}>
 
-        {/* Row 1: Avatar + user info */}
         <View style={styles.cardRow}>
           <View style={[styles.avatar, { backgroundColor: primaryCfg.color + '20' }]}>
             <Text style={[styles.avatarText, { color: primaryCfg.color }]}>
@@ -483,10 +453,8 @@ const ManageUsersScreen = ({ route }: any) => {
           </View>
         </View>
 
-        {/* Divider */}
         <View style={styles.divider} />
 
-        {/* Row 2: Role chips + actions */}
         <View style={styles.cardFooter}>
           <View style={styles.chipRow}>
             {visibleRoles.length === 0 ? (
@@ -528,12 +496,9 @@ const ManageUsersScreen = ({ route }: any) => {
     );
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
     <View style={styles.container}>
 
-      {/* Search bar */}
       <View style={styles.searchBar}>
         <Ionicons name="search" size={18} color={colors.textSecondary} />
         <TextInput
@@ -594,7 +559,6 @@ const ManageUsersScreen = ({ route }: any) => {
         />
       )}
 
-      {/* Assign Role Bottom Sheet */}
       <Modal
         visible={!!roleModalUser}
         animationType="slide"
@@ -618,14 +582,11 @@ const ManageUsersScreen = ({ route }: any) => {
   );
 };
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   centered:  { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   loadingText: { fontSize: typography.fontSize.sm, color: colors.textSecondary },
 
-  // Search
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -651,7 +612,6 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
 
-  // List
   listContent: {
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.xl,
@@ -659,7 +619,6 @@ const styles = StyleSheet.create({
   },
   listFooter: { paddingVertical: spacing.lg },
 
-  // User card
   card: {
     backgroundColor: colors.surface,
     borderRadius: 16,
@@ -766,7 +725,6 @@ const styles = StyleSheet.create({
     borderColor: colors.error + '30',
   },
 
-  // Empty
   empty: {
     alignItems: 'center',
     paddingVertical: spacing['2xl'],

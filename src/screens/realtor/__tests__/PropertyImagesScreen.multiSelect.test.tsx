@@ -1,13 +1,5 @@
-/**
- * Bug 35 regression guard.
- *
- * Prior to the fix, `launchImageLibraryAsync` was called with `allowsEditing: true`
- * which restricts the picker to a single image. After the fix, it must use
- * `allowsMultipleSelection: true` so sellers/realtors can pick several images at once.
- *
- * All selected assets must be uploaded sequentially, and `invalidateQueries` must
- * be called exactly once after the batch completes.
- */
+
+
 import React from 'react';
 import { render, waitFor, fireEvent, act } from '@testing-library/react-native';
 import PropertyImagesScreen from '../PropertyImagesScreen';
@@ -48,7 +40,7 @@ const res = (data: unknown) => ({ data: { data } });
 describe('PropertyImagesScreen — multi-select upload (Bug 35)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Empty image list so "Add Photo" button appears in ListEmptyComponent
+
     (PropertyService.getImages as jest.Mock).mockResolvedValue(res([]));
   });
 
@@ -62,14 +54,13 @@ describe('PropertyImagesScreen — multi-select upload (Bug 35)', () => {
 
     const screen = render(<PropertyImagesScreen navigation={nav} route={route} />);
 
-    // Wait for empty state to render
     await waitFor(() => expect(screen.getByText('Add Photo')).toBeTruthy());
 
     await act(async () => { fireEvent.press(screen.getByText('Add Photo')); });
 
     expect(capturedOptions).toBeDefined();
     expect(capturedOptions.allowsMultipleSelection).toBe(true);
-    // allowsEditing must NOT be present (mutually exclusive with multi-select)
+
     expect(capturedOptions.allowsEditing).toBeUndefined();
   });
 
@@ -106,11 +97,10 @@ describe('PropertyImagesScreen — multi-select upload (Bug 35)', () => {
     expect(UploadService.uploadImage).toHaveBeenNthCalledWith(3, 'file:///photo-c.jpg');
 
     expect(PropertyService.addImage).toHaveBeenCalledTimes(3);
-    // First image must be marked isPrimary (no existing images)
+
     expect(PropertyService.addImage).toHaveBeenNthCalledWith(1, PROPERTY_ID, 'https://cdn.example.com/a.jpg', true);
     expect(PropertyService.addImage).toHaveBeenNthCalledWith(2, PROPERTY_ID, 'https://cdn.example.com/b.jpg', false);
 
-    // invalidateQueries called exactly once after the full batch
     expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(1);
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: queryKeys.property(PROPERTY_ID),
@@ -139,13 +129,12 @@ describe('PropertyImagesScreen — multi-select upload (Bug 35)', () => {
     await act(async () => { fireEvent.press(screen.getByText('Add Photo')); });
 
     await waitFor(() => {
-      // Successful upload processed
+
       expect(PropertyService.addImage).toHaveBeenCalledTimes(1);
-      // Failed upload does not stop subsequent uploads from completing
+
       expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(1);
     });
 
-    // User informed about the partial failure
     expect(Alert.alert).toHaveBeenCalledWith(
       'Some Uploads Failed',
       expect.stringContaining('1 of 2')

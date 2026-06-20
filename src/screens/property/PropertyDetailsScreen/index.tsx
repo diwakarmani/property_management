@@ -36,8 +36,6 @@ import type { ContactRevealResponse } from '@/api/types/property.types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ── Label formatters ──────────────────────────────────────────────────────────
-
 const POSSESSION_LABELS: Record<string, string> = {
   READY_TO_MOVE: 'Ready to Move',
   WITHIN_15_DAYS: 'Within 15 Days',
@@ -70,8 +68,6 @@ const WATER_LABELS: Record<string, string> = {
   TANKER: 'Tanker',
 };
 
-// ── Amenity icon map ──────────────────────────────────────────────────────────
-
 const AMENITY_ICONS: Record<string, { icon: string; color: string }> = {
   SAFETY: { icon: 'shield-checkmark-outline', color: '#E74C3C' },
   RECREATION: { icon: 'leaf-outline', color: '#27AE60' },
@@ -100,8 +96,6 @@ const AMENITY_ICON_BY_NAME: Record<string, string> = {
   'Jogging Track': 'walk-outline',
   'Clubhouse': 'business-outline',
 };
-
-// ── Sub-components ────────────────────────────────────────────────────────────
 
 const SpecChip = ({
   icon,
@@ -163,8 +157,6 @@ const ActivityStat = ({
   </View>
 );
 
-// ── Contact Reveal Modal ──────────────────────────────────────────────────────
-
 interface ContactRevealModalProps {
   visible: boolean;
   propertyTitle?: string;
@@ -197,7 +189,7 @@ const ContactRevealModal = ({
     >
       <View style={modalStyles.backdrop}>
         <View style={modalStyles.sheet}>
-          {/* Header */}
+
           <View style={modalStyles.header}>
             <View style={modalStyles.iconCircle}>
               <Ionicons name="call" size={24} color={colors.primary} />
@@ -208,7 +200,7 @@ const ContactRevealModal = ({
           </View>
 
           {!isRevealed ? (
-            /* ── Pre-reveal: confirmation ── */
+
             <>
               <Text style={modalStyles.title}>View Contact Details?</Text>
               <Text style={modalStyles.subtitle}>
@@ -218,7 +210,6 @@ const ContactRevealModal = ({
                 {propertyTitle}
               </Text>
 
-              {/* Masked number preview */}
               <View style={modalStyles.maskedRow}>
                 <Ionicons name="call-outline" size={16} color={colors.textSecondary} />
                 <Text style={modalStyles.maskedPhone}>{maskedPhone ?? 'XXXXXXXXXX'}</Text>
@@ -259,7 +250,7 @@ const ContactRevealModal = ({
               </TouchableOpacity>
             </>
           ) : (
-            /* ── Post-reveal: show real details ── */
+
             <>
               <View style={modalStyles.successBadge}>
                 <Ionicons name="checkmark-circle" size={16} color={colors.success} />
@@ -311,8 +302,6 @@ const ContactRevealModal = ({
   );
 };
 
-// ── Main screen ───────────────────────────────────────────────────────────────
-
 const PropertyDetailScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
@@ -326,19 +315,17 @@ const PropertyDetailScreen = () => {
   const [descExpanded, setDescExpanded] = useState(false);
   const galleryRef = useRef<ScrollView>(null);
 
-  // Contact reveal state
   const [revealModalVisible, setRevealModalVisible] = useState(false);
   const [revealedContact, setRevealedContact] = useState<ContactRevealResponse | null>(null);
   const revealContact = useRevealContactMutation();
 
   const { data: property, isLoading, isError, error, refetch } = usePropertyQuery(id);
 
-  // Refetch on focus + restore cached revealed contact
   useFocusEffect(
     useCallback(() => {
       const state = queryClient.getQueryState(queryKeys.property(id));
       if (state?.isInvalidated) refetch();
-      // Restore previously revealed contact from cache (no re-confirmation needed)
+
       if (isAuthenticated && userId && !revealedContact) {
         AsyncStorage.getItem(`revealed_contact_${userId}_${id}`).then((cached) => {
           if (cached) {
@@ -372,15 +359,14 @@ const PropertyDetailScreen = () => {
       (navigation as any).navigate('Login');
       return;
     }
-    if (!isBuyer) return; // non-buyers cannot reveal contact
+    if (!isBuyer) return;
     setRevealModalVisible(true);
   };
 
   const handleRevealConfirm = () => {
     revealContact.mutate(id, {
       onSuccess: (data) => {
-        // Show phone/email in modal (switches to post-reveal view); user closes manually.
-        // On next visit the AsyncStorage key restores state so button shows "Call" directly.
+
         setRevealedContact(data);
         if (userId) {
           AsyncStorage.setItem(`revealed_contact_${userId}_${id}`, JSON.stringify(data));
@@ -472,7 +458,6 @@ const PropertyDetailScreen = () => {
       ? property.description!.slice(0, 250) + '…'
       : property.description ?? '';
 
-  // Build amenity groups
   const amenitiesByCategory = (property.amenities ?? []).reduce<Record<string, string[]>>(
     (acc, a: any) => {
       const cat = a.category ?? 'OTHER';
@@ -483,7 +468,6 @@ const PropertyDetailScreen = () => {
     {}
   );
 
-  // Core stats always shown
   const quickStats: { icon: string; value: string; label: string }[] = [
     {
       icon: 'bed-outline',
@@ -617,14 +601,13 @@ const PropertyDetailScreen = () => {
     }] : []),
   ];
 
-  // Contact state
   const hasPhone = !!(property.ownerPhoneMasked ?? property.ownerPhone);
   const isContacted = revealedContact !== null;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Image Gallery */}
+
         {imageUrls.length > 0 ? (
           <View style={styles.galleryWrap}>
             <ScrollView
@@ -744,7 +727,7 @@ const PropertyDetailScreen = () => {
         )}
 
         <View style={styles.content}>
-          {/* Price + badges */}
+
           <View style={styles.priceRow}>
             <View>
               <Text style={styles.price}>{formatPrice(property.price)}</Text>
@@ -781,7 +764,6 @@ const PropertyDetailScreen = () => {
             </Text>
           </View>
 
-          {/* Quick Stats Bar */}
           <View style={styles.quickStats}>
             {quickStats.map((s, i) => (
               <React.Fragment key={i}>
@@ -795,7 +777,6 @@ const PropertyDetailScreen = () => {
             ))}
           </View>
 
-          {/* Property Overview */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Property Overview</Text>
             <View style={styles.specGrid}>
@@ -811,7 +792,6 @@ const PropertyDetailScreen = () => {
             </View>
           </View>
 
-          {/* Property Profile */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Property Profile</Text>
             <View style={styles.profileCard}>
@@ -829,7 +809,6 @@ const PropertyDetailScreen = () => {
             </View>
           </View>
 
-          {/* Activity */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Activity</Text>
             <View style={styles.activityCard}>
@@ -856,7 +835,6 @@ const PropertyDetailScreen = () => {
             </View>
           </View>
 
-          {/* Description */}
           {property.description ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Description</Text>
@@ -882,7 +860,6 @@ const PropertyDetailScreen = () => {
             </View>
           ) : null}
 
-          {/* Amenities */}
           {Object.keys(amenitiesByCategory).length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Amenities</Text>
@@ -918,7 +895,6 @@ const PropertyDetailScreen = () => {
             </View>
           )}
 
-          {/* Location */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Location</Text>
             <View style={styles.locationCard}>
@@ -949,7 +925,6 @@ const PropertyDetailScreen = () => {
             </View>
           </View>
 
-          {/* Meta dates */}
           <View style={styles.metaDates}>
             {property.publishedAt && (
               <Text style={styles.metaDate}>Posted {formatDate(property.publishedAt)}</Text>
@@ -959,7 +934,6 @@ const PropertyDetailScreen = () => {
             )}
           </View>
 
-          {/* Listed by */}
           {property.ownerName && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Listed by</Text>
@@ -998,7 +972,6 @@ const PropertyDetailScreen = () => {
                   ) : null}
                 </View>
 
-                {/* Realtor trust metrics */}
                 {property.ownerIsRealtor && realtorProfile && (
                   <View style={styles.trustGrid}>
                     <View style={[styles.trustItem, isRealtorVerified && styles.trustItemVerified]}>
@@ -1053,9 +1026,8 @@ const PropertyDetailScreen = () => {
         </View>
       </ScrollView>
 
-      {/* Footer */}
       <View style={styles.footer}>
-        {/* Call button: BUYER only — masked until revealed; once revealed shows real number and dials directly */}
+
         {hasPhone && isBuyer && (
           <TouchableOpacity
             style={[styles.callButton, isContacted && styles.callButtonContacted]}
@@ -1101,16 +1073,13 @@ const PropertyDetailScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Contacted badge — shown above footer when user has contacted */}
       {isContacted && (
         <View style={styles.contactedBanner}>
           <Ionicons name="checkmark-circle" size={14} color={colors.success} />
           <Text style={styles.contactedBannerText}>You've contacted the owner</Text>
         </View>
       )}
-
-      {/* Contact Reveal Modal */}
-      <ContactRevealModal
+<ContactRevealModal
         visible={revealModalVisible}
         propertyTitle={property.title}
         maskedPhone={property.ownerPhoneMasked ?? property.ownerPhone}
@@ -1123,8 +1092,6 @@ const PropertyDetailScreen = () => {
     </SafeAreaView>
   );
 };
-
-// ── Modal Styles ──────────────────────────────────────────────────────────────
 
 const modalStyles = StyleSheet.create({
   backdrop: {
@@ -1318,8 +1285,6 @@ const modalStyles = StyleSheet.create({
     color: colors.primary,
   },
 });
-
-// ── Screen Styles ─────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },

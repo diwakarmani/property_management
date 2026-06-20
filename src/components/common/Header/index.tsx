@@ -7,7 +7,6 @@ import { colors, typography, spacing } from '@/theme';
 import type { RootState } from '@/store';
 import { useUnreadCountQuery } from '@/api/hooks/useNotifications';
 
-// Roles that list/manage properties — they see the brand, not the location pill
 const LISTING_ROLES = ['SUPER_ADMIN', 'REALTOR', 'SELLER'];
 
 const Header = () => {
@@ -24,7 +23,7 @@ const Header = () => {
 
   return (
     <View style={styles.container}>
-      {/* Left — brand for listing/admin roles; location pill for buyers */}
+
       {isListingRole ? (
         <View style={styles.brand}>
           <View style={styles.brandIcon}>
@@ -48,7 +47,6 @@ const Header = () => {
         </TouchableOpacity>
       )}
 
-      {/* Right — notifications + profile */}
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.actionWrap}
@@ -98,7 +96,6 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  // Buyer — location pill
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -126,7 +123,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Admin/realtor — brand
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -146,7 +142,6 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
 
-  // Right actions
   actions: {
     flexDirection: 'row',
     gap: spacing.sm,

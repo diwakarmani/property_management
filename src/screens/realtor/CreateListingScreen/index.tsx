@@ -21,7 +21,7 @@ import type { Locality } from '@/api/types/location.type';
 import type { RootState } from '@/store';
 
 interface FormData {
-  // Step 1
+
   title: string;
   description: string;
   listingType: string;
@@ -29,15 +29,15 @@ interface FormData {
   depositAmount: string;
   maintenanceCharge: string;
   propertyTypeId: string;
-  // Step 2
+
   addressLine1: string;
-  locality: string;        // display name only
-  localityId: number | null; // required by backend
+  locality: string;
+  localityId: number | null;
   city: string;
   state: string;
   country: string;
   postalCode: string;
-  // Step 3 — specs
+
   bedrooms: string;
   bathrooms: string;
   balconies: string;
@@ -50,7 +50,7 @@ interface FormData {
   parkingCovered: string;
   parkingOpen: string;
   ageOfProperty: string;
-  // Step 4 — profile & features
+
   ownershipType: string;
   possessionStatus: string;
   kitchenType: string;
@@ -215,8 +215,6 @@ const CreateListingScreen = ({ navigation }: any) => {
       })
       .finally(() => setSubmitting(false));
   };
-
-  // ── Step renders ────────────────────────────────────────────────────────────
 
   const renderStep1 = () => (
     <ScrollView style={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -558,9 +556,7 @@ const CreateListingScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         ))}
       </View>
-
-      {/* Summary preview */}
-      <View style={styles.summaryCard}>
+<View style={styles.summaryCard}>
         <View style={styles.summaryHeader}>
           <Ionicons name="document-text-outline" size={18} color={colors.primary} />
           <Text style={styles.summaryTitle}>Listing Preview</Text>
@@ -585,12 +581,9 @@ const CreateListingScreen = ({ navigation }: any) => {
     </ScrollView>
   );
 
-  // ── Layout ──────────────────────────────────────────────────────────────────
-
   return (
     <View style={styles.container}>
-      {/* Top bar */}
-      <View style={styles.topBar}>
+<View style={styles.topBar}>
         {step > 1 ? (
           <TouchableOpacity onPress={handleBack} style={styles.iconBtn}>
             <Ionicons name="arrow-back" size={22} color={colors.text} />
@@ -605,9 +598,7 @@ const CreateListingScreen = ({ navigation }: any) => {
           <Text style={styles.stepBadgeText}>{step}/{TOTAL_STEPS}</Text>
         </View>
       </View>
-
-      {/* Step indicators */}
-      <View style={styles.stepIndicator}>
+<View style={styles.stepIndicator}>
         {STEP_LABELS.map((label, i) => {
           const idx = i + 1;
           const active = idx === step;
@@ -636,9 +627,7 @@ const CreateListingScreen = ({ navigation }: any) => {
       {step === 2 && renderStep2()}
       {step === 3 && renderStep3()}
       {step === 4 && renderStep4()}
-
-      {/* Locality picker modal */}
-      <Modal visible={localityModal} animationType="slide" transparent onRequestClose={() => setLocalityModal(false)}>
+<Modal visible={localityModal} animationType="slide" transparent onRequestClose={() => setLocalityModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
@@ -688,9 +677,7 @@ const CreateListingScreen = ({ navigation }: any) => {
           </View>
         </View>
       </Modal>
-
-      {/* Footer */}
-      <View style={styles.footer}>
+<View style={styles.footer}>
         {step < TOTAL_STEPS ? (
           <TouchableOpacity style={styles.primaryBtn} onPress={handleNext}>
             <Text style={styles.primaryBtnText}>Next Step</Text>
@@ -716,8 +703,6 @@ const CreateListingScreen = ({ navigation }: any) => {
     </View>
   );
 };
-
-// ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
@@ -816,12 +801,10 @@ const styles = StyleSheet.create({
   primaryBtnDisabled: { opacity: 0.55 },
   primaryBtnText: { color: colors.white, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold },
 
-  // Locality picker
   pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   pickerBtnText: { color: colors.text, fontSize: typography.fontSize.md, flex: 1 },
   pickerBtnPlaceholder: { color: colors.textLight, fontSize: typography.fontSize.md, flex: 1 },
 
-  // Locality modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   modalSheet: {
     backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,

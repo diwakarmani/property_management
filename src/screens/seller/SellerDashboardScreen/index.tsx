@@ -89,7 +89,7 @@ const SellerDashboardScreen = ({ navigation }: any) => {
           <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
         }
       >
-        {/* Hero */}
+
         <LinearGradient
           colors={[colors.primary, colors.gradientMid, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -105,16 +105,12 @@ const SellerDashboardScreen = ({ navigation }: any) => {
             <Ionicons name="storefront-outline" size={32} color={colors.primary} />
           </View>
         </LinearGradient>
-
-        {/* Stats grid */}
-        <View style={styles.statsGrid}>
+<View style={styles.statsGrid}>
           {statItems.map(item => (
             <StatCard key={item.title} {...item} />
           ))}
         </View>
-
-        {/* Quick actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+<Text style={styles.sectionTitle}>Quick Actions</Text>
 
         <TouchableOpacity
           style={styles.primaryAction}

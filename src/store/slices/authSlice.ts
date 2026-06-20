@@ -29,7 +29,7 @@ interface AuthState {
   otpIdentifier: string | null;
   bootstrapped: boolean;
   bootstrapFailed: boolean;
-  /** Which role navigator the user is currently using. null = needs role selection. */
+
   activeRole: RoleKey | null;
 }
 
@@ -68,17 +68,10 @@ const toUser = (payload: any): User => {
   };
 };
 
-/**
- * Determines activeRole after login/OTP:
- * - 1 available role  → auto-select it (no popup needed)
- * - multiple roles    → return null so the role-selection popup appears
- */
 const resolveActiveRole = (roles: string[]): RoleKey | null => {
   const available = getAvailableRoles(roles);
   return available.length === 1 ? available[0] : null;
 };
-
-// ─── Thunks ───────────────────────────────────────────────────────────────────
 
 export const login = createAsyncThunk(
   'auth/login',
@@ -173,7 +166,6 @@ export const verifyOtp = createAsyncThunk(
   }
 );
 
-/** Persists the selected role and updates state. Call this from RoleSelectionScreen. */
 export const selectRole = createAsyncThunk(
   'auth/selectRole',
   async (role: RoleKey) => {
@@ -182,7 +174,6 @@ export const selectRole = createAsyncThunk(
   }
 );
 
-/** Clears active role to trigger role-selection popup (used by "Switch Role"). */
 export const clearActiveRoleAndReselect = createAsyncThunk(
   'auth/clearActiveRole',
   async () => {
@@ -196,8 +187,6 @@ export const logout = createAsyncThunk('auth/logout', async () => {
   queryClient.clear();
 });
 
-// ─── Slice ────────────────────────────────────────────────────────────────────
-
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -207,7 +196,7 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // ── Bootstrap ──────────────────────────────────────────────────────────
+
       .addCase(bootstrapSession.pending, (state) => {
         state.loading = true;
         state.bootstrapFailed = false;
@@ -220,7 +209,7 @@ const authSlice = createSlice({
           state.user = toUser(action.payload.user);
           state.isAuthenticated = true;
           const stored = action.payload.storedRole ?? null;
-          // Restore stored role if it's still valid; otherwise resolve fresh
+
           if (isRoleValid(stored, state.user?.roles)) {
             state.activeRole = stored as RoleKey;
           } else {
@@ -239,7 +228,7 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.activeRole = null;
       })
-      // ── Fetch user ─────────────────────────────────────────────────────────
+
       .addCase(fetchUser.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(fetchUser.fulfilled, (state, action) => {
         state.loading = false;
@@ -250,7 +239,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // ── Login ──────────────────────────────────────────────────────────────
+
       .addCase(login.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
@@ -262,14 +251,14 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // ── Register ───────────────────────────────────────────────────────────
+
       .addCase(register.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(register.fulfilled, (state) => { state.loading = false; })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
-      // ── Send OTP ───────────────────────────────────────────────────────────
+
       .addCase(sendOtp.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(sendOtp.fulfilled, (state, action) => {
         state.loading = false;
@@ -280,7 +269,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // ── Verify OTP ─────────────────────────────────────────────────────────
+
       .addCase(verifyOtp.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(verifyOtp.fulfilled, (state, action) => {
         state.loading = false;
@@ -294,15 +283,15 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // ── Select role ────────────────────────────────────────────────────────
+
       .addCase(selectRole.fulfilled, (state, action) => {
         state.activeRole = action.payload;
       })
-      // ── Clear active role (Switch Role) ────────────────────────────────────
+
       .addCase(clearActiveRoleAndReselect.fulfilled, (state) => {
         state.activeRole = null;
       })
-      // ── Logout ─────────────────────────────────────────────────────────────
+
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.isAuthenticated = false;

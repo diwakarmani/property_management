@@ -1,10 +1,5 @@
 import { pickRoleKey, requiresLocationSelection } from '../AppNavigator';
 
-/**
- * Pure-function unit tests for the role-routing selector (gap analysis §15.4 IT-NAV-ROLES).
- * Verifies that every role lands on its intended navigator key — including the previously
- * broken Seller case where SELLER fell through to the Buyer tab navigator (KB-02).
- */
 describe('pickRoleKey', () => {
   it('routes SUPER_ADMIN to admin', () => {
     expect(pickRoleKey(['SUPER_ADMIN'])).toBe('admin');

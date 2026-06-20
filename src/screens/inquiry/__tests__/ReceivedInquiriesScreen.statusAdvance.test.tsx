@@ -32,16 +32,6 @@ const inquiry = {
   createdAt: '2026-06-01T10:00:00Z',
 };
 
-/**
- * Bug 36 regression guard.
- *
- * Prior to the fix, the status badge was a TouchableOpacity that silently cycled
- * the inquiry status — no visual affordance that it was interactive.
- *
- * After the fix:
- * - The badge is a plain View (read-only) — pressing it must NOT trigger mutation.
- * - A separate arrow button is the explicit affordance to advance status.
- */
 describe('ReceivedInquiriesScreen — status advance UX (Bug 36)', () => {
   beforeEach(() => {
     mockAxios = new MockAdapter(axiosClient);
@@ -58,14 +48,11 @@ describe('ReceivedInquiriesScreen — status advance UX (Bug 36)', () => {
 
     await waitFor(() => expect(screen.getByText('NEW')).toBeTruthy());
 
-    // The advance button must be present and labelled
     const advanceBtn = screen.getByLabelText(
       'Advance inquiry status from NEW to CONTACTED'
     );
     expect(advanceBtn).toBeTruthy();
 
-    // The status text itself must NOT be an interactive button
-    // (i.e. it should not carry accessibilityRole="button")
     const statusText = screen.getByText('NEW');
     const parent = statusText.parent;
     expect(parent?.props?.accessibilityRole).not.toBe('button');
@@ -98,10 +85,8 @@ describe('ReceivedInquiriesScreen — status advance UX (Bug 36)', () => {
 
     await waitFor(() => expect(screen.getByText('NEW')).toBeTruthy());
 
-    // Attempt to press the status badge text directly
-    try { fireEvent.press(screen.getByText('NEW')); } catch { /* non-touchable, expected */ }
+    try { fireEvent.press(screen.getByText('NEW')); } catch {  }
 
-    // No PATCH should have been sent
     expect(mockAxios.history.patch).toHaveLength(0);
   });
 });

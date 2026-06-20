@@ -19,7 +19,6 @@ import type { RootStackParamList } from './types';
 import { getAvailableRoles, pickRoleKey } from '@/utils/roleUtils';
 import type { RoleKey } from '@/utils/roleUtils';
 
-// Re-export for backward compat with existing tests and other imports
 export type { RoleKey };
 export { pickRoleKey };
 
@@ -49,10 +48,6 @@ export const requiresLocationSelection = (
   return !hasSelectedLocation && r.includes('BUYER') && pickRoleKey(r) === 'buyer';
 };
 
-/**
- * Renders the correct role navigator based on the persisted activeRole.
- * Falls back to pickRoleKey for single-role users (activeRole auto-set at login).
- */
 const MainAppScreen = () => {
   const user       = useSelector((state: RootState) => state.auth.user);
   const activeRole = useSelector((state: RootState) => state.auth.activeRole);
@@ -95,13 +90,11 @@ const AppNavigator = () => {
   const user            = useSelector((state: RootState) => state.auth.user);
   const { hasSelected } = useSelector((state: RootState) => state.location);
 
-  // Multi-role users with no active role chosen → show the role picker popup
   const needsRoleSelection =
     isAuthenticated &&
     activeRole === null &&
     getAvailableRoles(user?.roles).length > 1;
 
-  // Buyer-specific first-run location gate
   const shouldChooseLocation =
     isAuthenticated &&
     !needsRoleSelection &&

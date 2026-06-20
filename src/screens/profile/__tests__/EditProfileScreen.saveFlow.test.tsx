@@ -38,14 +38,6 @@ const setup = (overrides?: Partial<typeof MOCK_USER>) => {
   return { dispatch, navigation };
 };
 
-/**
- * Bug 26 regression guard — EditProfileScreen save must:
- *   1. Call UserService.updateMe() with the correct PUT payload.
- *   2. Dispatch fetchUser() immediately after a successful save so the Redux
- *      store (and profile header) shows the updated name.
- *   3. Disable the save button while isSubmitting is true to prevent double-taps
- *      from firing multiple concurrent PUT requests.
- */
 describe('EditProfileScreen save flow (Bug 26)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -95,20 +87,16 @@ describe('EditProfileScreen save flow (Bug 26)', () => {
     const { navigation } = setup();
     const screen = render(<EditProfileScreen navigation={navigation} />);
 
-    // Tap once — starts the in-flight request
     fireEvent.press(screen.getByLabelText('Save changes'));
 
-    // The button must be disabled before the promise resolves
     await waitFor(() =>
       expect(screen.getByLabelText('Save changes').props.accessibilityState?.disabled).toBe(true)
     );
 
-    // Tap again while in-flight — must NOT fire a second PUT
-    try { fireEvent.press(screen.getByLabelText('Save changes')); } catch { /* disabled elements may throw */ }
+    try { fireEvent.press(screen.getByLabelText('Save changes')); } catch {  }
 
     await act(async () => { resolvePut(); });
 
-    // Only one call total
     expect(UserService.updateMe).toHaveBeenCalledTimes(1);
   });
 
@@ -123,9 +111,9 @@ describe('EditProfileScreen save flow (Bug 26)', () => {
     fireEvent.press(screen.getByLabelText('Save changes'));
 
     await waitFor(() => expect(UserService.updateMe).toHaveBeenCalled());
-    // goBack must NOT be called — user stays on the screen with the form
+
     expect(navigation.goBack).not.toHaveBeenCalled();
-    // fetchUser must NOT be called either — only called on success
+
     expect(fetchUser).not.toHaveBeenCalled();
   });
 
@@ -138,7 +126,7 @@ describe('EditProfileScreen save flow (Bug 26)', () => {
     await waitFor(() => expect(UserService.updateMe).toHaveBeenCalled());
 
     const payload = (UserService.updateMe as jest.Mock).mock.calls[0][0];
-    // Empty strings → undefined → must be absent from the PUT body
+
     expect(payload.bio).toBeUndefined();
     expect(payload.occupation).toBeUndefined();
     expect(payload.website).toBeUndefined();

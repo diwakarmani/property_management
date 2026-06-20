@@ -17,7 +17,6 @@ const Stack = createStackNavigator();
 
 const EmptyScreen = ({ label }: { label: string }) => <Text>{label} content</Text>;
 
-// ProfileStack now owns Notifications — same structure as ProfileStackNavigator
 const ProfileStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="ProfileMain">{() => <EmptyScreen label="Profile" />}</Stack.Screen>
@@ -25,7 +24,6 @@ const ProfileStack = () => (
   </Stack.Navigator>
 );
 
-// Home screen with the shared Header so the bell icon is available
 const Home = () => (
   <View>
     <Header />
@@ -87,15 +85,12 @@ describe('notification navigation — Notifications lives in ProfileStack', () =
 
     act(() => jest.runOnlyPendingTimers());
 
-    // Tap the bell icon in the Header — navigates to Profile→Notifications
     fireEvent.press(await screen.findByLabelText('Notifications'));
     act(() => jest.runOnlyPendingTimers());
     await waitFor(() => expect(screen.getByText(expectedText as string)).toBeTruthy());
 
-    // Notifications screen title is visible
     expect(screen.getByText('Notifications')).toBeTruthy();
 
-    // All 4 tab bar items remain visible (Profile tab stays active)
     expect(screen.getByText('Home')).toBeTruthy();
     expect(screen.getByText('Search')).toBeTruthy();
     expect(screen.getByText('Favorites')).toBeTruthy();

@@ -27,8 +27,8 @@ export interface PropertyDTO {
   ownerId?: number;
   ownerName?: string;
   ownerEmail?: string;
-  ownerPhone?: string;           // deprecated — kept for backward compat; prefer ownerPhoneMasked
-  ownerPhoneMasked?: string;     // masked phone shown before reveal (e.g. "+91 98XXXXXX10")
+  ownerPhone?: string;
+  ownerPhoneMasked?: string;
   ownerIsRealtor?: boolean;
   listingType: string;
   price: number;

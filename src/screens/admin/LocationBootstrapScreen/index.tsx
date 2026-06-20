@@ -29,7 +29,6 @@ const LocationBootstrapScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  // Import country form
   const [countryName, setCountryName] = useState('');
   const [importingCountry, setImportingCountry] = useState(false);
 
@@ -130,7 +129,6 @@ const LocationBootstrapScreen = () => {
     }
   };
 
-  // ── Breadcrumb ──────────────────────────────────────────────────────────────
   const Breadcrumb = () => (
     <View style={styles.breadcrumb}>
       <TouchableOpacity onPress={() => { setStep('countries'); setSelectedCountry(null); setSelectedState(null); }}>
@@ -161,12 +159,11 @@ const LocationBootstrapScreen = () => {
     );
   }
 
-  // ── Countries ────────────────────────────────────────────────────────────────
   if (step === 'countries') {
     return (
       <View style={styles.container}>
         <Breadcrumb />
-        {/* Import form */}
+
         <View style={styles.importCard}>
           <Text style={styles.importTitle}>Import Country from OSM</Text>
           <View style={styles.importRow}>
@@ -234,7 +231,6 @@ const LocationBootstrapScreen = () => {
     );
   }
 
-  // ── States ───────────────────────────────────────────────────────────────────
   if (step === 'states') {
     return (
       <View style={styles.container}>
@@ -297,7 +293,6 @@ const LocationBootstrapScreen = () => {
     );
   }
 
-  // ── Cities ───────────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
       <Breadcrumb />

@@ -24,7 +24,6 @@ export const useUnreadCountQuery = (enabled = true) =>
     enabled,
   });
 
-/** Mark a single notification read — optimistic + cache patch on success. */
 export const useMarkReadMutation = () => {
   const qc = useQueryClient();
   return useMutation({

@@ -4,10 +4,6 @@ import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '@/util
 import { toast } from '@/utils/toast';
 import { requestTracker } from '@/utils/requestTracker';
 
-// Allow request config to carry opt-out flags:
-//   skipGlobalLoader  — don't show the full-screen spinner
-//   skipSuccessToast  — caller handles its own success UX
-//   skipErrorToast    — caller handles its own error UX (e.g. inline "no group yet" states)
 declare module 'axios' {
   interface AxiosRequestConfig {
     skipGlobalLoader?: boolean;
@@ -41,14 +37,13 @@ const isIdempotent = (config: any): boolean => {
 const isMutating = (config: any): boolean =>
   MUTATING.has((config?.method || 'get').toLowerCase());
 
-// ── Request interceptor ────────────────────────────────────────────────────────
 axiosClient.interceptors.request.use(
   async (config) => {
     const token = await getAccessToken();
     if (token && !config.url?.startsWith('/api/auth/')) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // Show global loader only for mutating requests and only if not opted out.
+
     if (isMutating(config) && !config.skipGlobalLoader) {
       requestTracker.show();
     }
@@ -57,18 +52,15 @@ axiosClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ── Response interceptor ───────────────────────────────────────────────────────
 axiosClient.interceptors.response.use(
   (response) => {
     const config = response.config as any;
     const mutating = isMutating(config);
 
-    // Hide loader if we opened it.
     if (mutating && !config.skipGlobalLoader) {
       requestTracker.hide();
     }
 
-    // Success toast for mutations — use the backend's message when available.
     if (mutating && !config.skipSuccessToast) {
       const msg = response.data?.message;
       if (msg) toast.success(msg);
@@ -83,12 +75,10 @@ axiosClient.interceptors.response.use(
     const isAuthRoute = originalRequest?.url?.startsWith('/api/auth/');
     const mutating = isMutating(originalRequest);
 
-    // Always hide the loader on error.
     if (mutating && !originalRequest.skipGlobalLoader) {
       requestTracker.hide();
     }
 
-    // ── Token refresh on 401 (non-auth routes) ────────────────────────────
     if (response?.status === 401 && !isAuthRoute && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
@@ -106,7 +96,6 @@ axiosClient.interceptors.response.use(
       }
     }
 
-    // ── Retry idempotent GETs on transient failures ───────────────────────
     const isTransient = !response || response.status >= 500;
     if (isTransient && isIdempotent(originalRequest) && !isAuthRoute) {
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
@@ -117,14 +106,12 @@ axiosClient.interceptors.response.use(
       }
     }
 
-    // ── Surface error toast ───────────────────────────────────────────────
-    // Caller opted out — they show their own inline error state.
     if (originalRequest.skipErrorToast) {
       return Promise.reject(error);
     }
 
     if (!response) {
-      // Network error or timeout
+
       const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
       toast.error(
         isTimeout
@@ -134,7 +121,6 @@ axiosClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Auth routes: let the screen's catch block handle inline errors.
     if (isAuthRoute) {
       return Promise.reject(error);
     }

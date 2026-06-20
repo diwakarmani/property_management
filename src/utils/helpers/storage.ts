@@ -1,7 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Secure storage for tokens
 const KEYS = {
   ACCESS_TOKEN: 'accessToken',
   REFRESH_TOKEN: 'refreshToken',
@@ -25,7 +24,6 @@ export const clearTokens = async () => {
   await SecureStore.deleteItemAsync(KEYS.REFRESH_TOKEN);
 };
 
-// Active role (persisted so user doesn't re-select on every app launch)
 const ACTIVE_ROLE_KEY = 'active_role';
 
 export const saveActiveRole = async (role: string): Promise<void> => {
@@ -40,7 +38,6 @@ export const clearActiveRole = async (): Promise<void> => {
   await AsyncStorage.removeItem(ACTIVE_ROLE_KEY);
 };
 
-// App storage
 export const set = async (key: string, value: any) => {
   await AsyncStorage.setItem(key, JSON.stringify(value));
 };

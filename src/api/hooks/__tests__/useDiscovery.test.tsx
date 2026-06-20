@@ -5,7 +5,6 @@ import MockAdapter from 'axios-mock-adapter';
 import axiosClient from '@/api/client/axiosClient';
 import { useHomeFeedQuery, useViewMoreInfiniteQuery } from '@/api/hooks/useDiscovery';
 
-/** Tests for the discovery hooks (FE-09 — HomeScreen + ViewMoreScreen). */
 describe('useDiscovery hooks', () => {
   let mock: MockAdapter;
 
@@ -27,7 +26,7 @@ describe('useDiscovery hooks', () => {
   it('useHomeFeedQuery is disabled until a city or coordinate pair is provided', async () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useHomeFeedQuery(undefined), { wrapper: Wrapper });
-    // With no city, the query never runs — stays idle.
+
     expect(result.current.isFetching).toBe(false);
     expect(result.current.data).toBeUndefined();
   });

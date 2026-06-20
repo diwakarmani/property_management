@@ -21,8 +21,6 @@ import ProfileStackNavigator from './ProfileStackNavigator';
 const Tab = createBottomTabNavigator();
 const ListingsStack = createStackNavigator();
 
-// withLayout() applied once at module scope for stable component identity
-// (Gap analysis KB-04 / NV-01).
 const DashboardWrapped = withLayout(RealtorDashboardScreen);
 const MyListingsWrapped = withLayout(MyListingsScreen);
 const EditListingWrapped = withLayout(EditListingScreen);

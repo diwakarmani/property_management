@@ -24,7 +24,6 @@ import type { PropertyTypeDTO, PropertySubTypeDTO, PropertyAmenityDTO } from '@/
 
 type Tab = 'types' | 'amenities';
 
-// ── Form State ───────────────────────────────────────────────────────────────
 interface TypeForm { name: string; description: string; isActive: boolean; }
 interface SubTypeForm { name: string; description: string; isActive: boolean; }
 interface AmenityForm { name: string; category: string; iconClass: string; isActive: boolean; }
@@ -41,19 +40,16 @@ const PropertyConfigScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [expandedTypeId, setExpandedTypeId] = useState<number | null>(null);
 
-  // Type modal
   const [typeModal, setTypeModal] = useState(false);
   const [editingType, setEditingType] = useState<PropertyTypeDTO | null>(null);
   const [typeForm, setTypeForm] = useState<TypeForm>(EMPTY_TYPE);
   const [savingType, setSavingType] = useState(false);
 
-  // SubType modal
   const [subTypeModal, setSubTypeModal] = useState(false);
   const [parentTypeId, setParentTypeId] = useState<number | null>(null);
   const [subTypeForm, setSubTypeForm] = useState<SubTypeForm>(EMPTY_SUBTYPE);
   const [savingSubType, setSavingSubType] = useState(false);
 
-  // Amenity modal
   const [amenityModal, setAmenityModal] = useState(false);
   const [amenityForm, setAmenityForm] = useState<AmenityForm>(EMPTY_AMENITY);
   const [savingAmenity, setSavingAmenity] = useState(false);
@@ -77,7 +73,6 @@ const PropertyConfigScreen = () => {
 
   useEffect(() => { loadData(); }, []);
 
-  // ── Type CRUD ──────────────────────────────────────────────────────────────
   const openAddType = () => {
     setEditingType(null);
     setTypeForm(EMPTY_TYPE);
@@ -111,7 +106,6 @@ const PropertyConfigScreen = () => {
       .finally(() => setSavingType(false));
   };
 
-  // ── SubType CRUD ───────────────────────────────────────────────────────────
   const openAddSubType = (typeId: number) => {
     setParentTypeId(typeId);
     setSubTypeForm(EMPTY_SUBTYPE);
@@ -140,7 +134,6 @@ const PropertyConfigScreen = () => {
       .finally(() => setSavingSubType(false));
   };
 
-  // ── Amenity CRUD ───────────────────────────────────────────────────────────
   const submitAmenity = () => {
     if (!amenityForm.name.trim()) { Alert.alert('Validation', 'Name is required'); return; }
     setSavingAmenity(true);
@@ -158,7 +151,6 @@ const PropertyConfigScreen = () => {
       .finally(() => setSavingAmenity(false));
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -261,7 +253,7 @@ const PropertyConfigScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Tab bar */}
+
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tabBtn, tab === 'types' && styles.tabBtnActive]}
@@ -281,7 +273,6 @@ const PropertyConfigScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Add button */}
       <View style={styles.listHeader}>
         <Text style={styles.listHeaderTitle}>
           {tab === 'types' ? 'All Property Types' : 'All Amenities'}
@@ -325,7 +316,6 @@ const PropertyConfigScreen = () => {
         />
       )}
 
-      {/* ── Type Modal ─────────────────────────────────────────────────────── */}
       <Modal visible={typeModal} animationType="slide" transparent onRequestClose={() => setTypeModal(false)}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -376,7 +366,6 @@ const PropertyConfigScreen = () => {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── SubType Modal ──────────────────────────────────────────────────── */}
       <Modal visible={subTypeModal} animationType="slide" transparent onRequestClose={() => setSubTypeModal(false)}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -432,7 +421,6 @@ const PropertyConfigScreen = () => {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── Amenity Modal ──────────────────────────────────────────────────── */}
       <Modal visible={amenityModal} animationType="slide" transparent onRequestClose={() => setAmenityModal(false)}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -545,7 +533,6 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: spacing.xl, gap: spacing.md },
   emptyText: { fontSize: typography.fontSize.md, color: colors.textSecondary },
 
-  // Type card
   typeCard: {
     backgroundColor: colors.surface,
     borderRadius: 16,
@@ -606,7 +593,6 @@ const styles = StyleSheet.create({
   },
   addSubBtnText: { fontSize: typography.fontSize.sm, color: colors.primary, fontWeight: typography.fontWeight.semibold },
 
-  // Amenity row
   amenityRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -634,7 +620,6 @@ const styles = StyleSheet.create({
   amenityName: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.text },
   amenityCategory: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 2 },
 
-  // Modal
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.surface,

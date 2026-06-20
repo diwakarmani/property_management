@@ -32,7 +32,6 @@ export const UserService = {
   updateMe: (data: UpdateProfileRequest) =>
     axiosClient.put<ApiResponse<any>>('/api/users/me', data),
 
-  // NOTE: POST /api/users/change-password (NOT PUT /api/users/me/password)
   changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) =>
     axiosClient.post<ApiResponse<void>>('/api/users/change-password', {
       currentPassword,

@@ -18,17 +18,6 @@ const stats = {
   newPropertiesThisMonth: 2,
 };
 
-/**
- * Bug 27/30/31 regression guard.
- *
- * Analytics listing links now push AdminListings onto the ANALYTICS stack
- * (navigation.navigate) so that Back returns to analytics.
- * They must NOT switch to the Listings tab (tabNavigation.navigate) which
- * broke the back-stack in the old implementation.
- *
- * User links still switch to the Users tab (tabNavigation.navigate) — they
- * have no back-stack requirement in the current design.
- */
 describe('PlatformAnalyticsScreen navigation — Bug 27/30/31', () => {
   let navigation: { getParent: jest.Mock; navigate: jest.Mock };
   let tabs: { navigate: jest.Mock };
@@ -58,7 +47,7 @@ describe('PlatformAnalyticsScreen navigation — Bug 27/30/31', () => {
       navigation.navigate.mockClear();
       fireEvent.press(screen.getByLabelText(label));
       expect(navigation.navigate).toHaveBeenCalledWith('AdminListings', { status });
-      // Must NOT switch tabs — that breaks back-stack navigation (Bug 27)
+
       expect(tabs.navigate).not.toHaveBeenCalledWith('Listings', expect.anything());
     }
   });
@@ -88,7 +77,7 @@ describe('PlatformAnalyticsScreen navigation — Bug 27/30/31', () => {
     for (const label of listingLabels) {
       fireEvent.press(screen.getByLabelText(label));
     }
-    // tabs.navigate may have been called for user metrics, but never for Listings
+
     const listingTabCalls = tabs.navigate.mock.calls.filter(
       ([route]: string[]) => route === 'Listings'
     );

@@ -1,11 +1,5 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
-/**
- * Per-navigator route param lists (Gap analysis NV-05).
- * Phase 0 establishes the typed surface; screens are migrated off `any`
- * navigation props incrementally in Phase 1.
- */
-
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -18,14 +12,13 @@ export type AuthStackParamList = {
 export type RootStackParamList = {
   Boot: undefined;
   Auth: NavigatorScreenParams<AuthStackParamList>;
-  RoleSelection: undefined;      // role picker popup for multi-role users
-  LocationSetup: undefined;      // first-run buyer gate (no back stack)
-  LocationSelection: undefined;  // re-selection from inside the app
+  RoleSelection: undefined;
+  LocationSetup: undefined;
+  LocationSelection: undefined;
   MainApp: undefined;
   Notifications: undefined;
 };
 
-// ── Buyer / default flow ──────────────────────────────────────────────────
 export type HomeStackParamList = {
   HomeMain: undefined;
   ViewMore: { category?: string } | undefined;
@@ -50,14 +43,12 @@ export type MainTabParamList = {
   Profile: NavigatorScreenParams<ProfileStackParamList>;
 };
 
-// ── Listing-management stack (shared by Seller & Realtor) ─────────────────
 export type ListingsStackParamList = {
   MyListingsMain: undefined;
   EditListing: { propertyId?: number; id?: number } | undefined;
   PropertyImages: { propertyId?: number; id?: number } | undefined;
 };
 
-// ── Seller flow ───────────────────────────────────────────────────────────
 export type SellerTabParamList = {
   Dashboard: undefined;
   MyListings: NavigatorScreenParams<ListingsStackParamList>;
@@ -65,7 +56,6 @@ export type SellerTabParamList = {
   Profile: NavigatorScreenParams<ProfileStackParamList>;
 };
 
-// ── Realtor flow ──────────────────────────────────────────────────────────
 export type RealtorTabParamList = {
   Dashboard: undefined;
   MyListings: NavigatorScreenParams<ListingsStackParamList>;
@@ -73,7 +63,6 @@ export type RealtorTabParamList = {
   Profile: NavigatorScreenParams<ProfileStackParamList>;
 };
 
-// ── Profile stack ─────────────────────────────────────────────────────────
 export type ProfileStackParamList = {
   ProfileMain: undefined;
   EditProfile: undefined;

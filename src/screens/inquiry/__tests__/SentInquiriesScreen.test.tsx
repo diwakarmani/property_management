@@ -114,7 +114,6 @@ describe('SentInquiriesScreen — Bug 37', () => {
 
     await waitFor(() => expect(screen.getByText('Pending')).toBeTruthy());
 
-    // Tapping the badge should not trigger any navigation or mutation
     fireEvent.press(screen.getByText('Pending'));
     expect(mockNavigation.navigate).not.toHaveBeenCalled();
   });

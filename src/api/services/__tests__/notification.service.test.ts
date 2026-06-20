@@ -2,10 +2,6 @@ import MockAdapter from 'axios-mock-adapter';
 import axiosClient from '../../client/axiosClient';
 import { NotificationService } from '../notification.service';
 
-/**
- * Unit tests for the notification service URL/method/unwrap contract (RF-06).
- * Uses axios-mock-adapter against the real axiosClient instance.
- */
 describe('NotificationService', () => {
   let mock: MockAdapter;
 

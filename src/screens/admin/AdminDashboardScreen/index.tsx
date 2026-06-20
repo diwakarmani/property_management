@@ -71,7 +71,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         <RefreshControl refreshing={refreshing} onRefresh={handleRefreshCache} tintColor={colors.primary} />
       }
     >
-      {/* Hero */}
+
       <LinearGradient
         colors={[colors.primaryDark, colors.primary, colors.gradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -100,7 +100,6 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* Stats Grid */}
       <View style={styles.statsSection}>
         <Text style={styles.sectionTitle}>Platform Stats</Text>
         <View style={styles.statsGrid}>
@@ -122,7 +121,6 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         </View>
       </View>
 
-      {/* Quick Actions */}
       <View style={styles.actionsCard}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         {QUICK_ACTIONS.map(({ icon, title, route, showPending, params }) => (

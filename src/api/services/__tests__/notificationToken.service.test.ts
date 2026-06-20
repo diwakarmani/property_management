@@ -2,7 +2,6 @@ import MockAdapter from 'axios-mock-adapter';
 import axiosClient from '@/api/client/axiosClient';
 import { NotificationTokenService } from '@/api/services/notificationToken.service';
 
-/** Tests for the push-token service (FE-09 / RF-06 device side). */
 describe('NotificationTokenService', () => {
   let mock: MockAdapter;
 
@@ -25,7 +24,7 @@ describe('NotificationTokenService', () => {
   });
 
   it('unregister(token) DELETEs the URL-encoded token', async () => {
-    // Token contains a space + brackets — must be URL-encoded.
+
     mock.onDelete(/\/api\/notification-tokens\/.+/).reply(200, {
       success: true,
       data: null,
@@ -35,7 +34,7 @@ describe('NotificationTokenService', () => {
     const tokenWithBrackets = 'ExponentPushToken[device-2]';
     const res = await NotificationTokenService.unregister(tokenWithBrackets);
     expect(res.status).toBe(200);
-    // axios-mock-adapter captures the resolved URL; verify it was encoded.
+
     const lastDelete = mock.history.delete[mock.history.delete.length - 1];
     expect(lastDelete.url).toContain(encodeURIComponent(tokenWithBrackets));
   });

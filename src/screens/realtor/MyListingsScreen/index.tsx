@@ -22,8 +22,6 @@ import OptimizedImage from '@/components/common/OptimizedImage';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
 import { formatPrice } from '@/utils/helpers/formatPrice';
 
-// ── Tab config ────────────────────────────────────────────────────────────────
-
 const STATUS_TABS = [
   { key: 'ALL',                label: 'All',       icon: 'apps-outline',             color: colors.textSecondary },
   { key: 'ACTIVE',             label: 'Active',    icon: 'checkmark-circle-outline', color: '#27AE60' },
@@ -46,8 +44,6 @@ const STATUS_COLORS: Record<string, string> = {
   RENTED: '#8E44AD',
   INACTIVE: '#C0392B',
 };
-
-// ── Chip tab bar ──────────────────────────────────────────────────────────────
 
 type ChipBarProps = {
   activeTab: StatusTab;
@@ -143,8 +139,6 @@ const chipStyles = StyleSheet.create({
   },
 });
 
-// ── Status banner (for non-actionable states) ─────────────────────────────────
-
 type BannerCfg = { icon: string; color: string; bg: string; text: string };
 
 const STATUS_BANNERS: Record<string, BannerCfg> = {
@@ -179,8 +173,6 @@ const bannerStyles = StyleSheet.create({
   text: { fontSize: 12, fontWeight: '600' as const, flex: 1 },
 });
 
-// ── Listing card ──────────────────────────────────────────────────────────────
-
 type ListingCardProps = {
   item: PropertyDTO;
   navigation: any;
@@ -206,18 +198,17 @@ const ListingCard = ({ item, navigation, onRequestDelete, onPublish }: ListingCa
       onPress={() => navigation.navigate('PropertyDetail', { id: item.id })}
       activeOpacity={0.88}
     >
-      {/* Image */}
+
       <View style={cardStyles.imageWrap}>
         <OptimizedImage uri={item.primaryImageUrl ?? ''} style={cardStyles.image} />
-        {/* Status pill */}
+
         <View style={[cardStyles.statusPill, { backgroundColor: statusColor }]}>
           <Text style={cardStyles.statusPillText}>{statusLabel}</Text>
         </View>
-        {/* Dim overlay for inactive */}
+
         {item.status === 'INACTIVE' && <View style={cardStyles.inactiveOverlay} />}
       </View>
 
-      {/* Body */}
       <View style={cardStyles.body}>
         <Text style={[cardStyles.title, item.status === 'INACTIVE' && cardStyles.titleDim]} numberOfLines={1}>
           {item.title}
@@ -227,7 +218,6 @@ const ListingCard = ({ item, navigation, onRequestDelete, onPublish }: ListingCa
           {item.locality}, {item.city}
         </Text>
 
-        {/* Meta row */}
         <View style={cardStyles.meta}>
           {item.bedrooms ? (
             <View style={cardStyles.metaItem}>
@@ -241,10 +231,8 @@ const ListingCard = ({ item, navigation, onRequestDelete, onPublish }: ListingCa
           </View>
         </View>
 
-        {/* Status banner for non-editable states */}
         {showBanner && <StatusBanner status={item.status} />}
 
-        {/* Action row — only for ACTIVE and DRAFT */}
         {showActions && (
           <View style={cardStyles.actions}>
             {item.status === 'DRAFT' && (
@@ -362,8 +350,6 @@ const cardStyles = StyleSheet.create({
   deleteIconBtn: { borderColor: colors.error, backgroundColor: colors.errorSurface ?? '#FDECEA' },
 });
 
-// ── Main screen ───────────────────────────────────────────────────────────────
-
 const MyListingsScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState<StatusTab>('ALL');
   const { data, isLoading, isError, error, refetch, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
@@ -374,7 +360,6 @@ const MyListingsScreen = ({ navigation }: any) => {
 
   const errorMessage = isError ? (error as any)?.response?.data?.message ?? 'Could not load your listings.' : null;
 
-  // Count per status for chip badges
   const counts = useMemo(() => {
     const c: Record<string, number> = { ALL: allListings.length };
     for (const p of allListings) {
@@ -418,7 +403,7 @@ const MyListingsScreen = ({ navigation }: any) => {
   return (
     <AsyncBoundary loading={isLoading} error={errorMessage} onRetry={() => refetch()}>
       <View style={styles.container}>
-        {/* Header */}
+
         <View style={styles.header}>
           <View>
             <Text style={styles.headerTitle}>My Listings</Text>
@@ -433,14 +418,12 @@ const MyListingsScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* Horizontal chip filter */}
         <ChipBar
           activeTab={activeTab}
           onSelect={setActiveTab}
           counts={counts}
         />
 
-        {/* List */}
         <FlatList
           style={styles.listFlex}
           data={filtered}
@@ -496,8 +479,6 @@ const MyListingsScreen = ({ navigation }: any) => {
     </AsyncBoundary>
   );
 };
-
-// ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },

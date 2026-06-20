@@ -13,7 +13,7 @@ export const RealtorService = {
 
   getProfile: (realtorId: number) =>
     axiosClient.get<ApiResponse<RealtorProfileDTO>>(`/api/realtors/${realtorId}`, {
-      skipErrorToast: true,  // inline error state shown by RealtorProfileScreen / PropertyDetailsScreen ignores failure
+      skipErrorToast: true,
     }),
 
   connect: (realtorId: number, data: ConnectRealtorRequest) =>

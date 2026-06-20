@@ -21,7 +21,7 @@ const AccessDeniedScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Icon */}
+
         <LinearGradient
           colors={[colors.primary, colors.primaryDark]}
           start={{ x: 0, y: 0 }}
@@ -31,14 +31,11 @@ const AccessDeniedScreen = () => {
           <Ionicons name="lock-closed-outline" size={40} color={colors.white} />
         </LinearGradient>
 
-        {/* Text */}
         <Text style={styles.title}>Access Restricted</Text>
         <Text style={styles.message}>
           Your account doesn't have permission to view this section. Sign out and log back in to refresh your session.
         </Text>
-
-        {/* Sign out button */}
-        <TouchableOpacity
+<TouchableOpacity
           style={styles.button}
           activeOpacity={0.8}
           onPress={() => dispatch(logout())}

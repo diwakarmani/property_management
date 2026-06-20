@@ -113,7 +113,7 @@ const AddressesScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.list}>
-        {/* Inline back row + add button */}
+
         <View style={styles.backRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={18} color={colors.primary} />
@@ -166,11 +166,10 @@ const AddressesScreen = ({ navigation }: any) => {
         )}
       </ScrollView>
 
-      {/* Add Address Modal */}
       <Modal visible={showModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            {/* Drag handle */}
+
             <View style={styles.dragHandle} />
 
             <View style={styles.modalHeader}>
@@ -184,7 +183,7 @@ const AddressesScreen = ({ navigation }: any) => {
             </View>
 
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              {/* Address Type chips */}
+
               <Text style={styles.fieldLabel}>Address Type</Text>
               <View style={styles.chipRow}>
                 {ADDRESS_TYPES.map(t => (
@@ -443,7 +442,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: colors.overlay,

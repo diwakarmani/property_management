@@ -3,7 +3,6 @@ import { RatingService } from '@/api/services/rating.service';
 import { queryKeys, STALE_TIME } from '@/api/queryClient';
 import type { CreateRatingRequest, RatingDTO } from '@/api/types/rating.types';
 
-/** Fetch the caller's own rating for a realtor+property. */
 export const useMyRatingQuery = (
   realtorId: number | null | undefined,
   propertyId: number | null | undefined,
@@ -18,11 +17,10 @@ export const useMyRatingQuery = (
       return (res.data.data ?? null) as RatingDTO | null;
     },
     enabled: realtorId != null && propertyId != null,
-    staleTime: 0,   // always re-check eligibility on mount/focus
+    staleTime: 0,
     retry: false,
   });
 
-/** Paginated list of all public ratings for a realtor. */
 export const useRatingsInfiniteQuery = (realtorId: number | null | undefined) =>
   useInfiniteQuery({
     queryKey: realtorId != null ? queryKeys.realtorRatings(realtorId) : ['rating', 'list', 'none'],
@@ -43,13 +41,12 @@ export const useRatingsInfiniteQuery = (realtorId: number | null | undefined) =>
     staleTime: STALE_TIME.MEDIUM,
   });
 
-/** Submit or update the current user's rating. Invalidates all rating caches for this realtor. */
 export const useSubmitRatingMutation = (realtorId: number) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateRatingRequest) => RatingService.submit(realtorId, data),
     onSuccess: () => {
-      // Invalidate all myRating queries for this realtor across any property (prefix match)
+
       qc.invalidateQueries({ queryKey: ['realtor', 'ratings', realtorId] });
       qc.invalidateQueries({ queryKey: queryKeys.realtorProfile(realtorId) });
     },

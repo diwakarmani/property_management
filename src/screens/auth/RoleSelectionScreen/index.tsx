@@ -39,7 +39,7 @@ const RoleSelectionScreen = () => {
 
   const handleSelect = (role: RoleKey) => {
     dispatch(selectRole(role));
-    // AppNavigator re-renders once activeRole is set → navigates to MainApp automatically
+
   };
 
   const handleSignOut = () => {
@@ -58,10 +58,9 @@ const RoleSelectionScreen = () => {
           { transform: [{ translateY: slideAnim }] },
         ]}
       >
-        {/* Handle */}
+
         <View style={styles.handle} />
 
-        {/* User greeting */}
         <View style={styles.greeting}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials}</Text>
@@ -74,14 +73,12 @@ const RoleSelectionScreen = () => {
           </View>
         </View>
 
-        {/* Divider + label */}
         <View style={styles.labelRow}>
           <View style={styles.labelLine} />
           <Text style={styles.labelText}>Continue as</Text>
           <View style={styles.labelLine} />
         </View>
 
-        {/* Role options */}
         <View style={styles.roleList}>
           {availableRoles.map((roleKey) => {
             const meta = ROLE_META[roleKey];
@@ -92,25 +89,22 @@ const RoleSelectionScreen = () => {
                 onPress={() => handleSelect(roleKey)}
                 activeOpacity={0.76}
               >
-                {/* Icon badge */}
+
                 <View style={[styles.roleIcon, { backgroundColor: meta.color + '1A' }]}>
                   <Ionicons name={meta.icon as any} size={22} color={meta.color} />
                 </View>
 
-                {/* Text */}
                 <View style={styles.roleInfo}>
                   <Text style={styles.roleLabel}>{meta.label}</Text>
                   <Text style={styles.roleDesc} numberOfLines={1}>{meta.description}</Text>
                 </View>
 
-                {/* Arrow */}
                 <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
               </TouchableOpacity>
             );
           })}
         </View>
 
-        {/* Sign out */}
         <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.7}>
           <Ionicons name="log-out-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.signOutText}>Sign out</Text>
@@ -150,7 +144,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  // Greeting
   greeting: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -183,7 +176,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Divider label
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -199,7 +191,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
 
-  // Role list
   roleList: { gap: 10 },
   roleRow: {
     flexDirection: 'row',
@@ -233,7 +224,6 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 
-  // Sign out
   signOutBtn: {
     flexDirection: 'row',
     alignItems: 'center',

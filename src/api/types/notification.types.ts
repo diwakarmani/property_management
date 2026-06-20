@@ -1,6 +1,6 @@
 export interface NotificationDTO {
   id: number;
-  type: string; // e.g. INQUIRY_RECEIVED, LISTING_APPROVED
+  type: string;
   title: string;
   body?: string;
   entityType?: string;

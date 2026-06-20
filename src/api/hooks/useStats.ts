@@ -3,7 +3,6 @@ import { RealtorService } from '@/api/services/realtor.service';
 import { queryKeys, STALE_TIME } from '@/api/queryClient';
 import type { ConnectRealtorRequest, RealtorStatsDTO } from '@/api/types/property.types';
 
-/** Realtor's KPI stats — used by the Realtor dashboard + PerformanceScreen. */
 export const useRealtorStatsQuery = () =>
   useQuery({
     queryKey: queryKeys.realtorStats,
@@ -22,9 +21,9 @@ export const useRealtorProfileQuery = (realtorId: number | null | undefined) =>
       return res.data.data;
     },
     enabled: realtorId != null,
-    staleTime: 0,         // always considered stale — refetch on every mount so errors recover fast
-    retry: false,         // axiosClient already retries once internally; TQ retry adds delay
-    gcTime: 60_000,       // keep in cache for 1 min so PropertyDetail → RealtorProfile navigation is instant
+    staleTime: 0,
+    retry: false,
+    gcTime: 60_000,
   });
 
 export const useConnectRealtorMutation = (realtorId: number | null | undefined) => {

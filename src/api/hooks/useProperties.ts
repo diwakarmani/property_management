@@ -3,11 +3,6 @@ import { PropertyService } from '@/api/services/property.service';
 import { queryKeys, STALE_TIME } from '@/api/queryClient';
 import type { ContactRevealResponse, PropertyDTO } from '@/api/types/property.types';
 
-/**
- * Infinite-scroll property search. The query key includes the filters so two
- * different searches don't share a cache. Pass `enabled: false` to defer the
- * first request until the user actually hits Search.
- */
 export const useSearchInfiniteQuery = (
   filters: Record<string, any>,
   options?: { enabled?: boolean; pageSize?: number }
@@ -16,7 +11,7 @@ export const useSearchInfiniteQuery = (
   return useInfiniteQuery({
     queryKey: ['property', 'search', filters, pageSize] as const,
     enabled: options?.enabled ?? true,
-    staleTime: 0,        // search results are always re-fetched — never serve stale cache
+    staleTime: 0,
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
       const res = await PropertyService.search({
@@ -39,7 +34,6 @@ export const useSearchInfiniteQuery = (
   });
 };
 
-/** Property types for the search filter (Apartment, Villa, …). Near-static reference data. */
 export const usePropertyTypesQuery = () =>
   useQuery({
     queryKey: ['property', 'types'] as const,

@@ -14,8 +14,6 @@ import RealtorProfileScreen from '@/screens/realtor/RealtorProfileScreen';
 
 const Stack = createStackNavigator();
 
-// withLayout() applied once at module scope for stable component identity
-// (Gap analysis KB-04 / NV-01).
 const ProfileMainWrapped     = withLayout(ProfileScreen);
 const EditProfileWrapped     = withLayout(EditProfileScreen);
 const ChangePasswordWrapped  = withLayout(ChangePasswordScreen);
@@ -23,8 +21,6 @@ const AddressesWrapped       = withLayout(AddressesScreen);
 const SentInquiriesWrapped   = withLayout(SentInquiriesScreen);
 const RateRealtorWrapped     = withLayout(RateRealtorScreen);
 
-// Notifications is registered ONLY at the root AppNavigator level so that
-// every entry point (header bell, profile menu) resolves to the same screen.
 const ProfileStackNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="ProfileMain" component={ProfileMainWrapped} />

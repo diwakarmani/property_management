@@ -60,7 +60,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Gradient Hero */}
+
       <LinearGradient
         colors={[colors.primary, colors.gradientMid, colors.gradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -76,7 +76,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.heroSubtitle}>Sign in to find your perfect home</Text>
       </LinearGradient>
 
-      {/* Form Card */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}

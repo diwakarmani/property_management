@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme';
 import { withLayout } from '@/utils/withLayout';
 
-// Screens
 import AdminDashboardScreen from '@/screens/admin/AdminDashboardScreen';
 import ManageUsersScreen from '@/screens/admin/ManageUsersScreen';
 import AdminListingsScreen from '@/screens/admin/AdminListingsScreen';
@@ -23,8 +22,6 @@ const UsersStack = createStackNavigator();
 const ListingsStack = createStackNavigator();
 const AnalyticsStack = createStackNavigator();
 
-// withLayout() applied once at module scope for stable component identity
-// (Gap analysis KB-04 / NV-01).
 const AdminDashboardWrapped = withLayout(AdminDashboardScreen);
 const ManageUsersWrapped = withLayout(ManageUsersScreen);
 const AdminListingsWrapped = withLayout(AdminListingsScreen);

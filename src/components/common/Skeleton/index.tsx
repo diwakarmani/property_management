@@ -36,7 +36,6 @@ const styles = StyleSheet.create({
 
 export default Skeleton;
 
-// Usage:
 export const PropertyCardSkeleton = () => (
   <View style={{ padding: 16 }}>
     <Skeleton height={200} style={{ marginBottom: 12 }} />

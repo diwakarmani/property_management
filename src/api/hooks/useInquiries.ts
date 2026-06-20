@@ -77,7 +77,6 @@ export const useCreateInquiryMutation = () => {
   });
 };
 
-/** Update an inquiry's status — optimistic patch with rollback. */
 export const useUpdateInquiryStatusMutation = () => {
   const qc = useQueryClient();
   return useMutation({

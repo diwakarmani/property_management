@@ -197,8 +197,7 @@ const EditProfileScreen = ({ navigation }: any) => {
       };
       const dob = (data.dateOfBirth || '').trim();
       if (dob.length > 0) {
-        // Backend expects ISO yyyy-MM-dd. Accept either yyyy-MM-dd (passthrough)
-        // or the legacy DD/MM/YYYY format the screen historically displayed.
+
         const iso = toIsoDateOrEmpty(dob);
         if (iso) payload.dateOfBirth = iso;
       }
@@ -206,7 +205,7 @@ const EditProfileScreen = ({ navigation }: any) => {
       await dispatch(fetchUser());
       navigation.goBack();
     } catch {
-      // global interceptor shows error toast
+
     }
   };
 
@@ -217,7 +216,6 @@ const EditProfileScreen = ({ navigation }: any) => {
     >
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
 
-        {/* Inline back row — inside scroll, not a separate header bar */}
         <View style={styles.backRow}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={18} color={colors.primary} />
@@ -225,7 +223,6 @@ const EditProfileScreen = ({ navigation }: any) => {
           <Text style={styles.pageTitle}>Edit Profile</Text>
         </View>
 
-        {/* Avatar placeholder */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrap}>
             <View style={styles.avatar}>
@@ -240,7 +237,6 @@ const EditProfileScreen = ({ navigation }: any) => {
           <Text style={styles.avatarHint}>Tap to change photo</Text>
         </View>
 
-        {/* Section: Basic Info */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="person-outline" size={16} color={colors.primary} />
@@ -304,7 +300,6 @@ const EditProfileScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* Gender selector */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="male-female-outline" size={16} color={colors.primary} />
@@ -327,7 +322,6 @@ const EditProfileScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Section: Professional */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="briefcase-outline" size={16} color={colors.primary} />
@@ -363,7 +357,6 @@ const EditProfileScreen = ({ navigation }: any) => {
           />
         </View>
 
-        {/* Section: About */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="document-text-outline" size={16} color={colors.primary} />
@@ -389,7 +382,6 @@ const EditProfileScreen = ({ navigation }: any) => {
           />
         </View>
 
-        {/* Email (read-only) */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="lock-closed-outline" size={16} color={colors.textSecondary} />
@@ -408,7 +400,6 @@ const EditProfileScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Save button */}
         <TouchableOpacity
           style={[styles.saveBtn, isSubmitting && styles.saveBtnDisabled]}
           onPress={handleSubmit(onSubmit)}

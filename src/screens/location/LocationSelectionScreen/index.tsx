@@ -69,12 +69,10 @@ const LocationSelectionScreen = ({ navigation }: any) => {
   const handleConfirm = () => {
     if (!selectedCity) return;
     dispatch(confirmLocation());
-    // Re-selection → return to where we came from. First run → AppNavigator
-    // swaps the root stack to MainApp once `hasSelected` flips.
+
     if (navigation.canGoBack()) navigation.goBack();
   };
 
-  // One-tap "near me": permission → GPS fix → confirm.
   const handleNearMe = async () => {
     setCapturing(true);
     try {
@@ -119,7 +117,7 @@ const LocationSelectionScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
+
       <View style={styles.header}>
         {isReselect ? (
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
@@ -144,7 +142,6 @@ const LocationSelectionScreen = ({ navigation }: any) => {
           Search near you, or pick a city and up to {MAX_LOCALITIES} areas.
         </Text>
 
-        {/* ── Near me ───────────────────────────────────────────────────── */}
         <TouchableOpacity
           style={styles.nearMeCard}
           onPress={handleNearMe}
@@ -169,14 +166,12 @@ const LocationSelectionScreen = ({ navigation }: any) => {
           <Ionicons name="chevron-forward" size={20} color={colors.white} />
         </TouchableOpacity>
 
-        {/* Divider */}
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>or browse by city</Text>
           <View style={styles.dividerLine} />
         </View>
 
-        {/* ── City ──────────────────────────────────────────────────────── */}
         <Text style={styles.label}>City</Text>
         {error && (
           <View style={styles.errorCard}>
@@ -235,7 +230,6 @@ const LocationSelectionScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {/* ── Areas ─────────────────────────────────────────────────────── */}
         {selectedCity && (
           <View style={styles.areaSection}>
             <View style={styles.areaHeader}>
@@ -294,7 +288,6 @@ const LocationSelectionScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {/* Selected summary */}
         {selectedCity && (
           <View style={styles.summary}>
             <Ionicons name="location" size={18} color={colors.primary} />

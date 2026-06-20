@@ -90,7 +90,7 @@ const FavoritesScreen = () => {
         }}
         activeOpacity={0.92}
       >
-        {/* Image */}
+
         <View style={styles.imageWrap}>
           <OptimizedImage uri={item.primaryImageUrl ?? ''} style={styles.image} />
           <LinearGradient
@@ -110,7 +110,6 @@ const FavoritesScreen = () => {
             {item.listingType === 'RENT' && <Text style={styles.pricePerMonth}>/mo</Text>}
           </View>
 
-          {/* Compare selection overlay */}
           {compareMode && (
             <View style={[styles.selectCircle, isSelected && styles.selectCircleActive]}>
               {isSelected && <Ionicons name="checkmark" size={16} color={colors.white} />}
@@ -118,7 +117,6 @@ const FavoritesScreen = () => {
           )}
         </View>
 
-        {/* Body */}
         <View style={styles.cardBody}>
           <View style={styles.cardTop}>
             <View style={styles.cardInfo}>
@@ -173,7 +171,7 @@ const FavoritesScreen = () => {
 
   return (
     <View style={styles.root}>
-      {/* Header */}
+
       <View style={styles.header}>
         <View style={styles.headerIconWrap}>
           <Ionicons name={compareMode ? 'git-compare-outline' : 'heart'} size={18} color={colors.primary} />
@@ -191,7 +189,6 @@ const FavoritesScreen = () => {
           )}
         </View>
 
-        {/* Compare toggle — only show when ≥2 favorites */}
         {!compareMode && favorites.length >= 2 && (
           <TouchableOpacity style={styles.compareToggleBtn} onPress={toggleCompareMode} activeOpacity={0.8}>
             <Ionicons name="git-compare-outline" size={15} color={colors.primary} />
@@ -205,7 +202,6 @@ const FavoritesScreen = () => {
         )}
       </View>
 
-      {/* Compare action bar — appears when ≥2 selected */}
       {compareMode && (
         <View style={styles.compareBar}>
           <View style={styles.compareBarDots}>

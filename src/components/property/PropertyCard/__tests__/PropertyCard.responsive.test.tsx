@@ -6,10 +6,6 @@ import { formatPrice } from '@/utils/helpers/formatPrice';
 
 jest.mock('@/components/common/OptimizedImage', () => () => null);
 
-/**
- * Bug 21 regression guard — the shared PropertyCard must format prices via the
- * shared formatPrice utility, not raw numbers.
- */
 describe('PropertyCard price formatting (Bug 21)', () => {
   it('renders $250K for a 250000 price', () => {
     const screen = render(

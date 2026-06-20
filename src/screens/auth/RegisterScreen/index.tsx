@@ -55,7 +55,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
   const onSubmit = async (data: any) => {
     dispatch(clearError());
-    const localPhone = data.phone.trim().replace(/^0+/, ''); // strip leading zeros
+    const localPhone = data.phone.trim().replace(/^0+/, '');
     const payload = {
       ...data,
       email: data.email.trim().toLowerCase(),
@@ -80,7 +80,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Gradient Hero */}
+
       <LinearGradient
         colors={[colors.primaryDark, colors.primary, colors.gradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -96,7 +96,6 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.heroSubtitle}>Join thousands finding their dream home</Text>
       </LinearGradient>
 
-      {/* Form Card */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -159,7 +158,6 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               )}
             />
 
-            {/* Phone with country code picker */}
             <View style={phoneStyles.wrapper}>
               <Text style={phoneStyles.label}>Phone Number</Text>
               <View style={[phoneStyles.row, !!errors.phone && phoneStyles.rowError]}>
@@ -194,7 +192,6 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               )}
             </View>
 
-            {/* Country code picker modal */}
             <Modal
               visible={codePickerVisible}
               transparent

@@ -2,10 +2,7 @@ import axiosClient from '../client/axiosClient';
 import type { ApiResponse } from '../types/auth.types';
 
 export const UploadService = {
-  /**
-   * Upload a local image URI (from expo-image-picker) to the backend.
-   * Returns the public URL of the uploaded image.
-   */
+
   uploadImage: (localUri: string): Promise<import('axios').AxiosResponse<ApiResponse<string>>> => {
     const filename = localUri.split('/').pop() ?? 'photo.jpg';
     const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg';

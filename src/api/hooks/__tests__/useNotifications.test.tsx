@@ -10,7 +10,6 @@ import {
   useMarkAllReadMutation,
 } from '@/api/hooks/useNotifications';
 
-/** Focused tests for the notification hooks (FE-09 / RF-06). */
 describe('useNotifications hooks', () => {
   let mock: MockAdapter;
   const makeWrapper = () => {
@@ -67,8 +66,7 @@ describe('useNotifications hooks', () => {
   });
 
   it('useMarkAllReadMutation succeeds and refetches the unread count', async () => {
-    // First GET returns 3 (initial); after mark-all-read the API truly returns 0,
-    // mirroring backend behaviour. Use replyOnce so the second GET picks up the new value.
+
     mock.onGet('/api/notifications/unread-count').replyOnce(200, { success: true, data: { count: 3 } });
     mock.onPost('/api/notifications/mark-all-read').reply(200, { success: true, data: { updated: 3 } });
     mock.onGet('/api/notifications/unread-count').reply(200, { success: true, data: { count: 0 } });
@@ -81,7 +79,6 @@ describe('useNotifications hooks', () => {
     const { result: markAll } = renderHook(() => useMarkAllReadMutation(), { wrapper: Wrapper });
     await act(async () => { await markAll.current.mutateAsync(); });
 
-    // After the mutation invalidates + refetches, the count drops to 0.
     await waitFor(() => expect(count.current.data).toBe(0));
     await waitFor(() => expect(markAll.current.isSuccess).toBe(true));
   });

@@ -90,14 +90,12 @@ const RateRealtorScreen = () => {
       await submitMutation.mutateAsync({ propertyId, rating: stars, comment: comment.trim() || undefined });
       setSubmitted(true);
     } catch {
-      // axiosClient interceptor shows toast
+
     }
   };
 
-  // ── Bottom padding shared by footer and center screens ──────────────────────
   const bottomPad = Math.max(insets.bottom, spacing.md);
 
-  // ── Loading ──────────────────────────────────────────────────────────────────
   if (loadingExisting) {
     return (
       <View style={styles.screen}>
@@ -108,7 +106,6 @@ const RateRealtorScreen = () => {
     );
   }
 
-  // ── Not eligible ─────────────────────────────────────────────────────────────
   if (notEligible) {
     return (
       <View style={styles.screen}>
@@ -132,7 +129,6 @@ const RateRealtorScreen = () => {
     );
   }
 
-  // ── Success ───────────────────────────────────────────────────────────────────
   if (submitted) {
     return (
       <View style={styles.screen}>
@@ -160,7 +156,6 @@ const RateRealtorScreen = () => {
     );
   }
 
-  // ── Main form ─────────────────────────────────────────────────────────────────
   return (
     <View style={styles.screen}>
       <KeyboardAvoidingView
@@ -168,7 +163,7 @@ const RateRealtorScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        {/* Header */}
+
         <View style={styles.inlineHeader}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
@@ -185,7 +180,7 @@ const RateRealtorScreen = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Realtor hero card */}
+
           <LinearGradient
             colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -198,7 +193,6 @@ const RateRealtorScreen = () => {
             <Text style={styles.heroRole}>Real Estate Agent</Text>
           </LinearGradient>
 
-          {/* Star picker card */}
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Your Rating</Text>
             <StarPicker value={stars} onChange={setStars} />
@@ -211,7 +205,6 @@ const RateRealtorScreen = () => {
             )}
           </View>
 
-          {/* Comment card */}
           <View style={styles.card}>
             <View style={styles.cardRow}>
               <Text style={styles.cardLabel}>Your Review</Text>
@@ -232,7 +225,6 @@ const RateRealtorScreen = () => {
             </Text>
           </View>
 
-          {/* Tip banner */}
           <View style={styles.tipBanner}>
             <Ionicons name="information-circle-outline" size={15} color={colors.primary} />
             <Text style={styles.tipText}>
@@ -241,7 +233,6 @@ const RateRealtorScreen = () => {
           </View>
         </ScrollView>
 
-        {/* Submit footer — no gap: paddingBottom absorbs home indicator */}
         <View style={[styles.footer, { paddingBottom: bottomPad }]}>
           <TouchableOpacity
             style={[styles.submitBtn, !canSubmit && styles.submitBtnOff]}
@@ -275,10 +266,9 @@ const RateRealtorScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  // Root — plain View, no SafeAreaView (AppLayout's SafeAreaView already handles top)
+
   screen: { flex: 1, backgroundColor: colors.background },
 
-  // Centered states (loading / not eligible / success)
   centerFill: {
     flex: 1,
     alignItems: 'center',
@@ -287,7 +277,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
 
-  // Shared inline header used in not-eligible and main form
   inlineHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -315,7 +304,6 @@ const styles = StyleSheet.create({
   },
   headerSpacer: { width: 36 },
 
-  // Not eligible
   eligIcon: {
     width: 72, height: 72, borderRadius: 36,
     backgroundColor: colors.backgroundSecondary,
@@ -333,7 +321,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  // Success
+
   successRing: { marginBottom: spacing.sm },
   successTitle: {
     fontSize: typography.fontSize['2xl'],
@@ -355,11 +343,9 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
 
-  // Scroll area
   scroll:        { flex: 1 },
   scrollContent: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.lg },
 
-  // Realtor hero
   hero: {
     borderRadius: 16,
     paddingVertical: spacing.xl,
@@ -385,7 +371,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.78)',
   },
 
-  // Cards
   card: {
     backgroundColor: colors.surface,
     borderRadius: 16,
@@ -414,7 +399,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 
-  // Stars
   starLabel: {
     textAlign: 'center',
     fontSize: typography.fontSize.lg,
@@ -426,7 +410,6 @@ const styles = StyleSheet.create({
     color: colors.textLight,
   },
 
-  // Comment
   commentInput: {
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -450,7 +433,6 @@ const styles = StyleSheet.create({
   },
   charCountWarn: { color: colors.warning },
 
-  // Tip banner
   tipBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -468,7 +450,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Footer — paddingBottom is set inline via insets so button sits flush to home indicator
   footer: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,

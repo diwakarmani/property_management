@@ -115,7 +115,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Profile Hero */}
+
       <LinearGradient
         colors={[colors.primary, colors.gradientMid, colors.gradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -134,7 +134,6 @@ const ProfileScreen = ({ navigation }: any) => {
         )}
       </LinearGradient>
 
-      {/* Profile info card — only shown when at least one field is populated */}
       {(user?.bio || user?.occupation || user?.website || user?.dateOfBirth || user?.phone) && (
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>About</Text>
@@ -152,7 +151,6 @@ const ProfileScreen = ({ navigation }: any) => {
         </View>
       )}
 
-      {/* Menu sections */}
       {MENU_SECTIONS.map((section) => (
         <View key={section.title} style={styles.section}>
           <Text style={styles.sectionLabel}>{section.title}</Text>
@@ -175,7 +173,6 @@ const ProfileScreen = ({ navigation }: any) => {
         </View>
       ))}
 
-      {/* Switch Role (only shown for multi-role users) + Sign Out */}
       <View style={styles.section}>
         <View style={styles.card}>
           {isMultiRole && (

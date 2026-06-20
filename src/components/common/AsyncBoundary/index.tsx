@@ -4,25 +4,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing } from '@/theme';
 
 interface AsyncBoundaryProps {
-  /** True while the data request is in flight. */
+
   loading: boolean;
-  /** Non-null when the request failed. */
+
   error?: string | null;
-  /** True when the request succeeded but returned nothing. */
+
   empty?: boolean;
   emptyText?: string;
   emptyIcon?: string;
   errorText?: string;
-  /** When provided, an error/empty state shows a retry button. */
+
   onRetry?: () => void;
   children: React.ReactNode;
 }
 
-/**
- * Shared loading / empty / error wrapper for data-fetching screens
- * (Gap analysis FE-01). Standardises the three async states so every screen
- * behaves consistently instead of hand-rolling `ActivityIndicator`s.
- */
 const AsyncBoundary: React.FC<AsyncBoundaryProps> = ({
   loading,
   error,

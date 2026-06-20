@@ -28,7 +28,6 @@ const SECTIONS: { key: SectionKey; title: string; subtitle: string; icon: string
   { key: 'NEAREST', title: 'Nearest', subtitle: 'Closest to you', icon: 'navigate' },
 ];
 
-
 const HomeScreen = ({ navigation }: any) => {
   const { selectedCity, coordinates } = useSelector((state: RootState) => state.location);
   const firstName = useSelector((state: RootState) => state.auth.user?.firstName);
@@ -69,7 +68,7 @@ const HomeScreen = ({ navigation }: any) => {
       end={{ x: 1, y: 1 }}
       style={styles.hero}
     >
-      {/* Top row */}
+
       <View style={styles.heroTopRow}>
         <View>
           <Text style={styles.greeting}>

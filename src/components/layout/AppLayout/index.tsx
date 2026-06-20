@@ -5,7 +5,6 @@ import { useRoute } from '@react-navigation/native';
 import Header from '@/components/common/Header';
 import { colors } from '@/theme';
 
-// Only LocationSelection is a full-screen onboarding flow with its own header
 const HIDE_HEADER_SCREENS = new Set(['LocationSelection']);
 
 interface AppLayoutProps {

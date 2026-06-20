@@ -83,7 +83,6 @@ const OTPVerificationScreen: React.FC<Props> = ({ route }) => {
           <OTPInput onComplete={handleOTPComplete} />
         </View>
 
-
         <View style={styles.resendContainer}>
           <Text style={styles.resendText}>Didn't receive the code? </Text>
           <TouchableOpacity onPress={handleResend} disabled={timer > 0}>

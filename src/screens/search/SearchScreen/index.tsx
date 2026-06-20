@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
-// SafeAreaView not needed here — AppLayout's SafeAreaView handles top/left/right edges
+
 import { colors, typography, spacing } from '@/theme';
 import { useSearchInfiniteQuery, usePropertyTypesQuery } from '@/api/hooks/useProperties';
 import { useFavoriteIdsSet, useAddFavoriteMutation, useRemoveFavoriteMutation } from '@/api/hooks/useFavorites';
@@ -138,7 +138,6 @@ const SearchScreen = ({ navigation }: any) => {
     isBuyerExperience(state.auth.user?.roles, state.auth.activeRole)
   );
 
-  // Locality fuzzy search state
   const [localityInput, setLocalityInput] = useState('');
   const [debouncedLocality, setDebouncedLocality] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -152,7 +151,6 @@ const SearchScreen = ({ navigation }: any) => {
     buildSearchParams(EMPTY_FILTERS, selectedCity?.name ?? '', selectedLocalities.map((l) => l.name))
   );
 
-  // 350 ms debounce before API call
   useEffect(() => {
     const t = setTimeout(() => setDebouncedLocality(localityInput.trim()), 350);
     return () => clearTimeout(t);
@@ -182,12 +180,11 @@ const SearchScreen = ({ navigation }: any) => {
     setShowFilters(false);
     setSearched(true);
     setCommitted(buildSearchParams(f, cityName, areaList));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [cityName]);
 
   const selectedLocalityKey = selectedLocalities.map((l) => l.id).join(',');
 
-  // Sync when Redux city/localities change (e.g. from LocationSelectionScreen via header)
   useEffect(() => {
     const city = selectedCity?.name ?? '';
     const localityNames = selectedLocalities.map((l) => l.name);
@@ -246,7 +243,7 @@ const SearchScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.safeArea}>
-      {/* Locality search bar */}
+
       <View style={styles.searchContainer}>
         <View style={[styles.searchBar, isFocused && styles.searchBarFocused]}>
           <View style={styles.searchIconWrap}>
@@ -298,7 +295,6 @@ const SearchScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
 
-      {/* Suggestion dropdown */}
       {showSuggestions && (
         <View style={styles.suggestionBox}>
           {isSearching ? (
@@ -343,7 +339,6 @@ const SearchScreen = ({ navigation }: any) => {
         </View>
       )}
 
-      {/* Selected chips + counter */}
       {(areas.length > 0 || selectedCity) && (
         <View style={styles.chipBar}>
           {areas.length > 0 ? (
@@ -371,7 +366,6 @@ const SearchScreen = ({ navigation }: any) => {
         </View>
       )}
 
-      {/* Results */}
       <AsyncBoundary loading={isLoading} error={errorMessage} onRetry={() => refetch()}>
         <FlatList
           key={`search-grid-${grid.columns}`}
@@ -423,14 +417,12 @@ const SearchScreen = ({ navigation }: any) => {
         />
       </AsyncBoundary>
 
-      {/* Filter modal */}
       <Modal visible={showFilters} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            {/* Handle */}
+
             <View style={styles.modalHandle} />
 
-            {/* Header */}
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderLeft}>
                 <View style={styles.modalHeaderIcon}>
@@ -450,7 +442,6 @@ const SearchScreen = ({ navigation }: any) => {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScroll}>
 
-              {/* Looking to */}
               <FilterSection icon="home-outline" title="Looking to">
                 <View style={styles.segment}>
                   {([{ label: 'Any', value: '' }, { label: 'Buy', value: 'SALE' }, { label: 'Rent', value: 'RENT' }, { label: 'Lease', value: 'LEASE' }] as { label: string; value: ListingType }[]).map((o) => (
@@ -465,7 +456,6 @@ const SearchScreen = ({ navigation }: any) => {
                 </View>
               </FilterSection>
 
-              {/* Property type */}
               <FilterSection icon="business-outline" title="Property Type">
                 <View style={styles.chipWrap}>
                   {propertyTypes.map((t: any) => {
@@ -483,7 +473,6 @@ const SearchScreen = ({ navigation }: any) => {
                 </View>
               </FilterSection>
 
-              {/* Budget */}
               <FilterSection icon="cash-outline" title="Budget ($)">
                 <View style={styles.rangeRow}>
                   <View style={styles.rangeInputWrap}>
@@ -512,7 +501,7 @@ const SearchScreen = ({ navigation }: any) => {
                     />
                   </View>
                 </View>
-                {/* Quick budget presets */}
+
                 <View style={styles.presetRow}>
                   {[
                     { label: 'Under $500K', min: '', max: '500000' },
@@ -534,7 +523,6 @@ const SearchScreen = ({ navigation }: any) => {
                 </View>
               </FilterSection>
 
-              {/* Bedrooms */}
               <FilterSection icon="bed-outline" title="Bedrooms">
                 <View style={styles.chipWrap}>
                   {[{ label: 'Studio', val: 0 }, { label: '1 BHK', val: 1 }, { label: '2 BHK', val: 2 }, { label: '3 BHK', val: 3 }, { label: '4+ BHK', val: 4 }].map(({ label, val }) => {
@@ -548,7 +536,6 @@ const SearchScreen = ({ navigation }: any) => {
                 </View>
               </FilterSection>
 
-              {/* Bathrooms */}
               <FilterSection icon="water-outline" title="Min Bathrooms">
                 <View style={styles.chipWrap}>
                   {[1, 2, 3, 4].map((b) => {
@@ -562,7 +549,6 @@ const SearchScreen = ({ navigation }: any) => {
                 </View>
               </FilterSection>
 
-              {/* Furnishing */}
               <FilterSection icon="tv-outline" title="Furnishing">
                 <View style={styles.chipWrap}>
                   {FURNISHING_OPTS.map((o) => {
@@ -577,7 +563,6 @@ const SearchScreen = ({ navigation }: any) => {
                 </View>
               </FilterSection>
 
-              {/* Area */}
               <FilterSection icon="resize-outline" title="Carpet Area (sq ft)">
                 <View style={styles.rangeRow}>
                   <View style={styles.rangeInputWrap}>
@@ -606,7 +591,6 @@ const SearchScreen = ({ navigation }: any) => {
                 </View>
               </FilterSection>
 
-              {/* Sort */}
               <FilterSection icon="swap-vertical-outline" title="Sort By">
                 <View style={styles.sortCol}>
                   {SORT_OPTS.map(o => {
@@ -630,7 +614,6 @@ const SearchScreen = ({ navigation }: any) => {
 
             </ScrollView>
 
-            {/* Footer actions */}
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.resetButton} onPress={() => { setFilters(EMPTY_FILTERS); runSearch(EMPTY_FILTERS, areas); }}>
                 <Ionicons name="refresh-outline" size={16} color={colors.textSecondary} />
@@ -720,7 +703,6 @@ const styles = StyleSheet.create({
   },
   filterBadgeText: { color: colors.white, fontSize: 9, fontWeight: 'bold' },
 
-  // Suggestion dropdown
   suggestionBox: {
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
@@ -769,7 +751,6 @@ const styles = StyleSheet.create({
   },
   suggestionEmptyText: { fontSize: typography.fontSize.sm, color: colors.textSecondary },
 
-  // Chips bar
   chipBar: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -846,7 +827,6 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.text },
   emptyText: { fontSize: typography.fontSize.sm, color: colors.textSecondary, textAlign: 'center', lineHeight: 20, paddingHorizontal: spacing.lg },
 
-  // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(26,26,46,0.6)', justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: colors.surface,

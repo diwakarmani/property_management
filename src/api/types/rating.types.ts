@@ -1,7 +1,7 @@
 export interface CreateRatingRequest {
   propertyId: number;
-  rating: number;   // 1–5
-  comment?: string; // max 500 chars
+  rating: number;
+  comment?: string;
 }
 
 export interface RatingDTO {

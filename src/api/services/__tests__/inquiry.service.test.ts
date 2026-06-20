@@ -2,12 +2,6 @@ import MockAdapter from 'axios-mock-adapter';
 import axiosClient from '../../client/axiosClient';
 import { InquiryService } from '../inquiry.service';
 
-/**
- * Pins the URL/method/payload contract between the React Native client and
- * the backend /api/inquiries endpoints added in this change set.
- * Regression for bug 2A (Seller GET /api/inquiries/received 500) and
- * bug 2E (Buyer had no end-to-end way to send an inquiry).
- */
 describe('InquiryService', () => {
   let mock: MockAdapter;
 

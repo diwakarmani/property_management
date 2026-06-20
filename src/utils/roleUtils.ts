@@ -44,7 +44,6 @@ export const ROLE_META: Record<RoleKey, RoleMeta> = {
   },
 };
 
-// Priority order: highest privilege first
 const PRIORITY: RoleKey[] = ['admin', 'realtor', 'seller', 'buyer'];
 
 const BACKEND_TO_KEY: Record<string, RoleKey> = {
@@ -54,19 +53,16 @@ const BACKEND_TO_KEY: Record<string, RoleKey> = {
   BUYER:       'buyer',
 };
 
-/** Returns every RoleKey this user can use, in priority order. */
 export const getAvailableRoles = (roles: string[] | undefined | null): RoleKey[] => {
   const r = roles ?? [];
   return PRIORITY.filter(key => r.includes(ROLE_META[key].requiredRole));
 };
 
-/** Highest-privilege role key — used as the fallback for single-role users. */
 export const pickRoleKey = (roles: string[] | undefined | null): RoleKey => {
   const available = getAvailableRoles(roles);
   return available[0] ?? 'buyer';
 };
 
-/** True when a stored activeRole is still valid for the user's current roles. */
 export const isRoleValid = (role: string | null, userRoles: string[] | undefined | null): role is RoleKey => {
   if (!role) return false;
   const available = getAvailableRoles(userRoles);

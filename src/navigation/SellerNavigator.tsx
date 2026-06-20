@@ -6,8 +6,7 @@ import { colors } from '@/theme';
 import { withLayout } from '@/utils/withLayout';
 
 import SellerDashboardScreen from '@/screens/seller/SellerDashboardScreen';
-// Listing-management screens are role-agnostic and reused from the Realtor flow.
-// The backend already authorises SELLER for property CRUD (PropertyController).
+
 import MyListingsScreen from '@/screens/realtor/MyListingsScreen';
 import EditListingScreen from '@/screens/realtor/EditListingScreen';
 import PropertyImagesScreen from '@/screens/realtor/PropertyImagesScreen';
@@ -20,8 +19,6 @@ import ProfileStackNavigator from './ProfileStackNavigator';
 const Tab = createBottomTabNavigator();
 const ListingsStack = createStackNavigator();
 
-// withLayout() applied once at module scope for stable component identity
-// (Gap analysis KB-04 / NV-01).
 const SellerDashboardWrapped = withLayout(SellerDashboardScreen);
 const MyListingsWrapped = withLayout(MyListingsScreen);
 const EditListingWrapped = withLayout(EditListingScreen);
@@ -44,11 +41,6 @@ const MyListingsStackScreen = () => (
   </ListingsStack.Navigator>
 );
 
-/**
- * Seller flow (KB-02 / RF-01). Sellers previously fell through to the Buyer
- * tab navigator and had no way to manage listings. This gives them a dedicated
- * dashboard + listing-management surface.
- */
 const SellerNavigator = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({

@@ -3,10 +3,8 @@ import { LocationService } from '@/api/services/location.service';
 import type { City, Locality } from '@/api/types/location.type';
 import { set, get } from '@/utils/helpers/storage';
 
-/** How the user scoped their search. */
 export type LocationMode = 'city' | 'nearMe';
 
-/** A buyer may pick at most this many areas within a city. */
 export const MAX_LOCALITIES = 3;
 
 interface Coordinates {
@@ -18,11 +16,11 @@ interface LocationState {
   hasSelected: boolean;
   mode: LocationMode;
   selectedCity: City | null;
-  /** Up to MAX_LOCALITIES areas chosen within the city. */
+
   selectedLocalities: Locality[];
   coordinates: Coordinates;
   cities: City[];
-  /** Every area of the selected city — the pickable list. */
+
   localities: Locality[];
   loadingLocalities: boolean;
   loading: boolean;
@@ -56,7 +54,6 @@ export const fetchCities = createAsyncThunk(
   }
 );
 
-/** Loads every area of a city so the user can pick up to MAX_LOCALITIES. */
 export const fetchLocalities = createAsyncThunk(
   'location/fetchLocalities',
   async (cityId: number, { rejectWithValue }) => {
@@ -71,7 +68,6 @@ export const fetchLocalities = createAsyncThunk(
   }
 );
 
-/** Restores the saved location scope from device storage. */
 export const loadSavedLocation = createAsyncThunk(
   'location/loadSavedLocation',
   async () => {
@@ -91,15 +87,12 @@ const locationSlice = createSlice({
         latitude: action.payload.latitude,
         longitude: action.payload.longitude,
       };
-      // A new city invalidates the previously chosen areas; show spinner
-      // immediately so the UI never flashes "No areas listed" between the
-      // synchronous clear and the async fetchLocalities.pending action.
+
       state.selectedLocalities = [];
       state.localities = [];
       state.loadingLocalities = true;
     },
 
-    /** Adds or removes an area; capped at MAX_LOCALITIES. */
     toggleLocality: (state, action: PayloadAction<Locality>) => {
       const exists = state.selectedLocalities.some((l) => l.id === action.payload.id);
       if (exists) {
@@ -111,7 +104,6 @@ const locationSlice = createSlice({
       }
     },
 
-    /** Switches to "near me" mode with the device's captured coordinates. */
     setNearMe: (state, action: PayloadAction<Coordinates>) => {
       state.mode = 'nearMe';
       state.coordinates = action.payload;
@@ -120,14 +112,13 @@ const locationSlice = createSlice({
       state.localities = [];
     },
 
-    /** Overrides stored coordinates to actual GPS and marks mode as nearMe — used after auto-selecting nearest city. */
     setCoordinates: (state, action: PayloadAction<Coordinates>) => {
       state.coordinates = action.payload;
       state.mode = 'nearMe';
     },
 
     confirmLocation: (state) => {
-      // A valid scope is either a city or near-me coordinates.
+
       if (state.mode === 'city' && !state.selectedCity) return;
       if (state.mode === 'nearMe' && state.coordinates.latitude == null) return;
 
@@ -179,7 +170,7 @@ const locationSlice = createSlice({
           state.hasSelected = true;
           state.mode = saved.mode ?? 'city';
           state.selectedCity = saved.city ?? null;
-          // Tolerates the older persisted shape (single `locality`).
+
           state.selectedLocalities =
             saved.localities ?? (saved.locality ? [saved.locality] : []);
           state.coordinates = saved.coordinates ?? {

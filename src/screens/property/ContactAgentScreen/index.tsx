@@ -59,7 +59,7 @@ const ContactAgentScreen = () => {
       });
       navigation.goBack();
     } catch {
-      // global interceptor shows error toast
+
     }
   };
 
@@ -71,7 +71,7 @@ const ContactAgentScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
@@ -89,7 +89,7 @@ const ContactAgentScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          {/* Property badge */}
+
           {!!propertyTitle && (
             <View style={styles.propertyBadge}>
               <Ionicons name="home-outline" size={16} color={colors.primary} />
@@ -97,7 +97,6 @@ const ContactAgentScreen = () => {
             </View>
           )}
 
-          {/* Info box */}
           <View style={styles.infoBox}>
             <Ionicons name="information-circle-outline" size={18} color={colors.info} />
             <Text style={styles.infoText}>
@@ -105,7 +104,6 @@ const ContactAgentScreen = () => {
             </Text>
           </View>
 
-          {/* Name */}
           <Text style={styles.label}>Your Name *</Text>
           <View style={inputStyle('name', !!errors.name)}>
             <Ionicons name="person-outline" size={18} color={focusedField === 'name' ? colors.primary : colors.textLight} />
@@ -126,7 +124,6 @@ const ContactAgentScreen = () => {
             </View>
           )}
 
-          {/* Email */}
           <Text style={styles.label}>Email *</Text>
           <View style={inputStyle('email', !!errors.email)}>
             <Ionicons name="mail-outline" size={18} color={focusedField === 'email' ? colors.primary : colors.textLight} />
@@ -149,7 +146,6 @@ const ContactAgentScreen = () => {
             </View>
           )}
 
-          {/* Phone */}
           <Text style={styles.label}>Phone <Text style={styles.optional}>(optional)</Text></Text>
           <View style={inputStyle('phone', false)}>
             <Ionicons name="call-outline" size={18} color={focusedField === 'phone' ? colors.primary : colors.textLight} />
@@ -165,7 +161,6 @@ const ContactAgentScreen = () => {
             />
           </View>
 
-          {/* Message */}
           <Text style={styles.label}>Message *</Text>
           <View style={[inputStyle('message', !!errors.message), styles.textAreaWrap]}>
             <TextInput

@@ -165,7 +165,7 @@ const EditListingScreen = ({ navigation, route }: any) => {
         })
         .catch(() => {});
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [propertyTypes]);
 
   const set = (key: keyof FormData) => (val: string) =>
@@ -248,8 +248,6 @@ const EditListingScreen = ({ navigation, route }: any) => {
       </View>
     );
   }
-
-  // ── Step renders ────────────────────────────────────────────────────────────
 
   const renderStep1 = () => (
     <ScrollView style={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -508,8 +506,6 @@ const EditListingScreen = ({ navigation, route }: any) => {
     </ScrollView>
   );
 
-  // ── Layout ──────────────────────────────────────────────────────────────────
-
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
@@ -528,7 +524,6 @@ const EditListingScreen = ({ navigation, route }: any) => {
         </View>
       </View>
 
-      {/* Step indicators */}
       <View style={styles.stepIndicator}>
         {STEP_LABELS.map((label, i) => {
           const idx = i + 1;
@@ -584,8 +579,6 @@ const EditListingScreen = ({ navigation, route }: any) => {
     </View>
   );
 };
-
-// ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },

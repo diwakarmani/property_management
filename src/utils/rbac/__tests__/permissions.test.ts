@@ -1,9 +1,5 @@
 import { ROLES, PERMISSIONS, hasPermission, hasAnyRole } from '../permissions';
 
-/**
- * Unit tests for RBAC helpers (gap analysis §15.2 — utils/rbac).
- * Pure functions — fast and deterministic.
- */
 describe('rbac/permissions', () => {
   describe('hasPermission', () => {
     it('grants a permission the role actually has', () => {

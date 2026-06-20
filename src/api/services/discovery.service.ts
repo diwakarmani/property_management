@@ -14,7 +14,6 @@ export const DiscoveryService = {
       params: { city, status: 'ACTIVE', page: 0, size: 1 },
     }),
 
-  // Returns the standard PageResponse envelope (Gap analysis NB-13).
   viewMore: (params: ViewMoreRequest) =>
     axiosClient.get<ApiResponse<PageResponse<PropertyCardDTO>>>('/api/discovery/home/view-more', {
       params,
@@ -28,7 +27,7 @@ export const DiscoveryService = {
         skipSuccessToast: true,
       } as any);
     } catch {
-      // fire-and-forget — silently ignore
+
     }
   },
 };

@@ -39,13 +39,6 @@ const existingImage = { id: 1, imageUrl: 'https://example.com/img1.jpg', isPrima
 
 const res = (data: unknown) => ({ data: { data } });
 
-/**
- * Bug 33 regression guard — PropertyImagesScreen must invalidate the React Query
- * property cache after any image mutation so PropertyDetailScreen shows fresh data.
- *
- * Bug 35 regression guard — launchImageLibraryAsync must use allowsMultipleSelection
- * so users can pick more than one photo per tap.
- */
 describe('PropertyImagesScreen query invalidation (Bug 33)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -84,7 +77,6 @@ describe('PropertyImagesScreen query invalidation (Bug 33)', () => {
       fireEvent.press(screen.getAllByLabelText('Delete image')[0]);
     });
 
-    // Confirm delete alert and proceed
     const { Alert } = require('react-native');
     const deleteCall = Alert.alert.mock?.calls?.find(
       ([title]: string[]) => title === 'Delete Image'
@@ -103,7 +95,6 @@ describe('PropertyImagesScreen query invalidation (Bug 33)', () => {
       );
     }
   });
-
 
   it('invalidates property query after primary image is changed', async () => {
     const secondImage = { id: 2, imageUrl: 'https://example.com/img2.jpg', isPrimary: false };

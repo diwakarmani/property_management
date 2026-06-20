@@ -21,8 +21,6 @@ import { formatPrice } from '@/utils/helpers/formatPrice';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const LABEL_COL = 112;
 
-// ─── Label formatters ─────────────────────────────────────────────────────────
-
 const FURNISHED: Record<string, string> = {
   FURNISHED: 'Furnished',
   SEMI_FURNISHED: 'Semi',
@@ -71,8 +69,6 @@ const fmtFloor = (p?: PropertyCompareDTO) => {
   if (p?.floorNumber == null) return '—';
   return p.totalFloors ? `${p.floorNumber} / ${p.totalFloors}` : String(p.floorNumber);
 };
-
-// ─── Row & Section types ──────────────────────────────────────────────────────
 
 type Highlight = 'lower_better' | 'higher_better' | 'none';
 
@@ -249,10 +245,7 @@ const SECTIONS: Section[] = [
   },
 ];
 
-// Flat rows for highlight computation (same order as sections)
 const ALL_ROWS = SECTIONS.flatMap(s => s.rows);
-
-// ─── Highlight logic ──────────────────────────────────────────────────────────
 
 function getHighlights(row: RowDef, props: PropertyCompareDTO[]): ('best' | 'worst' | 'neutral')[] {
   if (row.highlight === 'none' || !row.getNumeric) return props.map(() => 'neutral');
@@ -269,15 +262,13 @@ function getHighlights(row: RowDef, props: PropertyCompareDTO[]): ('best' | 'wor
   });
 }
 
-// ─── Property header card ─────────────────────────────────────────────────────
-
 const PropertyCard = ({
   prop, colW, onRemove, canRemove,
 }: {
   prop: PropertyCompareDTO; colW: number; onRemove: () => void; canRemove: boolean;
 }) => (
   <View style={[styles.propCard, { width: colW }]}>
-    {/* Image */}
+
     <View style={styles.propImageWrap}>
       {prop.primaryImageUrl ? (
         <Image source={{ uri: prop.primaryImageUrl }} style={styles.propImage} />
@@ -291,7 +282,7 @@ const PropertyCard = ({
         style={StyleSheet.absoluteFillObject}
         pointerEvents="none"
       />
-      {/* Listing type badge */}
+
       {prop.listingType && (
         <View style={[styles.listingBadge, prop.listingType === 'RENT' ? styles.rentBadge : styles.saleBadge]}>
           <Text style={styles.listingBadgeText}>{prop.listingType}</Text>
@@ -308,7 +299,6 @@ const PropertyCard = ({
       )}
     </View>
 
-    {/* Card body */}
     <View style={styles.propCardBody}>
       <Text style={styles.propPrice}>
         {formatPrice(prop.price)}
@@ -325,8 +315,6 @@ const PropertyCard = ({
   </View>
 );
 
-// ─── Section header row ───────────────────────────────────────────────────────
-
 const SectionHeader = ({ section, colCount }: { section: Section; colCount: number }) => {
   const colW = (SCREEN_WIDTH - LABEL_COL) / Math.max(colCount, 2);
   return (
@@ -342,8 +330,6 @@ const SectionHeader = ({ section, colCount }: { section: Section; colCount: numb
     </View>
   );
 };
-
-// ─── Attribute cell ───────────────────────────────────────────────────────────
 
 const Cell = ({
   row, prop, highlight, colW,
@@ -394,8 +380,6 @@ const Cell = ({
   );
 };
 
-// ─── Label cell ───────────────────────────────────────────────────────────────
-
 const LabelCell = ({ row }: { row: RowDef }) => (
   <View style={[styles.labelCell, { width: LABEL_COL }]}>
     <View style={styles.labelIconWrap}>
@@ -404,8 +388,6 @@ const LabelCell = ({ row }: { row: RowDef }) => (
     <Text style={styles.labelText} numberOfLines={2}>{row.label}</Text>
   </View>
 );
-
-// ─── Main screen ──────────────────────────────────────────────────────────────
 
 const CompareScreen = () => {
   const navigation = useNavigation<any>();
@@ -481,9 +463,8 @@ const CompareScreen = () => {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {/* ── Property header cards ── */}
         <View style={styles.headerRow}>
-          {/* empty corner above label column */}
+
           <View style={[styles.headerCorner, { width: LABEL_COL }]}>
             <Ionicons name="stats-chart-outline" size={14} color={colors.primaryLight} />
           </View>
@@ -498,7 +479,6 @@ const CompareScreen = () => {
           ))}
         </View>
 
-        {/* ── Attribute sections ── */}
         {SECTIONS.map(section => (
           <View key={section.title}>
             <SectionHeader section={section} colCount={properties.length} />
@@ -517,7 +497,6 @@ const CompareScreen = () => {
           </View>
         ))}
 
-        {/* ── Amenities detail ── */}
         {properties.some(p => (p.amenities?.length ?? 0) > 0) && (
           <View style={styles.amenitiesCard}>
             <View style={styles.amenitiesHeader}>
@@ -556,7 +535,6 @@ const CompareScreen = () => {
           </View>
         )}
 
-        {/* ── Legend ── */}
         <View style={styles.legendCard}>
           <View style={styles.legendCardHeader}>
             <Ionicons name="information-circle-outline" size={15} color={colors.primary} />
@@ -608,13 +586,10 @@ const CompareScreen = () => {
   );
 };
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   scrollContent: { paddingBottom: 0 },
 
-  // ── Top bar
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -653,7 +628,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 
-  // ── Loading / Error
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: spacing.xl },
   loadingIconWrap: {
     width: 72, height: 72, borderRadius: 22,
@@ -678,7 +652,6 @@ const styles = StyleSheet.create({
   },
   retryText: { color: colors.white, fontWeight: typography.fontWeight.bold, fontSize: typography.fontSize.sm },
 
-  // ── Header row (property cards)
   headerRow: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
@@ -698,7 +671,6 @@ const styles = StyleSheet.create({
     borderRightColor: colors.border,
   },
 
-  // ── Property card
   propCard: {
     borderLeftWidth: 1,
     borderLeftColor: colors.border,
@@ -766,7 +738,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // ── Section header
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -798,7 +769,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  // ── Attribute row
   row: {
     flexDirection: 'row',
     minHeight: 48,
@@ -809,7 +779,6 @@ const styles = StyleSheet.create({
   rowEven: { backgroundColor: colors.surface },
   rowOdd: { backgroundColor: colors.background },
 
-  // ── Label cell
   labelCell: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -834,7 +803,6 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
 
-  // ── Value cell
   cell: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -867,7 +835,6 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.semibold,
   },
 
-  // ── Amenities card
   amenitiesCard: {
     marginTop: spacing.sm,
     marginHorizontal: spacing.md,
@@ -939,7 +906,6 @@ const styles = StyleSheet.create({
   amenityName: { fontSize: 10, color: colors.text, flex: 1 },
   noAmenity: { fontSize: 10, color: colors.textLight, fontStyle: 'italic' },
 
-  // ── Legend card
   legendCard: {
     marginTop: spacing.sm,
     marginHorizontal: spacing.md,

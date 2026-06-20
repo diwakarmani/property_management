@@ -22,8 +22,6 @@ import { AdminService } from '@/api/services/admin.service';
 import type { PropertyDTO } from '@/api/types/property.types';
 import { formatPrice } from '@/utils/helpers/formatPrice';
 
-// ── Status tabs config ────────────────────────────────────────────────────────
-
 const TABS = [
   { key: 'ALL',                label: 'All',       icon: 'apps-outline',            color: colors.textSecondary },
   { key: 'PENDING_APPROVAL',   label: 'Pending',   icon: 'time-outline',            color: colors.warning },
@@ -38,8 +36,6 @@ type TabKey = typeof TABS[number]['key'];
 
 export const normalizeAdminListingStatus = (status?: string): TabKey =>
   TABS.some((tab) => tab.key === status) ? status as TabKey : 'PENDING_APPROVAL';
-
-// ── Status badge ──────────────────────────────────────────────────────────────
 
 const statusConfig: Record<string, { label: string; bg: string; fg: string }> = {
   PENDING_APPROVAL:   { label: 'Pending',     bg: colors.warningSurface,      fg: colors.warning },
@@ -65,8 +61,6 @@ const badgeStyles = StyleSheet.create({
   wrap: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, alignSelf: 'flex-start' },
   text: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold },
 });
-
-// ── Reject reason modal ───────────────────────────────────────────────────────
 
 const RejectModal = ({
   visible,
@@ -166,8 +160,6 @@ const modalStyles = StyleSheet.create({
   confirmText: { fontSize: typography.fontSize.sm, color: colors.white, fontWeight: typography.fontWeight.semibold },
 });
 
-// ── Property card ─────────────────────────────────────────────────────────────
-
 export const PropertyCard = ({
   property,
   onApprove,
@@ -194,7 +186,7 @@ export const PropertyCard = ({
 
   return (
     <TouchableOpacity style={cardStyles.card} activeOpacity={0.85} onPress={onPress}>
-      {/* Image + status badge */}
+
       <View style={cardStyles.imageWrap}>
         {property.primaryImageUrl ? (
           <Image source={{ uri: property.primaryImageUrl }} style={cardStyles.image} />
@@ -214,7 +206,6 @@ export const PropertyCard = ({
         )}
       </View>
 
-      {/* Details */}
       <View style={cardStyles.body}>
         <Text style={cardStyles.price}>{formatPrice(property.price)}</Text>
         <Text style={cardStyles.title} numberOfLines={2}>{property.title}</Text>
@@ -231,7 +222,6 @@ export const PropertyCard = ({
           </Text>
         </View>
 
-        {/* Rejection reason */}
         {property.rejectionReason ? (
           <View style={cardStyles.rejectionRow}>
             <Ionicons name="alert-circle-outline" size={12} color={colors.error} />
@@ -239,7 +229,6 @@ export const PropertyCard = ({
           </View>
         ) : null}
 
-        {/* Action row */}
         <View style={cardStyles.actions}>
           {isPendingStatus && (
             <>
@@ -289,7 +278,6 @@ export const PropertyCard = ({
             </>
           )}
 
-          {/* Feature / verify toggles — always shown */}
           <TouchableOpacity
             style={[cardStyles.iconBtn, property.isFeatured && cardStyles.iconBtnActive]}
             onPress={onToggleFeatured}
@@ -404,8 +392,6 @@ const cardStyles = StyleSheet.create({
   iconBtnActive: { backgroundColor: colors.warningSurface },
   iconBtnActiveGreen: { backgroundColor: colors.successSurface },
 });
-
-// ── Main screen ───────────────────────────────────────────────────────────────
 
 const AdminListingsScreen = ({ route }: any) => {
   const navigation = useNavigation();
@@ -528,7 +514,7 @@ const AdminListingsScreen = ({ route }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
           <Ionicons name="arrow-back" size={20} color={colors.text} />
@@ -546,7 +532,6 @@ const AdminListingsScreen = ({ route }: any) => {
         </TouchableOpacity>
       </View>
 
-      {/* Horizontal chip tabs */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -578,7 +563,6 @@ const AdminListingsScreen = ({ route }: any) => {
         })}
       </ScrollView>
 
-      {/* Content */}
       {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -656,7 +640,6 @@ const AdminListingsScreen = ({ route }: any) => {
         />
       )}
 
-      {/* Reject listing modal */}
       <RejectModal
         visible={rejectTargetId !== null}
         onCancel={() => setRejectTargetId(null)}
@@ -667,7 +650,6 @@ const AdminListingsScreen = ({ route }: any) => {
         }}
       />
 
-      {/* Reject deletion request modal */}
       <RejectModal
         visible={rejectDeletionTargetId !== null}
         onCancel={() => setRejectDeletionTargetId(null)}
@@ -680,8 +662,6 @@ const AdminListingsScreen = ({ route }: any) => {
     </SafeAreaView>
   );
 };
-
-// ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },

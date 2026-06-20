@@ -13,9 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import { UserService } from '@/api/services/user.service';
 
-// Defined at module scope so React never unmounts/remounts the TextInput on
-// parent re-renders (inline component definitions change reference each render
-// and cause iOS TextInput to lose focus after the first character typed).
 const PasswordField = ({
   label, value, onChangeText, show, onToggle, placeholder,
 }: {
@@ -65,7 +62,7 @@ const ChangePasswordScreen = ({ navigation }: any) => {
       await UserService.changePassword(currentPassword, newPassword, confirmPassword);
       navigation.goBack();
     } catch {
-      // global interceptor shows error toast
+
     } finally {
       setSubmitting(false);
     }
@@ -74,7 +71,7 @@ const ChangePasswordScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
-        {/* Inline back row */}
+
         <View style={styles.backRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={18} color={colors.primary} />

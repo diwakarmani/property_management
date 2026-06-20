@@ -3,13 +3,6 @@ import { Text } from 'react-native';
 import { render } from '@testing-library/react-native';
 import ProtectedRoute from '../index';
 
-/**
- * NB-17 — `ProtectedRoute` role/permission gate.
- *
- * <p>`useSelector` is mocked to a pass-through over a per-test fake auth state,
- * keeping the test isolated from the real Redux store (mirrors the
- * `withLayout` test's mock-it-out style).
- */
 const mockUseSelector = jest.fn();
 const mockDispatch = jest.fn();
 jest.mock('react-redux', () => ({
@@ -17,7 +10,6 @@ jest.mock('react-redux', () => ({
   useDispatch: () => mockDispatch,
 }));
 
-/** Drives `useSelector` with an auth slice carrying the given roles. */
 const withRoles = (roles: string[] | null) => {
   const state = { auth: { user: roles === null ? null : { roles } } };
   mockUseSelector.mockImplementation((selector: any) => selector(state));
@@ -70,7 +62,7 @@ describe('ProtectedRoute (NB-17)', () => {
   });
 
   it('renders children when the user has the required permission', () => {
-    withRoles(['BUYER']); // BUYER has the view_properties permission
+    withRoles(['BUYER']);
     const { queryByText } = render(
       <ProtectedRoute requiredPermission="view_properties">
         <Child />
@@ -80,7 +72,7 @@ describe('ProtectedRoute (NB-17)', () => {
   });
 
   it('denies when the user lacks the required permission', () => {
-    withRoles(['BUYER']); // BUYER does NOT have manage_system
+    withRoles(['BUYER']);
     const { queryByText } = render(
       <ProtectedRoute requiredPermission="manage_system">
         <Child />
@@ -90,7 +82,7 @@ describe('ProtectedRoute (NB-17)', () => {
   });
 
   it('ANDs permission and role constraints when both are supplied', () => {
-    // BUYER satisfies the permission but not the role → overall denied.
+
     withRoles(['BUYER']);
     const { queryByText } = render(
       <ProtectedRoute requiredPermission="view_properties" requiredRoles={['SUPER_ADMIN']}>

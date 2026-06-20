@@ -51,7 +51,7 @@ const RealtorDashboardScreen = () => {
           />
         }
       >
-        {/* Hero Banner */}
+
         <LinearGradient
           colors={[colors.primary, colors.gradientMid, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -76,7 +76,6 @@ const RealtorDashboardScreen = () => {
           </View>
         </LinearGradient>
 
-        {/* Stats Grid */}
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Performance</Text>
           <View style={styles.statsGrid}>
@@ -93,7 +92,6 @@ const RealtorDashboardScreen = () => {
           </View>
         </View>
 
-        {/* Overview Table */}
         <View style={styles.overviewCard}>
           <Text style={styles.sectionTitle}>Overview</Text>
           {[

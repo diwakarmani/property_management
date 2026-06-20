@@ -25,11 +25,6 @@ const MetricRow = ({
   </View>
 );
 
-/**
- * Realtor performance analytics — wired to `useRealtorStatsQuery` (FE-09).
- * Was a "Coming soon" placeholder; previously migrated to ad-hoc useState/useEffect,
- * now react-query for free caching + dedupe with the dashboard's same query key.
- */
 const PerformanceScreen = () => {
   const { data: stats, isLoading, isError, error, refetch, isFetching } = useRealtorStatsQuery();
 
