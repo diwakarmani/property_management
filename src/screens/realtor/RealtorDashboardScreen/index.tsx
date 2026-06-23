@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSelector } from 'react-redux';
@@ -11,27 +11,27 @@ import type { RootState } from '@/store';
 const formatNumber = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
 
 const STAT_CONFIG = [
-  { key: 'activeListings',   icon: 'list',           label: 'Active',    color: colors.primary,  bg: colors.primarySurface },
-  { key: 'draftListings',    icon: 'document-text',  label: 'Drafts',    color: '#64748B',       bg: '#F1F5F9' },
-  { key: 'pendingApprovals', icon: 'time',           label: 'Pending',   color: colors.warning,  bg: colors.warningSurface },
-  { key: 'soldCount',        icon: 'checkmark-done', label: 'Sold',      color: colors.success,  bg: colors.successSurface },
-  { key: 'rentedCount',      icon: 'home',           label: 'Rented',    color: '#8B5CF6',       bg: '#F5F3FF' },
-  { key: 'totalViews',       icon: 'eye',            label: 'Views',     color: colors.info,     bg: colors.infoSurface },
+  { key: 'activeListings',   icon: 'list',           label: 'Active',    color: colors.primary,  bg: colors.primarySurface, tabKey: 'ACTIVE' },
+  { key: 'draftListings',    icon: 'document-text',  label: 'Drafts',    color: '#64748B',       bg: '#F1F5F9',            tabKey: 'DRAFT' },
+  { key: 'pendingApprovals', icon: 'time',           label: 'Pending',   color: colors.warning,  bg: colors.warningSurface, tabKey: 'PENDING_APPROVAL' },
+  { key: 'soldCount',        icon: 'checkmark-done', label: 'Sold',      color: colors.success,  bg: colors.successSurface, tabKey: 'SOLD' },
+  { key: 'rentedCount',      icon: 'home',           label: 'Rented',    color: '#8B5CF6',       bg: '#F5F3FF',            tabKey: 'RENTED' },
+  { key: 'totalViews',       icon: 'eye',            label: 'Views',     color: colors.info,     bg: colors.infoSurface,   tabKey: null },
 ];
 
 const StatCard = ({
-  icon, label, value, color, bg,
-}: { icon: string; label: string; value: string; color: string; bg: string }) => (
-  <View style={styles.statCard}>
+  icon, label, value, color, bg, onPress,
+}: { icon: string; label: string; value: string; color: string; bg: string; onPress?: () => void }) => (
+  <TouchableOpacity style={styles.statCard} onPress={onPress} activeOpacity={onPress ? 0.75 : 1} disabled={!onPress}>
     <View style={[styles.statIconWrap, { backgroundColor: bg }]}>
       <Ionicons name={icon as any} size={20} color={color} />
     </View>
     <Text style={[styles.statValue, { color }]}>{value}</Text>
     <Text style={styles.statLabel}>{label}</Text>
-  </View>
+  </TouchableOpacity>
 );
 
-const RealtorDashboardScreen = () => {
+const RealtorDashboardScreen = ({ navigation }: any) => {
   const user = useSelector((state: RootState) => state.auth.user);
   const { data: stats, isLoading, isError, error, refetch, isFetching } = useRealtorStatsQuery();
   const errorMessage = isError
@@ -79,7 +79,7 @@ const RealtorDashboardScreen = () => {
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Performance</Text>
           <View style={styles.statsGrid}>
-            {STAT_CONFIG.map(({ key, icon, label, color, bg }) => (
+            {STAT_CONFIG.map(({ key, icon, label, color, bg, tabKey }) => (
               <StatCard
                 key={key}
                 icon={icon}
@@ -87,6 +87,7 @@ const RealtorDashboardScreen = () => {
                 value={formatNumber(stats?.[key as keyof typeof stats] as number ?? 0)}
                 color={color}
                 bg={bg}
+                onPress={tabKey ? () => navigation.navigate('MyListings', { screen: 'MyListingsMain', params: { initialTab: tabKey } }) : undefined}
               />
             ))}
           </View>

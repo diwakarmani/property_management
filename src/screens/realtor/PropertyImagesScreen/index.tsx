@@ -84,6 +84,7 @@ const PropertyImagesScreen = ({ navigation, route }: any) => {
       .then(() => {
         setImages(prev => prev.map(img => ({ ...img, isPrimary: img.id === image.id })));
         queryClient.invalidateQueries({ queryKey: queryKeys.property(propertyId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.myListings });
       })
       .catch(() => Alert.alert('Error', 'Failed to set primary image'));
   };
@@ -99,6 +100,7 @@ const PropertyImagesScreen = ({ navigation, route }: any) => {
             .then(() => {
               setImages(prev => prev.filter(img => img.id !== image.id));
               queryClient.invalidateQueries({ queryKey: queryKeys.property(propertyId) });
+              queryClient.invalidateQueries({ queryKey: queryKeys.myListings });
             })
             .catch(() => Alert.alert('Error', 'Failed to delete image'));
         },

@@ -9,10 +9,6 @@ describe('pickRoleKey', () => {
     expect(pickRoleKey(['REALTOR'])).toBe('realtor');
   });
 
-  it('routes REALTOR_GROUP_ADMIN (dropped role) to buyer — falls back to default', () => {
-    expect(pickRoleKey(['REALTOR_GROUP_ADMIN'])).toBe('buyer');
-  });
-
   it('routes SELLER to seller (KB-02 regression)', () => {
     expect(pickRoleKey(['SELLER'])).toBe('seller');
   });
@@ -31,8 +27,6 @@ describe('pickRoleKey', () => {
     expect(pickRoleKey(['BUYER', 'SUPER_ADMIN'])).toBe('admin');
     expect(pickRoleKey(['SELLER', 'REALTOR'])).toBe('realtor');
     expect(pickRoleKey(['BUYER', 'SELLER'])).toBe('seller');
-    expect(pickRoleKey(['BUYER', 'REALTOR_GROUP_ADMIN'])).toBe('buyer');
-    expect(pickRoleKey(['REALTOR_GROUP_ADMIN', 'SUPER_ADMIN'])).toBe('admin');
   });
 
   it('ignores unknown roles and falls back to buyer', () => {

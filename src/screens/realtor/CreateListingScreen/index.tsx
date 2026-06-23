@@ -217,7 +217,7 @@ const CreateListingScreen = ({ navigation }: any) => {
   };
 
   const renderStep1 = () => (
-    <ScrollView style={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.form} contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Basic Information</Text>
       <Text style={styles.stepSubtitle}>Tell us about the property you're listing</Text>
 
@@ -319,7 +319,7 @@ const CreateListingScreen = ({ navigation }: any) => {
   );
 
   const renderStep2 = () => (
-    <ScrollView style={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.form} contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Property Address</Text>
       <Text style={styles.stepSubtitle}>Where is the property located?</Text>
 
@@ -394,7 +394,7 @@ const CreateListingScreen = ({ navigation }: any) => {
   );
 
   const renderStep3 = () => (
-    <ScrollView style={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.form} contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Property Specifications</Text>
       <Text style={styles.stepSubtitle}>Rooms, areas, floors, and parking details</Text>
 
@@ -493,7 +493,7 @@ const CreateListingScreen = ({ navigation }: any) => {
   );
 
   const renderStep4 = () => (
-    <ScrollView style={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.form} contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Property Profile</Text>
       <Text style={styles.stepSubtitle}>Ownership, possession, and utility details (all optional)</Text>
 
@@ -740,6 +740,7 @@ const styles = StyleSheet.create({
   stepLineDone: { backgroundColor: colors.primary },
 
   form: { flex: 1, padding: spacing.lg },
+  formContent: { paddingBottom: 120 },
   stepTitle: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.text, marginBottom: 4 },
   stepSubtitle: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginBottom: spacing.lg },
 

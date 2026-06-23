@@ -132,7 +132,9 @@ export const register = createAsyncThunk(
     try {
       const response = await AuthService.register(data);
       const authData = response.data.data;
-      await saveTokens(authData.accessToken, authData.refreshToken);
+      if (authData?.accessToken && authData?.refreshToken) {
+        await saveTokens(authData.accessToken, authData.refreshToken);
+      }
       return authData;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Registration failed');

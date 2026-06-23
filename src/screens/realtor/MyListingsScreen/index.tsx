@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,7 +27,7 @@ const STATUS_TABS = [
   { key: 'ACTIVE',             label: 'Active',    icon: 'checkmark-circle-outline', color: '#27AE60' },
   { key: 'DRAFT',              label: 'Draft',     icon: 'document-outline',         color: '#95A5A6' },
   { key: 'PENDING_APPROVAL',   label: 'Pending',   icon: 'time-outline',             color: '#F39C12' },
-  { key: 'DELETION_REQUESTED', label: 'Del. Req.', icon: 'hourglass-outline',        color: '#E67E22' },
+  { key: 'DELETION_REQUESTED', label: 'Delete Req.', icon: 'hourglass-outline',      color: '#E67E22' },
   { key: 'SOLD',               label: 'Sold',      icon: 'cash-outline',             color: '#2980B9' },
   { key: 'RENTED',             label: 'Rented',    icon: 'key-outline',              color: '#8E44AD' },
   { key: 'INACTIVE',           label: 'Removed',   icon: 'archive-outline',          color: '#C0392B' },
@@ -181,11 +181,13 @@ type ListingCardProps = {
 };
 
 const EDITABLE_STATUSES = new Set(['ACTIVE', 'DRAFT']);
+const IMAGE_ACCESSIBLE_STATUSES = new Set(['ACTIVE', 'DRAFT', 'PENDING_APPROVAL']);
 
 const ListingCard = ({ item, navigation, onRequestDelete, onPublish }: ListingCardProps) => {
   const statusColor = STATUS_COLORS[item.status] ?? colors.textSecondary;
   const statusLabel = STATUS_TABS.find(t => t.key === item.status)?.label ?? item.status;
   const showActions = EDITABLE_STATUSES.has(item.status);
+  const showImageBtn = IMAGE_ACCESSIBLE_STATUSES.has(item.status);
   const showBanner = !!STATUS_BANNERS[item.status];
 
   return (
@@ -233,9 +235,9 @@ const ListingCard = ({ item, navigation, onRequestDelete, onPublish }: ListingCa
 
         {showBanner && <StatusBanner status={item.status} />}
 
-        {showActions && (
+        {(showActions || showImageBtn) && (
           <View style={cardStyles.actions}>
-            {item.status === 'DRAFT' && (
+            {item.status === 'DRAFT' && showActions && (
               <TouchableOpacity
                 style={[cardStyles.actionBtn, cardStyles.publishBtn]}
                 onPress={() => onPublish(item)}
@@ -245,27 +247,33 @@ const ListingCard = ({ item, navigation, onRequestDelete, onPublish }: ListingCa
               </TouchableOpacity>
             )}
             <View style={cardStyles.iconActions}>
-              <TouchableOpacity
-                style={cardStyles.iconBtn}
-                onPress={() => navigation.navigate('PropertyImages', { propertyId: item.id, propertyTitle: item.title })}
-                accessibilityLabel="Manage images"
-              >
-                <Ionicons name="images-outline" size={16} color={colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={cardStyles.iconBtn}
-                onPress={() => navigation.navigate('EditListing', { propertyId: item.id })}
-                accessibilityLabel="Edit listing"
-              >
-                <Ionicons name="create-outline" size={16} color={colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[cardStyles.iconBtn, cardStyles.deleteIconBtn]}
-                onPress={() => onRequestDelete(item)}
-                accessibilityLabel="Request deletion"
-              >
-                <Ionicons name="trash-outline" size={16} color={colors.error} />
-              </TouchableOpacity>
+              {showImageBtn && (
+                <TouchableOpacity
+                  style={cardStyles.iconBtn}
+                  onPress={() => navigation.navigate('PropertyImages', { propertyId: item.id, propertyTitle: item.title })}
+                  accessibilityLabel="Manage images"
+                >
+                  <Ionicons name="images-outline" size={16} color={colors.primary} />
+                </TouchableOpacity>
+              )}
+              {showActions && (
+                <>
+                  <TouchableOpacity
+                    style={cardStyles.iconBtn}
+                    onPress={() => navigation.navigate('EditListing', { propertyId: item.id })}
+                    accessibilityLabel="Edit listing"
+                  >
+                    <Ionicons name="create-outline" size={16} color={colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[cardStyles.iconBtn, cardStyles.deleteIconBtn]}
+                    onPress={() => onRequestDelete(item)}
+                    accessibilityLabel="Request deletion"
+                  >
+                    <Ionicons name="trash-outline" size={16} color={colors.error} />
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         )}
@@ -350,8 +358,14 @@ const cardStyles = StyleSheet.create({
   deleteIconBtn: { borderColor: colors.error, backgroundColor: colors.errorSurface ?? '#FDECEA' },
 });
 
-const MyListingsScreen = ({ navigation }: any) => {
-  const [activeTab, setActiveTab] = useState<StatusTab>('ALL');
+const MyListingsScreen = ({ navigation, route }: any) => {
+  const [activeTab, setActiveTab] = useState<StatusTab>(route?.params?.initialTab ?? 'ALL');
+
+  useEffect(() => {
+    if (route?.params?.initialTab) {
+      setActiveTab(route.params.initialTab);
+    }
+  }, [route?.params?.initialTab]);
   const { data, isLoading, isError, error, refetch, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useMyListingsInfiniteQuery();
   const allListings = data?.items ?? [];
@@ -396,7 +410,8 @@ const MyListingsScreen = ({ navigation }: any) => {
 
   const handlePublish = (property: PropertyDTO) => {
     publishListing.mutate(property.id, {
-      onError: () => Alert.alert('Error', 'Failed to publish listing.'),
+      onSuccess: () => Alert.alert('Submitted for Review', 'Your listing has been submitted for admin approval. You can track it in the "Pending" tab.'),
+      onError: (e: any) => Alert.alert('Error', e?.response?.data?.message ?? 'Failed to submit listing.'),
     });
   };
 

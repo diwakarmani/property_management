@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
@@ -69,8 +71,15 @@ const ChangePasswordScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        style={styles.form}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: spacing.xl }}
+      >
 
         <View style={styles.backRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -126,7 +135,7 @@ const ChangePasswordScreen = ({ navigation }: any) => {
           )}
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

@@ -1026,9 +1026,9 @@ const PropertyDetailScreen = () => {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      {isBuyer && <View style={styles.footer}>
 
-        {hasPhone && isBuyer && (
+        {hasPhone && (
           <TouchableOpacity
             style={[styles.callButton, isContacted && styles.callButtonContacted]}
             onPress={isContacted && revealedContact?.phone
@@ -1071,7 +1071,7 @@ const PropertyDetailScreen = () => {
             <Text style={styles.inquiryButtonText}>Send Enquiry</Text>
           </LinearGradient>
         </TouchableOpacity>
-      </View>
+      </View>}
 
       {isContacted && (
         <View style={styles.contactedBanner}>

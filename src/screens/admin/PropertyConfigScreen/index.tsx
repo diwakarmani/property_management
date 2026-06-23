@@ -112,6 +112,11 @@ const PropertyConfigScreen = () => {
     setSubTypeModal(true);
   };
 
+  const openAddAmenity = () => {
+    setAmenityForm({ ...EMPTY_AMENITY });
+    setAmenityModal(true);
+  };
+
   const submitSubType = () => {
     if (!subTypeForm.name.trim() || !parentTypeId) { Alert.alert('Validation', 'Name is required'); return; }
     setSavingSubType(true);
@@ -145,6 +150,7 @@ const PropertyConfigScreen = () => {
     })
       .then(res => {
         setAmenities(prev => [...prev, res.data.data]);
+        setAmenityForm({ ...EMPTY_AMENITY });
         setAmenityModal(false);
       })
       .catch(err => Alert.alert('Error', err?.response?.data?.message ?? 'Failed to save'))
@@ -182,9 +188,9 @@ const PropertyConfigScreen = () => {
             </View>
           </View>
           <View style={styles.typeRight}>
-            <View style={[styles.activeBadge, { backgroundColor: item.isActive ? '#27AE6020' : '#E74C3C20' }]}>
-              <Text style={[styles.activeBadgeText, { color: item.isActive ? '#27AE60' : '#E74C3C' }]}>
-                {item.isActive ? 'Active' : 'Inactive'}
+            <View style={[styles.activeBadge, { backgroundColor: item.isActive !== false ? '#27AE6020' : '#E74C3C20' }]}>
+              <Text style={[styles.activeBadgeText, { color: item.isActive !== false ? '#27AE60' : '#E74C3C' }]}>
+                {item.isActive !== false ? 'Active' : 'Inactive'}
               </Text>
             </View>
             <Text style={styles.subCount}>{item.subTypes?.length ?? 0} sub</Text>
@@ -279,7 +285,7 @@ const PropertyConfigScreen = () => {
         </Text>
         <TouchableOpacity
           style={styles.addBtn}
-          onPress={() => tab === 'types' ? openAddType() : setAmenityModal(true)}
+          onPress={() => tab === 'types' ? openAddType() : openAddAmenity()}
         >
           <Ionicons name="add" size={18} color={colors.white} />
           <Text style={styles.addBtnText}>{tab === 'types' ? 'Add Type' : 'Add Amenity'}</Text>
