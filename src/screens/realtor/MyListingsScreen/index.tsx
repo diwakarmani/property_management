@@ -180,7 +180,7 @@ type ListingCardProps = {
   onPublish: (p: PropertyDTO) => void;
 };
 
-const EDITABLE_STATUSES = new Set(['ACTIVE', 'DRAFT']);
+const EDITABLE_STATUSES = new Set(['ACTIVE', 'DRAFT', 'PENDING_APPROVAL']);
 const IMAGE_ACCESSIBLE_STATUSES = new Set(['ACTIVE', 'DRAFT', 'PENDING_APPROVAL']);
 
 const ListingCard = ({ item, navigation, onRequestDelete, onPublish }: ListingCardProps) => {
@@ -420,9 +420,21 @@ const MyListingsScreen = ({ navigation, route }: any) => {
       <View style={styles.container}>
 
         <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>My Listings</Text>
-            <Text style={styles.headerSub}>{allListings.length} total properties</Text>
+          <View style={styles.headerLeft}>
+            {navigation.canGoBack() && (
+              <TouchableOpacity
+                style={styles.backBtn}
+                onPress={() => navigation.goBack()}
+                accessibilityRole="button"
+                accessibilityLabel="Back"
+              >
+                <Ionicons name="chevron-back" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+            <View>
+              <Text style={styles.headerTitle}>My Listings</Text>
+              <Text style={styles.headerSub}>{allListings.length} total properties</Text>
+            </View>
           </View>
           <TouchableOpacity
             style={styles.createBtn}
@@ -512,6 +524,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  backBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: colors.primarySurface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 20,

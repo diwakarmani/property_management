@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { logout, clearActiveRoleAndReselect } from '@/store/slices/authSlice';
+import { useFocusEffect } from '@react-navigation/native';
+import { logout, clearActiveRoleAndReselect, fetchUser } from '@/store/slices/authSlice';
 import { getAvailableRoles } from '@/utils/roleUtils';
 import { colors, typography, spacing } from '@/theme';
 import type { AppDispatch, RootState } from '@/store';
@@ -42,9 +43,25 @@ const infoRowStyles = StyleSheet.create({
   value: { fontSize: typography.fontSize.md, color: colors.text, fontWeight: typography.fontWeight.medium, marginTop: 1 },
 });
 
+const PROFILE_STALE_MS = 30_000;
+
 const ProfileScreen = ({ navigation }: any) => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
+  const lastFetchRef = useRef<number>(0);
+
+  // Refresh from DB on screen focus so edits in ChangeContactScreen / EditProfileScreen
+  // are reflected immediately — but skip refetches within the stale window to avoid
+  // unnecessary API calls on every tab switch.
+  useFocusEffect(
+    useCallback(() => {
+      const now = Date.now();
+      if (now - lastFetchRef.current > PROFILE_STALE_MS) {
+        lastFetchRef.current = now;
+        dispatch(fetchUser());
+      }
+    }, [dispatch])
+  );
 
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -98,9 +115,11 @@ const ProfileScreen = ({ navigation }: any) => {
     {
       title: 'Account',
       items: [
-        { icon: 'create-outline',        label: 'Edit Profile',    onPress: () => navigation.navigate('EditProfile'),    color: colors.primary },
-        { icon: 'lock-closed-outline',   label: 'Change Password', onPress: () => navigation.navigate('ChangePassword'), color: '#8B5CF6' },
-        { icon: 'location-outline',      label: 'My Addresses',    onPress: () => navigation.navigate('Addresses'),      color: '#2980B9' },
+        { icon: 'create-outline',        label: 'Edit Profile',    onPress: () => navigation.navigate('EditProfile'),                                              color: colors.primary },
+        { icon: 'call-outline',          label: 'Change Phone',    onPress: () => navigation.navigate('ChangeContact', { contactType: 'phone' }),                  color: '#0891B2' },
+        { icon: 'mail-outline',          label: 'Change Email',    onPress: () => navigation.navigate('ChangeContact', { contactType: 'email' }),                  color: '#7C3AED' },
+        { icon: 'lock-closed-outline',   label: 'Change Password', onPress: () => navigation.navigate('ChangePassword'),                                           color: '#8B5CF6' },
+        { icon: 'location-outline',      label: 'My Addresses',    onPress: () => navigation.navigate('Addresses'),                                                color: '#2980B9' },
         ...(isBuyer ? [{ icon: 'chatbubbles-outline', label: 'My Inquiries', onPress: () => navigation.navigate('SentInquiries'), color: '#0891B2' }] : []),
       ],
     },

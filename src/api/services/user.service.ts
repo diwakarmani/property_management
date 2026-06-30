@@ -44,4 +44,18 @@ export const UserService = {
 
   deleteAddress: (addressId: number) =>
     axiosClient.delete<ApiResponse<void>>(`/api/users/me/addresses/${addressId}`),
+
+  // ── Secure contact-change (OTP-gated) ──────────────────────────────────────
+
+  initiatePhoneChange: (newContact: string) =>
+    axiosClient.post<ApiResponse<void>>('/api/users/me/phone/initiate-change', { newContact }),
+
+  verifyPhoneChange: (newContact: string, otpCode: string) =>
+    axiosClient.post<ApiResponse<any>>('/api/users/me/phone/verify-change', { newContact, otpCode }),
+
+  initiateEmailChange: (newContact: string) =>
+    axiosClient.post<ApiResponse<void>>('/api/users/me/email/initiate-change', { newContact }),
+
+  verifyEmailChange: (newContact: string, otpCode: string) =>
+    axiosClient.post<ApiResponse<any>>('/api/users/me/email/verify-change', { newContact, otpCode }),
 };

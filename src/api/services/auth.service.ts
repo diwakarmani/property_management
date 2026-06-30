@@ -14,7 +14,7 @@ export const AuthService = {
     axiosClient.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.LOGIN, data),
 
   register: (data: RegisterRequest) =>
-    axiosClient.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.REGISTER, data),
+    axiosClient.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.REGISTER, data, { skipSuccessToast: true } as any),
 
   sendOtp: (data: OtpSendRequest) =>
     axiosClient.post<ApiResponse<{ expiresIn: number }>>(AUTH_ENDPOINTS.OTP_SEND, data),

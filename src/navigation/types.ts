@@ -17,6 +17,7 @@ export type RootStackParamList = {
   LocationSelection: undefined;
   MainApp: undefined;
   Notifications: undefined;
+  PropertyDetail: { propertyId?: number; id?: number } | undefined;
 };
 
 export type HomeStackParamList = {
@@ -67,6 +68,7 @@ export type ProfileStackParamList = {
   ProfileMain: undefined;
   EditProfile: undefined;
   ChangePassword: undefined;
+  ChangeContact: { contactType: 'phone' | 'email' };
   Addresses: undefined;
   Notifications: undefined;
   SentInquiries: undefined;

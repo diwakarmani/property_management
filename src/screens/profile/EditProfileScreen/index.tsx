@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -171,13 +172,17 @@ const EditProfileScreen = ({ navigation }: any) => {
   const [selectedGender, setSelectedGender] = useState<string>(user?.gender || '');
   const [datePickerVisible, setDatePickerVisible] = useState(false);
 
+  // Field refs for sequential keyboard navigation
+  const lastNameRef = useRef<TextInput>(null);
+  const occupationRef = useRef<TextInput>(null);
+  const websiteRef = useRef<TextInput>(null);
+
   const { control, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
-      phone: user?.phone || '',
       bio: user?.bio || '',
-      dateOfBirth: user?.dateOfBirth || '',
+      dateOfBirth: (user?.dateOfBirth || '').slice(0, 10),
       occupation: user?.occupation || '',
       website: user?.website || '',
     },
@@ -189,7 +194,6 @@ const EditProfileScreen = ({ navigation }: any) => {
       const payload: any = {
         firstName: data.firstName || undefined,
         lastName: data.lastName || undefined,
-        phone: data.phone || undefined,
         bio: data.bio || undefined,
         occupation: data.occupation || undefined,
         website: data.website || undefined,
@@ -197,7 +201,6 @@ const EditProfileScreen = ({ navigation }: any) => {
       };
       const dob = (data.dateOfBirth || '').trim();
       if (dob.length > 0) {
-
         const iso = toIsoDateOrEmpty(dob);
         if (iso) payload.dateOfBirth = iso;
       }
@@ -210,12 +213,18 @@ const EditProfileScreen = ({ navigation }: any) => {
   };
 
   return (
+    // KAV active for Android; iOS uses automaticallyAdjustKeyboardInsets on ScrollView
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'android' ? 'height' : undefined}
     >
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.backRow}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={18} color={colors.primary} />
@@ -255,6 +264,9 @@ const EditProfileScreen = ({ navigation }: any) => {
                 leftIcon="person-outline"
                 error={errors.firstName?.message as string | undefined}
                 placeholder="Enter your first name"
+                returnKeyType="next"
+                onSubmitEditing={() => lastNameRef.current?.focus()}
+                blurOnSubmit={false}
               />
             )}
           />
@@ -263,25 +275,15 @@ const EditProfileScreen = ({ navigation }: any) => {
             name="lastName"
             render={({ field: { onChange, value } }) => (
               <Input
+                ref={lastNameRef}
                 label="Last Name"
                 value={value}
                 onChangeText={onChange}
                 leftIcon="person-outline"
                 placeholder="Enter your last name"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="phone"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                label="Phone Number"
-                value={value}
-                onChangeText={onChange}
-                leftIcon="call-outline"
-                keyboardType="phone-pad"
-                placeholder="+91 XXXXX XXXXX"
+                returnKeyType="next"
+                onSubmitEditing={() => occupationRef.current?.focus()}
+                blurOnSubmit={false}
               />
             )}
           />
@@ -332,11 +334,15 @@ const EditProfileScreen = ({ navigation }: any) => {
             name="occupation"
             render={({ field: { onChange, value } }) => (
               <Input
+                ref={occupationRef}
                 label="Occupation"
                 value={value}
                 onChangeText={onChange}
                 leftIcon="briefcase-outline"
                 placeholder="e.g. Real Estate Agent, Buyer"
+                returnKeyType="next"
+                onSubmitEditing={() => websiteRef.current?.focus()}
+                blurOnSubmit={false}
               />
             )}
           />
@@ -345,6 +351,7 @@ const EditProfileScreen = ({ navigation }: any) => {
             name="website"
             render={({ field: { onChange, value } }) => (
               <Input
+                ref={websiteRef}
                 label="Website"
                 value={value}
                 onChangeText={onChange}
@@ -352,6 +359,8 @@ const EditProfileScreen = ({ navigation }: any) => {
                 keyboardType="url"
                 autoCapitalize="none"
                 placeholder="https://yourwebsite.com"
+                returnKeyType="done"
+                blurOnSubmit
               />
             )}
           />
@@ -376,6 +385,8 @@ const EditProfileScreen = ({ navigation }: any) => {
                   multiline
                   numberOfLines={4}
                   style={styles.bioInput}
+                  returnKeyType="default"
+                  blurOnSubmit={false}
                 />
               </View>
             )}
@@ -384,19 +395,38 @@ const EditProfileScreen = ({ navigation }: any) => {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="lock-closed-outline" size={16} color={colors.textSecondary} />
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Account (Read-only)</Text>
+            <Ionicons name="shield-checkmark-outline" size={16} color={colors.textSecondary} />
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Contact Info (OTP-verified)</Text>
           </View>
+
+          <View style={styles.readonlyField}>
+            <Ionicons name="call-outline" size={16} color={colors.textSecondary} />
+            <View style={styles.readonlyInfo}>
+              <Text style={styles.readonlyLabel}>Phone Number</Text>
+              <Text style={styles.readonlyValue}>{user?.phone || 'Not set'}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ChangeContact', { contactType: 'phone' })}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.changeLink}>Change</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.fieldSeparator} />
+
           <View style={styles.readonlyField}>
             <Ionicons name="mail-outline" size={16} color={colors.textSecondary} />
             <View style={styles.readonlyInfo}>
               <Text style={styles.readonlyLabel}>Email Address</Text>
               <Text style={styles.readonlyValue}>{user?.email || '—'}</Text>
             </View>
-            <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={13} color={colors.success} />
-              <Text style={styles.verifiedText}>Verified</Text>
-            </View>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ChangeContact', { contactType: 'email' })}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.changeLink}>Change</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -430,8 +460,11 @@ const EditProfileScreen = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  scroll: { flex: 1 },
-  scrollContent: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
+  scrollContent: {
+    padding: spacing.md,
+    gap: spacing.md,
+    paddingBottom: spacing.xl * 4,
+  },
 
   backRow: {
     flexDirection: 'row',
@@ -620,8 +653,13 @@ const styles = StyleSheet.create({
   readonlyInfo: { flex: 1 },
   readonlyLabel: { fontSize: typography.fontSize.xs, color: colors.textSecondary },
   readonlyValue: { fontSize: typography.fontSize.md, color: colors.text, fontWeight: typography.fontWeight.medium, marginTop: 2 },
-  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.successSurface, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
-  verifiedText: { fontSize: 10, color: colors.success, fontWeight: typography.fontWeight.bold },
+  fieldSeparator: { height: 1, backgroundColor: colors.borderLight, marginVertical: 2 },
+  changeLink: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary,
+    fontWeight: typography.fontWeight.bold,
+    paddingHorizontal: 4,
+  },
 
   saveBtn: {
     flexDirection: 'row',

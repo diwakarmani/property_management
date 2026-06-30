@@ -26,8 +26,8 @@ const STAT_CONFIG = [
 
 const QUICK_ACTIONS: { icon: string; title: string; route: string; showPending: boolean; params?: object }[] = [
   { icon: 'list-outline',       title: 'Approve Listings',   route: 'Listings',          showPending: true },
-  { icon: 'people-outline',     title: 'Manage Realtors',    route: 'Users',             showPending: false, params: { roleFilter: 'REALTOR' } },
-  { icon: 'person-add-outline', title: 'Manage Users',       route: 'Users',             showPending: false, params: { roleFilter: null } },
+  { icon: 'people-outline',     title: 'Manage Realtors',    route: 'Users',             showPending: false, params: { screen: 'ManageUsers', params: { roleFilter: 'REALTOR' } } },
+  { icon: 'person-add-outline', title: 'Manage Users',       route: 'Users',             showPending: false, params: { screen: 'ManageUsers', params: { roleFilter: null } } },
   { icon: 'bar-chart-outline',  title: 'Platform Analytics', route: 'Analytics',         showPending: false },
   { icon: 'layers-outline',     title: 'Property Config',    route: 'PropertyConfig',    showPending: false },
   { icon: 'location-outline',   title: 'Location Bootstrap', route: 'LocationBootstrap', showPending: false },

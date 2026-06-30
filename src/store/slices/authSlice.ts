@@ -18,6 +18,8 @@ interface User {
   dateOfBirth?: string;
   occupation?: string;
   website?: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
 }
 
 interface AuthState {
@@ -65,6 +67,8 @@ const toUser = (payload: any): User => {
     dateOfBirth: payload?.dateOfBirth,
     occupation: payload?.occupation,
     website: payload?.website,
+    emailVerified: payload?.emailVerified,
+    phoneVerified: payload?.phoneVerified,
   };
 };
 
@@ -195,6 +199,12 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => { state.error = null; },
     resetOtpState: (state) => { state.otpSent = false; state.otpIdentifier = null; },
+    // Merge updated contact fields (phone/email) into state without a full fetch round-trip
+    patchUser: (state, action: PayloadAction<Partial<User>>) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -304,5 +314,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, resetOtpState } = authSlice.actions;
+export const { clearError, resetOtpState, patchUser } = authSlice.actions;
 export default authSlice.reducer;

@@ -10,7 +10,6 @@ import {
   useMarkAllReadMutation,
 } from '@/api/hooks/useNotifications';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
-import { toast } from '@/utils/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface NotifStyle {
@@ -62,18 +61,13 @@ const NotificationsScreen = () => {
     if (!n.read) markRead.mutate(n.id);
 
     if (n.entityType === 'PROPERTY' && n.entityId) {
-      (navigation as any).navigate('HomeStack', {
-        screen: 'PropertyDetail',
-        params: { id: n.entityId },
-      });
+      (navigation as any).navigate('PropertyDetail', { id: n.entityId });
     }
   };
 
   const onMarkAll = () => {
     if (!notifications.some((n) => !n.read)) return;
-    markAll.mutate(undefined, {
-      onSuccess: () => toast.success('All notifications marked read'),
-    });
+    markAll.mutate(undefined);
   };
 
   const renderItem = ({ item }: { item: NotificationDTO }) => {

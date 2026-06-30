@@ -127,11 +127,11 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onPress, style, i
               {property.furnishedStatus?.replace('_', ' ')}
             </Text>
           </View>
-          {property.distanceInKm !== undefined && (
+          {property.distanceInKm != null && property.distanceInKm > 0 && (
             <View style={[styles.detailItem, styles.distancePill]} testID="property-card-distance">
               <Ionicons name="navigate" size={11} color={colors.primary} />
               <Text style={[styles.detailText, styles.distanceText]}>
-                {property.distanceInKm?.toFixed(1)} km
+                {property.distanceInKm.toFixed(1)} km
               </Text>
             </View>
           )}

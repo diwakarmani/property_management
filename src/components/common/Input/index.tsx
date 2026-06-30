@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, forwardRef } from 'react';
 import {
   View,
   TextInput,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TextInputProps,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
@@ -20,7 +21,7 @@ interface InputProps extends TextInputProps {
   onRightIconPress?: () => void;
 }
 
-const Input: React.FC<InputProps> = ({
+const Input = forwardRef<TextInput, InputProps>(({
   label,
   error,
   hint,
@@ -28,10 +29,26 @@ const Input: React.FC<InputProps> = ({
   leftIcon,
   rightIcon,
   onRightIconPress,
+  onChangeText,
+  style: externalStyle,
+  multiline,
   ...props
-}) => {
+}, ref) => {
   const [isSecure, setIsSecure] = useState(secureTextEntry);
   const [isFocused, setIsFocused] = useState(false);
+  const toggleInProgressRef = useRef(false);
+
+  const handleToggleSecure = () => {
+    toggleInProgressRef.current = true;
+    setIsSecure(v => !v);
+    setTimeout(() => { toggleInProgressRef.current = false; }, 100);
+  };
+
+  const handleChangeText = (text: string) => {
+    // iOS fires onChangeText('') when secureTextEntry prop toggles — suppress it
+    if (Platform.OS === 'ios' && secureTextEntry && toggleInProgressRef.current && text === '') return;
+    onChangeText?.(text);
+  };
 
   const borderColor = error
     ? colors.error
@@ -62,21 +79,26 @@ const Input: React.FC<InputProps> = ({
           />
         )}
         <TextInput
+          ref={ref}
+          multiline={multiline}
           style={[
             styles.input,
+            multiline && styles.inputMultiline,
             leftIcon && styles.inputWithLeft,
             (secureTextEntry || rightIcon) && styles.inputWithRight,
+            externalStyle,
           ]}
           placeholderTextColor={colors.textLight}
           secureTextEntry={isSecure}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          onChangeText={handleChangeText}
           {...props}
         />
         {secureTextEntry ? (
           <TouchableOpacity
             style={styles.rightIconBtn}
-            onPress={() => setIsSecure(!isSecure)}
+            onPress={handleToggleSecure}
           >
             <Ionicons
               name={isSecure ? 'eye-off-outline' : 'eye-outline'}
@@ -100,7 +122,7 @@ const Input: React.FC<InputProps> = ({
       ) : null}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -135,6 +157,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     fontSize: typography.fontSize.md,
     color: colors.text,
+  },
+  inputMultiline: {
+    height: undefined,
+    minHeight: 52,
+    paddingVertical: spacing.sm,
+    textAlignVertical: 'top',
   },
   inputWithLeft: {
     paddingLeft: spacing.sm,

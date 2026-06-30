@@ -24,13 +24,17 @@ export const PropertyService = {
     axiosClient.post<ApiResponse<PropertyDTO>>('/api/properties', data),
 
   publishProperty: (id: number) =>
-    axiosClient.patch<ApiResponse<PropertyDTO>>(`/api/properties/${id}/publish`),
+    axiosClient.patch<ApiResponse<PropertyDTO>>(`/api/properties/${id}/publish`, undefined, {
+      skipSuccessToast: true,
+    } as any),
 
   updateProperty: (id: number, data: Record<string, any>) =>
     axiosClient.put<ApiResponse<PropertyDTO>>(`/api/properties/${id}`, data),
 
   requestDeletion: (id: number) =>
-    axiosClient.post<ApiResponse<PropertyDTO>>(`/api/properties/${id}/request-deletion`),
+    axiosClient.post<ApiResponse<PropertyDTO>>(`/api/properties/${id}/request-deletion`, undefined, {
+      skipSuccessToast: true,
+    } as any),
 
   getImages: (propertyId: number) =>
     axiosClient.get<ApiResponse<PropertyImageDTO[]>>(`/api/properties/${propertyId}/images`),

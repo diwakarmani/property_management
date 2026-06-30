@@ -132,7 +132,8 @@ const CreateListingScreen = ({ navigation }: any) => {
       .catch(() => {});
     setForm(prev => ({
       ...prev,
-      city: prev.city || selectedCity.name,
+      city: selectedCity.name,
+      state: selectedCity.stateName,
     }));
   }, [selectedCity?.id]);
 
@@ -347,20 +348,22 @@ const CreateListingScreen = ({ navigation }: any) => {
         <View style={{ flex: 1 }}>
           <Text style={styles.label}>City *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, !!selectedCity && styles.inputReadOnly]}
             value={form.city}
-            onChangeText={set('city')}
-            placeholder="e.g. Austin"
+            editable={!selectedCity}
+            onChangeText={!selectedCity ? set('city') : undefined}
+            placeholder={selectedCity ? '' : 'e.g. Austin'}
             placeholderTextColor={colors.textLight}
           />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.label}>State *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, !!selectedCity && styles.inputReadOnly]}
             value={form.state}
-            onChangeText={set('state')}
-            placeholder="e.g. TX"
+            editable={!selectedCity}
+            onChangeText={!selectedCity ? set('state') : undefined}
+            placeholder={selectedCity ? '' : 'e.g. TX'}
             placeholderTextColor={colors.textLight}
           />
         </View>
@@ -660,7 +663,13 @@ const CreateListingScreen = ({ navigation }: any) => {
                   <TouchableOpacity
                     style={[styles.modalItem, form.localityId === item.id && styles.modalItemSelected]}
                     onPress={() => {
-                      setForm(prev => ({ ...prev, locality: item.name, localityId: item.id }));
+                      setForm(prev => ({
+                        ...prev,
+                        locality: item.name,
+                        localityId: item.id,
+                        city: selectedCity?.name ?? prev.city,
+                        state: selectedCity?.stateName ?? prev.state,
+                      }));
                       setLocalityModal(false);
                     }}
                   >
@@ -755,6 +764,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border,
     borderRadius: 12, paddingHorizontal: spacing.md, height: 50,
     fontSize: typography.fontSize.md, color: colors.text,
+  },
+  inputReadOnly: {
+    backgroundColor: colors.background,
+    borderColor: colors.borderLight,
+    color: colors.textSecondary,
   },
   inputRow: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,

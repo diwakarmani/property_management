@@ -7,6 +7,7 @@ import { bootstrapSession } from '@/store/slices/authSlice';
 import AuthNavigator from './AuthNavigator';
 import LocationSelectionScreen from '@/screens/location/LocationSelectionScreen';
 import NotificationsScreen from '@/screens/profile/NotificationsScreen';
+import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
 import MainTabNavigator from './MainTabNavigator';
 import AdminNavigator from './AdminNavigator';
 import RealtorNavigator from './RealtorNavigator';
@@ -129,6 +130,7 @@ const AppNavigator = () => {
             <Stack.Screen name="MainApp" component={MainAppScreen} />
             <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
           </>
         )}
       </Stack.Navigator>

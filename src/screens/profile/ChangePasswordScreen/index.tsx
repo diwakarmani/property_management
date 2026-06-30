@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, forwardRef } from 'react';
 import {
   View,
   Text,
@@ -15,30 +15,45 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import { UserService } from '@/api/services/user.service';
 
-const PasswordField = ({
+interface PasswordFieldProps {
+  label: string;
+  value: string;
+  onChangeText: (t: string) => void;
+  show: boolean;
+  onToggle: () => void;
+  placeholder: string;
+  returnKeyType?: 'next' | 'done';
+  onSubmitEditing?: () => void;
+  blurOnSubmit?: boolean;
+}
+
+const PasswordField = forwardRef<TextInput, PasswordFieldProps>(({
   label, value, onChangeText, show, onToggle, placeholder,
-}: {
-  label: string; value: string; onChangeText: (t: string) => void;
-  show: boolean; onToggle: () => void; placeholder: string;
-}) => (
+  returnKeyType = 'next', onSubmitEditing, blurOnSubmit = false,
+}, ref) => (
   <>
     <Text style={styles.label}>{label}</Text>
     <View style={styles.passwordRow}>
       <TextInput
+        ref={ref}
         style={styles.passwordInput}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
+        placeholderTextColor={colors.textLight}
         secureTextEntry={!show}
         autoCapitalize="none"
         autoCorrect={false}
+        returnKeyType={returnKeyType}
+        onSubmitEditing={onSubmitEditing}
+        blurOnSubmit={blurOnSubmit}
       />
-      <TouchableOpacity onPress={onToggle} style={styles.eyeBtn}>
+      <TouchableOpacity onPress={onToggle} style={styles.eyeBtn} hitSlop={8}>
         <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textSecondary} />
       </TouchableOpacity>
     </View>
   </>
-);
+));
 
 const ChangePasswordScreen = ({ navigation }: any) => {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -48,6 +63,10 @@ const ChangePasswordScreen = ({ navigation }: any) => {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const currentRef = useRef<TextInput>(null);
+  const newPasswordRef = useRef<TextInput>(null);
+  const confirmRef = useRef<TextInput>(null);
 
   const handleSubmit = async () => {
     if (!currentPassword.trim()) {
@@ -71,16 +90,18 @@ const ChangePasswordScreen = ({ navigation }: any) => {
   };
 
   return (
+    // KAV active for Android; iOS uses automaticallyAdjustKeyboardInsets on ScrollView
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'android' ? 'height' : undefined}
     >
       <ScrollView
-        style={styles.form}
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: spacing.xl }}
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
+        showsVerticalScrollIndicator={false}
       >
-
         <View style={styles.backRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={18} color={colors.primary} />
@@ -94,30 +115,42 @@ const ChangePasswordScreen = ({ navigation }: any) => {
         </View>
 
         <PasswordField
+          ref={currentRef}
           label="Current Password"
           value={currentPassword}
           onChangeText={setCurrentPassword}
           show={showCurrent}
           onToggle={() => setShowCurrent(v => !v)}
           placeholder="Enter current password"
+          returnKeyType="next"
+          onSubmitEditing={() => newPasswordRef.current?.focus()}
+          blurOnSubmit={false}
         />
 
         <PasswordField
+          ref={newPasswordRef}
           label="New Password"
           value={newPassword}
           onChangeText={setNewPassword}
           show={showNew}
           onToggle={() => setShowNew(v => !v)}
           placeholder="Min 8 characters"
+          returnKeyType="next"
+          onSubmitEditing={() => confirmRef.current?.focus()}
+          blurOnSubmit={false}
         />
 
         <PasswordField
+          ref={confirmRef}
           label="Confirm New Password"
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           show={showConfirm}
           onToggle={() => setShowConfirm(v => !v)}
           placeholder="Re-enter new password"
+          returnKeyType="done"
+          onSubmitEditing={handleSubmit}
+          blurOnSubmit
         />
 
         <TouchableOpacity
@@ -141,6 +174,10 @@ const ChangePasswordScreen = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  scrollContent: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xl * 4,
+  },
   backRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     marginBottom: spacing.md,
@@ -156,7 +193,6 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
     color: colors.text,
   },
-  form: { flex: 1, padding: spacing.lg },
   infoCard: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     backgroundColor: colors.primarySurface,

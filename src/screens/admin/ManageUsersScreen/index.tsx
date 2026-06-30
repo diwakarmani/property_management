@@ -416,6 +416,33 @@ const ManageUsersScreen = ({ route }: any) => {
       ]
     );
 
+  const handleToggleActive = (user: AdminUserDTO) => {
+    const action = user.isActive ? 'Deactivate' : 'Activate';
+    Alert.alert(
+      `${action} User`,
+      `${action} account for ${user.firstName} ${user.lastName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: action,
+          onPress: () => {
+            const call = user.isActive
+              ? AdminService.deactivateUser(user.id)
+              : AdminService.activateUser(user.id);
+            call
+              .then(res => {
+                const updated = res.data?.data;
+                if (updated) {
+                  setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+                }
+              })
+              .catch(() => Alert.alert('Error', `Failed to ${action.toLowerCase()} user`));
+          },
+        },
+      ]
+    );
+  };
+
   const UserCard = ({ user }: { user: AdminUserDTO }) => {
     const visibleRoles = (user.roles ?? []).filter(r => ALL_ROLES.includes(r as RoleKey));
     const primaryCfg   = roleOf(visibleRoles[0] ?? 'BUYER');
@@ -482,6 +509,22 @@ const ManageUsersScreen = ({ route }: any) => {
             >
               <Ionicons name="shield-half-outline" size={15} color={colors.primary} />
               <Text style={styles.editRoleBtnText}>Roles</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.toggleBtn,
+                user.isActive
+                  ? { backgroundColor: colors.warningSurface, borderColor: colors.warning + '50' }
+                  : { backgroundColor: colors.successSurface, borderColor: colors.success + '50' },
+              ]}
+              onPress={() => handleToggleActive(user)}
+              activeOpacity={0.78}
+            >
+              <Ionicons
+                name={user.isActive ? 'lock-closed-outline' : 'checkmark-circle-outline'}
+                size={15}
+                color={user.isActive ? colors.warning : colors.success}
+              />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.deleteBtn}
@@ -713,6 +756,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: typography.fontWeight.semibold,
     color: colors.primary,
+  },
+  toggleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
   deleteBtn: {
     width: 36,

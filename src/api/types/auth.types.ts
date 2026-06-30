@@ -25,7 +25,9 @@ export interface AuthResponse {
   refreshToken: string;
   tokenType: string;
   expiresIn: number;
+  id?: number;
   email: string;
+  phone?: string;
   firstName: string;
   lastName: string;
   roles: string[];

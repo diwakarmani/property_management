@@ -93,23 +93,6 @@ const RealtorDashboardScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        <View style={styles.overviewCard}>
-          <Text style={styles.sectionTitle}>Overview</Text>
-          {[
-            { label: 'Active Listings',   value: stats?.activeListings ?? 0 },
-            { label: 'Properties Sold',   value: stats?.soldCount ?? 0 },
-            { label: 'Properties Rented', value: stats?.rentedCount ?? 0 },
-            { label: 'Total Views',       value: formatNumber(stats?.totalViews ?? 0) },
-            { label: 'Pending Approval',  value: stats?.pendingApprovals ?? 0 },
-          ].map((row, i) => (
-            <View key={i} style={[styles.overviewRow, i === 4 && styles.overviewRowLast]}>
-              <Text style={styles.overviewLabel}>{row.label}</Text>
-              <View style={styles.overviewValueWrap}>
-                <Text style={styles.overviewValue}>{row.value}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
       </ScrollView>
     </AsyncBoundary>
   );
@@ -204,45 +187,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  overviewCard: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.xl,
-    borderRadius: 16,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  overviewRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  overviewRowLast: { borderBottomWidth: 0 },
-  overviewLabel: {
-    fontSize: typography.fontSize.md,
-    color: colors.textSecondary,
-    fontWeight: typography.fontWeight.medium,
-  },
-  overviewValueWrap: {
-    backgroundColor: colors.primarySurface,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  overviewValue: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
-  },
 });
 
 export default RealtorDashboardScreen;

@@ -26,8 +26,17 @@ interface Props {
   route: OTPScreenRouteProp;
 }
 
+// True when identifier is a phone number: starts with + followed by digits,
+// OR is a plain digit string 7-15 chars (after stripping formatting).
+// Tagged emails like "user+tag@example.com" start with a letter, not "+",
+// so the first branch never mis-fires for normal email addresses.
+const isPhoneIdentifier = (id: string) =>
+  /^\+\d{7,15}$/.test(id.replace(/[\s\-().]/g, '')) ||
+  /^\d{7,15}$/.test(id.replace(/[\s\-().]/g, ''));
+
 const OTPVerificationScreen: React.FC<Props> = ({ route }) => {
   const { identifier } = route.params;
+  const isPhone = isPhoneIdentifier(identifier);
   const [timer, setTimer] = useState(60);
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
@@ -70,12 +79,18 @@ const OTPVerificationScreen: React.FC<Props> = ({ route }) => {
           <Ionicons name="shield-checkmark" size={32} color={colors.primary} />
         </View>
         <Text style={styles.heroTitle}>Verify Code</Text>
-        <Text style={styles.heroSubtitle}>Enter the 6-digit code sent to your device</Text>
+        <Text style={styles.heroSubtitle}>
+          Enter the 6-digit code sent to your {isPhone ? 'phone' : 'email'}
+        </Text>
       </LinearGradient>
 
       <View style={styles.card}>
         <View style={styles.identifierRow}>
-          <Ionicons name="mail-outline" size={16} color={colors.primary} />
+          <Ionicons
+            name={isPhone ? 'phone-portrait-outline' : 'mail-outline'}
+            size={16}
+            color={colors.primary}
+          />
           <Text style={styles.identifierText} numberOfLines={1}>{identifier}</Text>
         </View>
 

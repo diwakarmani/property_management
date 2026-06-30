@@ -55,13 +55,14 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
   const onSubmit = async (data: any) => {
     dispatch(clearError());
-    const localPhone = data.phone.trim().replace(/^0+/, '');
+    // Strip all non-digit characters (spaces, dashes, parens) then remove leading zeros
+    const digitsOnly = data.phone.replace(/\D/g, '').replace(/^0+/, '');
     const payload = {
       ...data,
       email: data.email.trim().toLowerCase(),
       firstName: data.firstName.trim(),
       lastName: data.lastName.trim(),
-      phone: `${countryCode}${localPhone}`,
+      phone: `${countryCode}${digitsOnly}`,
     };
     const result = await dispatch(registerUser(payload));
     if (registerUser.fulfilled.match(result)) {
@@ -178,7 +179,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                   render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={phoneStyles.input}
-                      placeholder="(555) 000-0000"
+                      placeholder="Enter local number"
                       placeholderTextColor={colors.textLight}
                       value={value}
                       onChangeText={onChange}

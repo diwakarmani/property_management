@@ -47,17 +47,23 @@ export const AdminService = {
   refreshDiscoveryCache: () =>
     axiosClient.post<ApiResponse<void>>('/api/admin/discovery/refresh'),
 
+  getPropertyTypesAdmin: () =>
+    axiosClient.get<ApiResponse<PropertyTypeDTO[]>>('/api/admin/property-config/types'),
+
+  getAmenitiesAdmin: () =>
+    axiosClient.get<ApiResponse<PropertyAmenityDTO[]>>('/api/admin/property-config/amenities'),
+
   createPropertyType: (dto: { name: string; description?: string; isActive?: boolean }) =>
-    axiosClient.post<ApiResponse<PropertyTypeDTO>>('/api/admin/property-config/types', dto),
+    axiosClient.post<ApiResponse<PropertyTypeDTO>>('/api/admin/property-config/types', dto, { skipErrorToast: true } as any),
 
   updatePropertyType: (id: number, dto: { name: string; description?: string; isActive?: boolean }) =>
-    axiosClient.put<ApiResponse<PropertyTypeDTO>>(`/api/admin/property-config/types/${id}`, dto),
+    axiosClient.put<ApiResponse<PropertyTypeDTO>>(`/api/admin/property-config/types/${id}`, dto, { skipErrorToast: true } as any),
 
   createSubType: (dto: { name: string; description?: string; propertyTypeId: number; isActive?: boolean }) =>
-    axiosClient.post<ApiResponse<PropertySubTypeDTO>>('/api/admin/property-config/sub-types', dto),
+    axiosClient.post<ApiResponse<PropertySubTypeDTO>>('/api/admin/property-config/sub-types', dto, { skipErrorToast: true } as any),
 
   createAmenity: (dto: { name: string; category?: string; iconClass?: string; isActive?: boolean }) =>
-    axiosClient.post<ApiResponse<PropertyAmenityDTO>>('/api/admin/property-config/amenities', dto),
+    axiosClient.post<ApiResponse<PropertyAmenityDTO>>('/api/admin/property-config/amenities', dto, { skipErrorToast: true } as any),
 
   getAdminCountries: () =>
     axiosClient.get<AdminCountryDTO[]>('/api/admin/locations/countries'),

@@ -18,7 +18,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
-import { PropertyService } from '@/api/services/property.service';
 import { AdminService } from '@/api/services/admin.service';
 import type { PropertyTypeDTO, PropertySubTypeDTO, PropertyAmenityDTO } from '@/api/types/property.types';
 
@@ -57,8 +56,8 @@ const PropertyConfigScreen = () => {
   const loadData = useCallback((isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     Promise.all([
-      PropertyService.getPropertyTypes(),
-      PropertyService.getAmenities(),
+      AdminService.getPropertyTypesAdmin(),
+      AdminService.getAmenitiesAdmin(),
     ])
       .then(([typesRes, amenitiesRes]) => {
         setTypes(typesRes.data.data ?? []);

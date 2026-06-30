@@ -218,7 +218,7 @@ const SearchScreen = ({ navigation }: any) => {
   };
 
   const atLimit = areas.length >= MAX_LOCALITIES;
-  const showSuggestions = isFocused && debouncedLocality.length >= 1;
+  const showSuggestions = isFocused && localityInput.trim().length >= 1;
 
   const { data, isLoading, isError, error, refetch, fetchNextPage, isFetchingNextPage, hasNextPage } =
     useSearchInfiniteQuery(committed, { enabled: searched });
@@ -270,6 +270,10 @@ const SearchScreen = ({ navigation }: any) => {
             onBlur={() => {
               blurTimer.current = setTimeout(() => setIsFocused(false), 200);
             }}
+            onSubmitEditing={() => {
+              if (blurTimer.current) clearTimeout(blurTimer.current);
+              setIsFocused(true);
+            }}
             returnKeyType="search"
             editable={!!selectedCity && !atLimit}
           />
@@ -297,7 +301,7 @@ const SearchScreen = ({ navigation }: any) => {
 
       {showSuggestions && (
         <View style={styles.suggestionBox}>
-          {isSearching ? (
+          {isSearching || localityInput.trim() !== debouncedLocality ? (
             <View style={styles.suggestionLoading}>
               <ActivityIndicator size="small" color={colors.primary} />
               <Text style={styles.suggestionLoadingText}>Searching…</Text>

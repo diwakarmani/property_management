@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,12 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
-  KeyboardAvoidingView,
+  Keyboard,
+  TouchableWithoutFeedback,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing } from '@/theme';
 import { UserService, type UserAddressDTO } from '@/api/services/user.service';
 
@@ -44,6 +45,14 @@ const AddressesScreen = ({ navigation }: any) => {
   const [form, setForm] = useState<Omit<UserAddressDTO, 'id'>>({ ...EMPTY_FORM });
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
+  // Field refs for sequential keyboard navigation
+  const line1Ref = useRef<TextInput>(null);
+  const line2Ref = useRef<TextInput>(null);
+  const cityRef = useRef<TextInput>(null);
+  const stateRef = useRef<TextInput>(null);
+  const countryRef = useRef<TextInput>(null);
+  const postalRef = useRef<TextInput>(null);
+
   const loadAddresses = () => {
     UserService.getMe()
       .then(res => setAddresses(res.data.data?.addresses ?? []))
@@ -56,6 +65,12 @@ const AddressesScreen = ({ navigation }: any) => {
   const set = (key: keyof typeof form) => (val: string) =>
     setForm(prev => ({ ...prev, [key]: val }));
 
+  const closeModal = () => {
+    Keyboard.dismiss();
+    setShowModal(false);
+    setForm({ ...EMPTY_FORM });
+  };
+
   const handleAdd = () => {
     if (!form.addressLine1.trim()) { Alert.alert('Required', 'Address line 1 is required'); return; }
     if (!form.city.trim()) { Alert.alert('Required', 'City is required'); return; }
@@ -63,12 +78,12 @@ const AddressesScreen = ({ navigation }: any) => {
     if (!form.country.trim()) { Alert.alert('Required', 'Country is required'); return; }
     if (!form.postalCode.trim()) { Alert.alert('Required', 'Postal code is required'); return; }
 
+    Keyboard.dismiss();
     setSubmitting(true);
     UserService.addAddress(form)
       .then(res => {
         setAddresses(prev => [...prev, res.data.data]);
-        setShowModal(false);
-        setForm({ ...EMPTY_FORM });
+        closeModal();
       })
       .catch(err => {
         const msg = err?.response?.data?.message ?? 'Failed to add address';
@@ -125,6 +140,7 @@ const AddressesScreen = ({ navigation }: any) => {
             <Ionicons name="add" size={18} color={colors.primary} />
           </TouchableOpacity>
         </View>
+
         {addresses.length === 0 ? (
           <View style={styles.empty}>
             <View style={styles.emptyIconWrap}>
@@ -168,27 +184,48 @@ const AddressesScreen = ({ navigation }: any) => {
         )}
       </ScrollView>
 
-      <Modal visible={showModal} animationType="slide" transparent>
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <View style={styles.modalContent}>
+      <Modal
+        visible={showModal}
+        animationType="slide"
+        transparent
+        onRequestClose={closeModal}
+      >
+        {/*
+          Overlay: semi-transparent backdrop. Tapping the backdrop area (above the sheet)
+          dismisses the keyboard. No KAV here — KAV wrapping the overlay was causing the
+          sheet to be pushed off-screen on iOS when keyboard appeared.
+        */}
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            {/* Fills the space ABOVE the sheet — tap here to dismiss keyboard */}
+            <View style={styles.modalBackdrop} />
+          </TouchableWithoutFeedback>
 
+          {/*
+            KAV wraps only the sheet (not the entire overlay). On Android this lifts the
+            sheet above the keyboard. On iOS, automaticallyAdjustKeyboardInsets on the
+            ScrollView handles inset adjustment — KAV is a no-op on iOS here.
+          */}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'android' ? 'height' : undefined}
+            style={styles.modalSheet}
+          >
             <View style={styles.dragHandle} />
 
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Address</Text>
-              <TouchableOpacity
-                style={styles.closeBtn}
-                onPress={() => { setShowModal(false); setForm({ ...EMPTY_FORM }); }}
-              >
+              <TouchableOpacity style={styles.closeBtn} onPress={closeModal}>
                 <Ionicons name="close" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-
+            <ScrollView
+              automaticallyAdjustKeyboardInsets
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalScrollContent}
+            >
               <Text style={styles.fieldLabel}>Address Type</Text>
               <View style={styles.chipRow}>
                 {ADDRESS_TYPES.map(t => (
@@ -211,6 +248,7 @@ const AddressesScreen = ({ navigation }: any) => {
 
               <Text style={styles.fieldLabel}>Address Line 1 *</Text>
               <TextInput
+                ref={line1Ref}
                 style={fieldStyle('line1')}
                 value={form.addressLine1}
                 onChangeText={set('addressLine1')}
@@ -218,10 +256,14 @@ const AddressesScreen = ({ navigation }: any) => {
                 placeholderTextColor={colors.textLight}
                 onFocus={() => setFocusedField('line1')}
                 onBlur={() => setFocusedField(null)}
+                returnKeyType="next"
+                onSubmitEditing={() => line2Ref.current?.focus()}
+                blurOnSubmit={false}
               />
 
               <Text style={styles.fieldLabel}>Address Line 2</Text>
               <TextInput
+                ref={line2Ref}
                 style={fieldStyle('line2')}
                 value={form.addressLine2}
                 onChangeText={set('addressLine2')}
@@ -229,12 +271,16 @@ const AddressesScreen = ({ navigation }: any) => {
                 placeholderTextColor={colors.textLight}
                 onFocus={() => setFocusedField('line2')}
                 onBlur={() => setFocusedField(null)}
+                returnKeyType="next"
+                onSubmitEditing={() => cityRef.current?.focus()}
+                blurOnSubmit={false}
               />
 
               <View style={styles.row2}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.fieldLabel}>City *</Text>
                   <TextInput
+                    ref={cityRef}
                     style={fieldStyle('city')}
                     value={form.city}
                     onChangeText={set('city')}
@@ -242,11 +288,15 @@ const AddressesScreen = ({ navigation }: any) => {
                     placeholderTextColor={colors.textLight}
                     onFocus={() => setFocusedField('city')}
                     onBlur={() => setFocusedField(null)}
+                    returnKeyType="next"
+                    onSubmitEditing={() => stateRef.current?.focus()}
+                    blurOnSubmit={false}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.fieldLabel}>State *</Text>
                   <TextInput
+                    ref={stateRef}
                     style={fieldStyle('state')}
                     value={form.state}
                     onChangeText={set('state')}
@@ -254,6 +304,9 @@ const AddressesScreen = ({ navigation }: any) => {
                     placeholderTextColor={colors.textLight}
                     onFocus={() => setFocusedField('state')}
                     onBlur={() => setFocusedField(null)}
+                    returnKeyType="next"
+                    onSubmitEditing={() => countryRef.current?.focus()}
+                    blurOnSubmit={false}
                   />
                 </View>
               </View>
@@ -262,6 +315,7 @@ const AddressesScreen = ({ navigation }: any) => {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.fieldLabel}>Country *</Text>
                   <TextInput
+                    ref={countryRef}
                     style={fieldStyle('country')}
                     value={form.country}
                     onChangeText={set('country')}
@@ -269,11 +323,15 @@ const AddressesScreen = ({ navigation }: any) => {
                     placeholderTextColor={colors.textLight}
                     onFocus={() => setFocusedField('country')}
                     onBlur={() => setFocusedField(null)}
+                    returnKeyType="next"
+                    onSubmitEditing={() => postalRef.current?.focus()}
+                    blurOnSubmit={false}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.fieldLabel}>Postal Code *</Text>
                   <TextInput
+                    ref={postalRef}
                     style={fieldStyle('postal')}
                     value={form.postalCode}
                     onChangeText={set('postalCode')}
@@ -283,6 +341,9 @@ const AddressesScreen = ({ navigation }: any) => {
                     maxLength={6}
                     onFocus={() => setFocusedField('postal')}
                     onBlur={() => setFocusedField(null)}
+                    returnKeyType="done"
+                    onSubmitEditing={Keyboard.dismiss}
+                    blurOnSubmit
                   />
                 </View>
               </View>
@@ -302,8 +363,8 @@ const AddressesScreen = ({ navigation }: any) => {
                 )}
               </TouchableOpacity>
             </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
     </View>
   );
@@ -447,16 +508,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
+  // Modal structure: overlay → backdrop + sheet (no KAV on overlay)
   modalOverlay: {
     flex: 1,
     backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
-  modalContent: {
+  modalBackdrop: {
+    flex: 1,
+  },
+  modalSheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: spacing.lg,
+    // No maxHeight constraint — let automaticallyAdjustKeyboardInsets handle scroll
     maxHeight: '90%',
   },
   dragHandle: {
@@ -485,6 +551,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modalScrollContent: {
+    paddingBottom: spacing.xl * 3,
   },
 
   fieldLabel: {
@@ -533,7 +602,6 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 14,
     marginTop: spacing.xl,
-    marginBottom: spacing.xl,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
