@@ -326,14 +326,14 @@ const PropertyDetailScreen = () => {
       const state = queryClient.getQueryState(queryKeys.property(id));
       if (state?.isInvalidated) refetch();
 
-      if (isAuthenticated && userId && !revealedContact) {
+      if (isBuyer && isAuthenticated && userId && !revealedContact) {
         AsyncStorage.getItem(`revealed_contact_${userId}_${id}`).then((cached) => {
           if (cached) {
             try { setRevealedContact(JSON.parse(cached)); } catch {}
           }
         });
       }
-    }, [id, refetch, isAuthenticated, revealedContact])
+    }, [id, refetch, isAuthenticated, isBuyer, revealedContact])
   );
   const { data: isFavorite, isLoading: checkLoading } = useFavoriteCheckQuery(id, isBuyer);
   const addFavorite = useAddFavoriteMutation();
@@ -1073,22 +1073,24 @@ const PropertyDetailScreen = () => {
         </TouchableOpacity>
       </View>}
 
-      {isContacted && (
+      {isBuyer && isContacted && (
         <View style={styles.contactedBanner}>
           <Ionicons name="checkmark-circle" size={14} color={colors.success} />
           <Text style={styles.contactedBannerText}>You've contacted the owner</Text>
         </View>
       )}
-<ContactRevealModal
-        visible={revealModalVisible}
-        propertyTitle={property.title}
-        maskedPhone={property.ownerPhoneMasked ?? property.ownerPhone}
-        revealedData={revealedContact}
-        isLoading={revealContact.isPending}
-        onConfirm={handleRevealConfirm}
-        onClose={() => setRevealModalVisible(false)}
-        onDial={handleDial}
-      />
+      {isBuyer && (
+        <ContactRevealModal
+          visible={revealModalVisible}
+          propertyTitle={property.title}
+          maskedPhone={property.ownerPhoneMasked ?? property.ownerPhone}
+          revealedData={revealedContact}
+          isLoading={revealContact.isPending}
+          onConfirm={handleRevealConfirm}
+          onClose={() => setRevealModalVisible(false)}
+          onDial={handleDial}
+        />
+      )}
     </SafeAreaView>
   );
 };
