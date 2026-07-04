@@ -5,7 +5,10 @@ import { useRoute } from '@react-navigation/native';
 import Header from '@/components/common/Header';
 import { colors } from '@/theme';
 
-const HIDE_HEADER_SCREENS = new Set(['LocationSelection', 'EditProfile', 'ChangePassword', 'Addresses']);
+const HIDE_HEADER_SCREENS = new Set([
+  'LocationSelection', 'EditProfile', 'ChangePassword', 'Addresses',
+  'MyListingsMain', 'EditListing', 'PropertyImages', 'Create',
+]);
 
 interface AppLayoutProps {
   children: React.ReactNode;

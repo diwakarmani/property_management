@@ -204,6 +204,8 @@ const CreateListingScreen = ({ navigation }: any) => {
 
     PropertyService.createProperty(payload)
       .then(res => {
+        setForm(INITIAL_FORM);
+        setStep(1);
         Alert.alert(
           'Listing Created',
           `"${res.data.data.title}" saved as Draft. Publish it from My Listings.`,

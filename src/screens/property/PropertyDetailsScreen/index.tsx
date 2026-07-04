@@ -15,7 +15,7 @@ import {
   Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
@@ -210,13 +210,23 @@ const ContactRevealModal = ({
                 {propertyTitle}
               </Text>
 
-              <View style={modalStyles.maskedRow}>
-                <Ionicons name="call-outline" size={16} color={colors.textSecondary} />
-                <Text style={modalStyles.maskedPhone}>{maskedPhone ?? 'XXXXXXXXXX'}</Text>
-                <View style={modalStyles.lockedBadge}>
-                  <Ionicons name="lock-closed" size={10} color={colors.textLight} />
+              {maskedPhone ? (
+                <View style={modalStyles.maskedRow}>
+                  <Ionicons name="call-outline" size={16} color={colors.textSecondary} />
+                  <Text style={modalStyles.maskedPhone}>{maskedPhone}</Text>
+                  <View style={modalStyles.lockedBadge}>
+                    <Ionicons name="lock-closed" size={10} color={colors.textLight} />
+                  </View>
                 </View>
-              </View>
+              ) : (
+                <View style={modalStyles.maskedRow}>
+                  <Ionicons name="mail-outline" size={16} color={colors.textSecondary} />
+                  <Text style={modalStyles.maskedPhone}>Email contact available</Text>
+                  <View style={modalStyles.lockedBadge}>
+                    <Ionicons name="lock-closed" size={10} color={colors.textLight} />
+                  </View>
+                </View>
+              )}
 
               <Text style={modalStyles.note}>
                 The owner will be notified that someone viewed their contact details.
@@ -366,11 +376,13 @@ const PropertyDetailScreen = () => {
   const handleRevealConfirm = () => {
     revealContact.mutate(id, {
       onSuccess: (data) => {
-
         setRevealedContact(data);
         if (userId) {
           AsyncStorage.setItem(`revealed_contact_${userId}_${id}`, JSON.stringify(data));
         }
+      },
+      onError: () => {
+        setRevealModalVisible(false);
       },
     });
   };
@@ -603,9 +615,10 @@ const PropertyDetailScreen = () => {
 
   const hasPhone = !!(property.ownerPhoneMasked ?? property.ownerPhone);
   const isContacted = revealedContact !== null;
+  const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
         {imageUrls.length > 0 ? (
@@ -1026,35 +1039,43 @@ const PropertyDetailScreen = () => {
         </View>
       </ScrollView>
 
-      {isBuyer && <View style={styles.footer}>
+      {isBuyer && <View style={[styles.footer, { paddingBottom: isContacted ? spacing.md : Math.max(spacing.md, insets.bottom) }]}>
 
-        {hasPhone && (
-          <TouchableOpacity
-            style={[styles.callButton, isContacted && styles.callButtonContacted]}
-            onPress={isContacted && revealedContact?.phone
-              ? () => handleDial(revealedContact.phone!)
-              : openRevealModal
-            }
-            activeOpacity={0.85}
-          >
-            {isContacted && revealedContact?.phone ? (
-              <>
-                <Ionicons name="call" size={16} color={colors.success} />
-                <Text style={[styles.callButtonText, { color: colors.success }]}>Call</Text>
-              </>
-            ) : (
-              <>
-                <Ionicons name="call-outline" size={16} color={colors.primary} />
-                <View style={styles.maskedPhoneWrap}>
-                  <Text style={styles.callButtonText} numberOfLines={1}>
-                    {property.ownerPhoneMasked ?? 'Show Phone'}
-                  </Text>
-                  <Ionicons name="lock-closed" size={10} color={colors.textLight} />
-                </View>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={[styles.callButton, isContacted && styles.callButtonContacted]}
+          onPress={isContacted && revealedContact?.phone
+            ? () => handleDial(revealedContact.phone!)
+            : openRevealModal
+          }
+          activeOpacity={0.85}
+        >
+          {isContacted && revealedContact?.phone ? (
+            <>
+              <Ionicons name="call" size={16} color={colors.success} />
+              <Text style={[styles.callButtonText, { color: colors.success }]}>Call</Text>
+            </>
+          ) : isContacted ? (
+            <>
+              <Ionicons name="person-circle-outline" size={16} color={colors.success} />
+              <Text style={[styles.callButtonText, { color: colors.success }]}>View Details</Text>
+            </>
+          ) : hasPhone ? (
+            <>
+              <Ionicons name="call-outline" size={16} color={colors.primary} />
+              <View style={styles.maskedPhoneWrap}>
+                <Text style={styles.callButtonText} numberOfLines={1}>
+                  {property.ownerPhoneMasked ?? 'Show Phone'}
+                </Text>
+                <Ionicons name="lock-closed" size={10} color={colors.textLight} />
+              </View>
+            </>
+          ) : (
+            <>
+              <Ionicons name="person-outline" size={16} color={colors.primary} />
+              <Text style={styles.callButtonText}>Show Contact</Text>
+            </>
+          )}
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.inquiryButton}
@@ -1074,7 +1095,7 @@ const PropertyDetailScreen = () => {
       </View>}
 
       {isBuyer && isContacted && (
-        <View style={styles.contactedBanner}>
+        <View style={[styles.contactedBanner, { paddingBottom: Math.max(6, insets.bottom) }]}>
           <Ionicons name="checkmark-circle" size={14} color={colors.success} />
           <Text style={styles.contactedBannerText}>You've contacted the owner</Text>
         </View>
