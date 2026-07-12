@@ -52,6 +52,25 @@ const NON_BUYER_APP_ROLES = [
   ROLES.SELLER,
 ];
 
+// Bug 11: a dual-role account (e.g. BUYER + SELLER) can hold the BUYER role without the
+// buyer *experience* being active (activeRole !== 'buyer'). Contact/inquiry actions on a
+// property are authorized purely by role membership on the backend (@PreAuthorize
+// hasRole('BUYER') on reveal-contact) — they should not disappear just because the account
+// happens to be browsing in Seller/Realtor mode. Use this for that class of check; use
+// isBuyerExperience for UI that should only show in the dedicated buyer app-mode (e.g. Favorites).
+export const hasBuyerRole = (userRoles: string[] | undefined | null): boolean =>
+  (userRoles ?? []).includes(ROLES.BUYER);
+
+// Product decision (2026-07-12): realtors may contact/message other realtors (and any other
+// listing owner) — e.g. co-brokerage, referrals, professional inquiries — not just buyers.
+// Used to gate the contact footer (call/reveal-contact + Send Enquiry) on PropertyDetailsScreen.
+// Deliberately separate from hasBuyerRole: buyer-only UI (Favorites) must NOT also open up to
+// realtors, so don't reuse this for that.
+export const canContactPropertyOwner = (userRoles: string[] | undefined | null): boolean => {
+  const roles = userRoles ?? [];
+  return roles.includes(ROLES.BUYER) || roles.includes(ROLES.REALTOR);
+};
+
 export const isBuyerExperience = (
   userRoles: string[] | undefined | null,
   activeRole?: string | null,

@@ -12,6 +12,7 @@ import EditListingScreen from '@/screens/realtor/EditListingScreen';
 import PropertyImagesScreen from '@/screens/realtor/PropertyImagesScreen';
 import CreateListingScreen from '@/screens/realtor/CreateListingScreen';
 import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
+import ContactAgentScreen from '@/screens/property/ContactAgentScreen';
 import RealtorProfileScreen from '@/screens/realtor/RealtorProfileScreen';
 import ReceivedInquiriesScreen from '@/screens/inquiry/ReceivedInquiriesScreen';
 import ProfileStackNavigator from './ProfileStackNavigator';
@@ -38,6 +39,10 @@ const MyListingsStackScreen = () => (
     <ListingsStack.Screen name="EditListing"    component={EditListingWrapped} />
     <ListingsStack.Screen name="PropertyImages" component={PropertyImagesWrapped} />
     <ListingsStack.Screen name="RealtorProfile" component={RealtorProfileScreen} />
+    {/* NN-4: canContact is role-based (BUYER or REALTOR in the account's roles array), not
+        activeRole-based (matches Bug 11's fix) — so a BUYER+SELLER dual-role account browsing
+        while active as Seller can still see "Send Enquiry" and needs this route reachable. */}
+    <ListingsStack.Screen name="ContactAgent" component={ContactAgentScreen} />
   </ListingsStack.Navigator>
 );
 

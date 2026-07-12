@@ -1,13 +1,15 @@
+import { configureStore } from '@reduxjs/toolkit';
 import authReducer, {
   fetchUser,
   bootstrapSession,
   login,
   logout,
 } from '../authSlice';
+import { queryClient } from '@/api/queryClient';
+import { remove } from '@/utils/helpers/storage';
 
-const mockClear = jest.fn();
 jest.mock('@/api/queryClient', () => ({
-  queryClient: { clear: mockClear },
+  queryClient: { clear: jest.fn() },
   queryKeys: {},
   STALE_TIME: {},
 }));
@@ -16,6 +18,10 @@ jest.mock('@/utils/helpers/storage', () => ({
   saveTokens: jest.fn(),
   clearTokens: jest.fn().mockResolvedValue(undefined),
   getAccessToken: jest.fn().mockResolvedValue(null),
+  clearActiveRole: jest.fn().mockResolvedValue(undefined),
+  getActiveRole: jest.fn().mockResolvedValue(null),
+  saveActiveRole: jest.fn().mockResolvedValue(undefined),
+  remove: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe('authSlice', () => {
@@ -135,13 +141,19 @@ describe('authSlice', () => {
     });
 
     it('calls queryClient.clear() when the logout thunk executes (Bug 9)', async () => {
-      const { configureStore } = await import('@reduxjs/toolkit');
       const store = configureStore({ reducer: { auth: authReducer } });
-      mockClear.mockClear();
 
       await store.dispatch(logout());
 
-      expect(mockClear).toHaveBeenCalledTimes(1);
+      expect(queryClient.clear).toHaveBeenCalledTimes(1);
+    });
+
+    it('clears the persisted selectedLocation key when the logout thunk executes (Bug 14)', async () => {
+      const store = configureStore({ reducer: { auth: authReducer } });
+
+      await store.dispatch(logout());
+
+      expect(remove).toHaveBeenCalledWith('selectedLocation');
     });
   });
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -111,6 +111,9 @@ const INITIAL_FORM: FormData = {
 const CreateListingScreen = ({ navigation }: any) => {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  // Synchronous lock: `submitting` state only takes effect after a re-render, leaving a
+  // window where a fast double-tap fires two POSTs before the button actually disables.
+  const submitLockRef = useRef(false);
   const [propertyTypes, setPropertyTypes] = useState<PropertyTypeDTO[]>([]);
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [localities, setLocalities] = useState<Locality[]>([]);
@@ -166,7 +169,9 @@ const CreateListingScreen = ({ navigation }: any) => {
   const handleBack = () => setStep(s => s - 1);
 
   const handleSubmit = () => {
+    if (submitLockRef.current) return;
     if (!validateStep()) return;
+    submitLockRef.current = true;
     setSubmitting(true);
 
     const payload: Record<string, any> = {
@@ -216,7 +221,10 @@ const CreateListingScreen = ({ navigation }: any) => {
         const msg = err?.response?.data?.message ?? 'Failed to create listing';
         Alert.alert('Error', msg);
       })
-      .finally(() => setSubmitting(false));
+      .finally(() => {
+        submitLockRef.current = false;
+        setSubmitting(false);
+      });
   };
 
   const renderStep1 = () => (

@@ -31,7 +31,7 @@ import {
 import { useRealtorProfileQuery } from '@/api/hooks/useStats';
 import AsyncBoundary from '@/components/common/AsyncBoundary';
 import type { RootState } from '@/store';
-import { isBuyerExperience } from '@/utils/rbac/permissions';
+import { hasBuyerRole, canContactPropertyOwner } from '@/utils/rbac/permissions';
 import type { ContactRevealResponse } from '@/api/types/property.types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -315,11 +315,17 @@ const ContactRevealModal = ({
 const PropertyDetailScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
-  const { id } = route.params as any;
+  // Hoisted above the isLoading/!property early-return below so this hook always runs on
+  // every render (Rules of Hooks) — previously declared at the JSX-return call site, which
+  // meant it wasn't called at all during the loading render but was on the loaded render.
+  const insets = useSafeAreaInsets();
+  const { id } = (route.params ?? {}) as any;
   const userId = useSelector((state: RootState) => state.auth.user?.id);
-  const isBuyer = useSelector((state: RootState) =>
-    isBuyerExperience(state.auth.user?.roles, state.auth.activeRole)
-  );
+  const isBuyer = useSelector((state: RootState) => hasBuyerRole(state.auth.user?.roles));
+  // Broader than isBuyer: also lets REALTOR accounts contact/message another listing's owner
+  // (co-brokerage, referrals) — matches the backend's reveal-contact @PreAuthorize. Buyer-only UI
+  // (Favorites) must keep using isBuyer, not this.
+  const canContact = useSelector((state: RootState) => canContactPropertyOwner(state.auth.user?.roles));
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [descExpanded, setDescExpanded] = useState(false);
@@ -330,20 +336,23 @@ const PropertyDetailScreen = () => {
   const revealContact = useRevealContactMutation();
 
   const { data: property, isLoading, isError, error, refetch } = usePropertyQuery(id);
+  // Defense-in-depth: the backend already rejects a self-inquiry; hide the contact CTA here too
+  // so an owner viewing their own listing isn't invited to inquire about it.
+  const isOwnListing = userId != null && property?.ownerId === userId;
 
   useFocusEffect(
     useCallback(() => {
       const state = queryClient.getQueryState(queryKeys.property(id));
       if (state?.isInvalidated) refetch();
 
-      if (isBuyer && isAuthenticated && userId && !revealedContact) {
+      if (canContact && isAuthenticated && userId && !revealedContact) {
         AsyncStorage.getItem(`revealed_contact_${userId}_${id}`).then((cached) => {
           if (cached) {
             try { setRevealedContact(JSON.parse(cached)); } catch {}
           }
         });
       }
-    }, [id, refetch, isAuthenticated, isBuyer, revealedContact])
+    }, [id, refetch, isAuthenticated, canContact, revealedContact])
   );
   const { data: isFavorite, isLoading: checkLoading } = useFavoriteCheckQuery(id, isBuyer);
   const addFavorite = useAddFavoriteMutation();
@@ -369,7 +378,7 @@ const PropertyDetailScreen = () => {
       (navigation as any).navigate('Login');
       return;
     }
-    if (!isBuyer) return;
+    if (!canContact) return;
     setRevealModalVisible(true);
   };
 
@@ -428,8 +437,13 @@ const PropertyDetailScreen = () => {
     ? (error as any)?.response?.data?.message ?? 'Could not load this property.'
     : null;
 
+  // Bug 8: `property.images` comes from an unordered backend Set, so its array order is
+  // arbitrary — sort the primary-flagged image to the front instead of trusting index 0.
   const imageUrls: string[] = property?.images?.length
-    ? (property.images.map((img: any) => img.imageUrl).filter(Boolean) as string[])
+    ? ([...property.images]
+        .sort((a: any, b: any) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0))
+        .map((img: any) => img.imageUrl)
+        .filter(Boolean) as string[])
     : property?.primaryImageUrl ? [property.primaryImageUrl] : [];
 
   const goToPrev = () => {
@@ -615,7 +629,6 @@ const PropertyDetailScreen = () => {
 
   const hasPhone = !!(property.ownerPhoneMasked ?? property.ownerPhone);
   const isContacted = revealedContact !== null;
-  const insets = useSafeAreaInsets();
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -636,7 +649,7 @@ const PropertyDetailScreen = () => {
               style={styles.galleryScroll}
             >
               {imageUrls.map((url, idx) => (
-                <Image key={idx} source={{ uri: url }} style={styles.image} />
+                <Image key={idx} testID={`galleryImage-${idx}`} source={{ uri: url }} style={styles.image} />
               ))}
             </ScrollView>
 
@@ -938,14 +951,16 @@ const PropertyDetailScreen = () => {
             </View>
           </View>
 
-          <View style={styles.metaDates}>
-            {property.publishedAt && (
-              <Text style={styles.metaDate}>Posted {formatDate(property.publishedAt)}</Text>
-            )}
-            {property.updatedAt && (
-              <Text style={styles.metaDate}>Updated {formatDate(property.updatedAt)}</Text>
-            )}
-          </View>
+          {(property.publishedAt || property.updatedAt) && (
+            <View style={styles.metaDates}>
+              {property.publishedAt && (
+                <Text style={styles.metaDate}>Posted {formatDate(property.publishedAt)}</Text>
+              )}
+              {property.updatedAt && (
+                <Text style={styles.metaDate}>Updated {formatDate(property.updatedAt)}</Text>
+              )}
+            </View>
+          )}
 
           {property.ownerName && (
             <View style={styles.section}>
@@ -1035,11 +1050,10 @@ const PropertyDetailScreen = () => {
             </View>
           )}
 
-          <View style={styles.bottomSpacer} />
         </View>
       </ScrollView>
 
-      {isBuyer && <View style={[styles.footer, { paddingBottom: isContacted ? spacing.md : Math.max(spacing.md, insets.bottom) }]}>
+      {canContact && !isOwnListing && <View style={[styles.footer, { paddingBottom: isContacted ? spacing.md : Math.max(spacing.md, insets.bottom) }]}>
 
         <TouchableOpacity
           style={[styles.callButton, isContacted && styles.callButtonContacted]}
@@ -1094,13 +1108,13 @@ const PropertyDetailScreen = () => {
         </TouchableOpacity>
       </View>}
 
-      {isBuyer && isContacted && (
+      {canContact && isContacted && (
         <View style={[styles.contactedBanner, { paddingBottom: Math.max(6, insets.bottom) }]}>
           <Ionicons name="checkmark-circle" size={14} color={colors.success} />
           <Text style={styles.contactedBannerText}>You've contacted the owner</Text>
         </View>
       )}
-      {isBuyer && (
+      {canContact && (
         <ContactRevealModal
           visible={revealModalVisible}
           propertyTitle={property.title}
@@ -1650,8 +1664,6 @@ const styles = StyleSheet.create({
   viewProfileHint: {
     marginTop: spacing.xs, fontSize: typography.fontSize.xs, color: colors.primary, textAlign: 'right',
   },
-
-  bottomSpacer: { height: 20 },
 
   footer: {
     flexDirection: 'row', padding: spacing.md, gap: spacing.sm,

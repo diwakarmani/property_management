@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { LocationService } from '@/api/services/location.service';
 import type { City, Locality } from '@/api/types/location.type';
 import { set, get } from '@/utils/helpers/storage';
+import { logout } from '@/store/slices/authSlice';
 
 export type LocationMode = 'city' | 'nearMe';
 
@@ -178,7 +179,11 @@ const locationSlice = createSlice({
             longitude: null,
           };
         }
-      });
+      })
+
+      // Bug 14: reset in-memory location state on logout too, so a fresh login within the
+      // same app session doesn't inherit the previous account's confirmed location.
+      .addCase(logout.fulfilled, () => initialState);
   },
 });
 

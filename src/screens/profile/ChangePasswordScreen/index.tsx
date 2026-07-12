@@ -1,4 +1,4 @@
-import React, { useState, useRef, forwardRef } from 'react';
+import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import {
   View,
   Text,
@@ -30,30 +30,54 @@ interface PasswordFieldProps {
 const PasswordField = forwardRef<TextInput, PasswordFieldProps>(({
   label, value, onChangeText, show, onToggle, placeholder,
   returnKeyType = 'next', onSubmitEditing, blurOnSubmit = false,
-}, ref) => (
-  <>
-    <Text style={styles.label}>{label}</Text>
-    <View style={styles.passwordRow}>
-      <TextInput
-        ref={ref}
-        style={styles.passwordInput}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textLight}
-        secureTextEntry={!show}
-        autoCapitalize="none"
-        autoCorrect={false}
-        returnKeyType={returnKeyType}
-        onSubmitEditing={onSubmitEditing}
-        blurOnSubmit={blurOnSubmit}
-      />
-      <TouchableOpacity onPress={onToggle} style={styles.eyeBtn} hitSlop={8}>
-        <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textSecondary} />
-      </TouchableOpacity>
-    </View>
-  </>
-));
+}, ref) => {
+  // iOS fires a spurious onChangeText('') right after secureTextEntry toggles on a controlled
+  // TextInput, which would otherwise wipe the field. Suppress that one empty-string call.
+  const toggleInProgressRef = useRef(false);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    toggleInProgressRef.current = true;
+    const timer = setTimeout(() => { toggleInProgressRef.current = false; }, 100);
+    return () => clearTimeout(timer);
+  }, [show]);
+
+  const handleChangeText = (text: string) => {
+    if (Platform.OS === 'ios' && toggleInProgressRef.current && text === '') return;
+    onChangeText(text);
+  };
+
+  return (
+    <>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.passwordRow}>
+        <TextInput
+          ref={ref}
+          style={styles.passwordInput}
+          value={value}
+          onChangeText={handleChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textLight}
+          secureTextEntry={!show}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
+          blurOnSubmit={blurOnSubmit}
+        />
+        <TouchableOpacity
+          onPress={onToggle}
+          style={styles.eyeBtn}
+          hitSlop={8}
+          accessibilityLabel={`Toggle ${label} visibility`}
+        >
+          <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+});
 
 const ChangePasswordScreen = ({ navigation }: any) => {
   const [currentPassword, setCurrentPassword] = useState('');

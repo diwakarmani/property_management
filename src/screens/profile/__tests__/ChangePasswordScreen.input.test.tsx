@@ -24,4 +24,24 @@ describe('ChangePasswordScreen', () => {
       .toHaveBeenCalledWith('x', 'NewPass1!', 'NewPass1!'));
     expect(navigation.goBack).toHaveBeenCalled();
   });
+
+  it('preserves the typed value when the eye icon is toggled (Bug 5)', () => {
+    const navigation = { goBack: jest.fn() };
+    const screen = render(<ChangePasswordScreen navigation={navigation} />);
+
+    const current = screen.getByPlaceholderText('Enter current password');
+    fireEvent.changeText(current, 'secret123');
+    expect(current.props.value).toBe('secret123');
+
+    fireEvent.press(screen.getByLabelText('Toggle Current Password visibility'));
+
+    // iOS fires a spurious onChangeText('') immediately after secureTextEntry toggles —
+    // simulate that here and assert the guard suppresses it instead of wiping the field.
+    fireEvent.changeText(current, '');
+    expect(current.props.value).toBe('secret123');
+
+    // A real subsequent edit (non-empty) must still go through normally.
+    fireEvent.changeText(current, 'secret1234');
+    expect(current.props.value).toBe('secret1234');
+  });
 });

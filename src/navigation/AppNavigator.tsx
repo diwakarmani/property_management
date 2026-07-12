@@ -8,6 +8,8 @@ import AuthNavigator from './AuthNavigator';
 import LocationSelectionScreen from '@/screens/location/LocationSelectionScreen';
 import NotificationsScreen from '@/screens/profile/NotificationsScreen';
 import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
+import ContactAgentScreen from '@/screens/property/ContactAgentScreen';
+import RealtorProfileScreen from '@/screens/realtor/RealtorProfileScreen';
 import MainTabNavigator from './MainTabNavigator';
 import AdminNavigator from './AdminNavigator';
 import RealtorNavigator from './RealtorNavigator';
@@ -131,6 +133,12 @@ const AppNavigator = () => {
             <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
+            <Stack.Screen name="RealtorProfile" component={RealtorProfileScreen} />
+            {/* NN-4: a notification-opened PropertyDetail lives on this root stack (per Bug 13),
+                so its "Send Enquiry" -> navigate('ContactAgent', ...) needs this route here too —
+                registering it only on RealtorNavigator/SellerNavigator's nested ListingsStack
+                (done first, and insufficient on its own) doesn't cover this entry point. */}
+            <Stack.Screen name="ContactAgent" component={ContactAgentScreen} />
           </>
         )}
       </Stack.Navigator>

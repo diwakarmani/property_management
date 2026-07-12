@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthService } from '@/api/services/auth.service';
-import { saveTokens, clearTokens, getAccessToken, saveActiveRole, getActiveRole, clearActiveRole } from '@/utils/helpers/storage';
+import { saveTokens, clearTokens, getAccessToken, saveActiveRole, getActiveRole, clearActiveRole, remove } from '@/utils/helpers/storage';
 import { queryClient } from '@/api/queryClient';
 import type { LoginRequest, RegisterRequest, OtpSendRequest, OtpVerifyRequest } from '@/api/types/auth.types';
 import { getAvailableRoles, pickRoleKey, isRoleValid, type RoleKey } from '@/utils/roleUtils';
@@ -190,6 +190,10 @@ export const clearActiveRoleAndReselect = createAsyncThunk(
 export const logout = createAsyncThunk('auth/logout', async () => {
   await clearTokens();
   await clearActiveRole();
+  // Bug 14: `selectedLocation` is a single, non-user-scoped key. Without clearing it here, a
+  // previous account's confirmed location silently carries over to the next login on this
+  // device, making the buyer location-selection gate never show for that new session.
+  await remove('selectedLocation');
   queryClient.clear();
 });
 

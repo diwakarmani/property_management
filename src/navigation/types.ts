@@ -18,6 +18,8 @@ export type RootStackParamList = {
   MainApp: undefined;
   Notifications: undefined;
   PropertyDetail: { propertyId?: number; id?: number } | undefined;
+  RealtorProfile: { realtorId: number; propertyId?: number; propertyTitle?: string };
+  ContactAgent: { propertyId: number; propertyTitle?: string };
 };
 
 export type HomeStackParamList = {

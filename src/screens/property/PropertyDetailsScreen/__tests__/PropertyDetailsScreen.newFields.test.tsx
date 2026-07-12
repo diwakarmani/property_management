@@ -4,16 +4,20 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import PropertyDetailScreen from '../index';
-import { usePropertyQuery } from '@/api/hooks/useProperties';
+import { usePropertyQuery, useRevealContactMutation } from '@/api/hooks/useProperties';
 import { useFavoriteCheckQuery, useAddFavoriteMutation, useRemoveFavoriteMutation } from '@/api/hooks/useFavorites';
 import { useRealtorProfileQuery } from '@/api/hooks/useStats';
 
 jest.mock('@react-navigation/native', () => ({
   useRoute: jest.fn(),
   useNavigation: jest.fn(),
+  useFocusEffect: jest.fn(),
 }));
 jest.mock('react-redux', () => ({ useSelector: jest.fn() }));
-jest.mock('@/api/hooks/useProperties', () => ({ usePropertyQuery: jest.fn() }));
+jest.mock('@/api/hooks/useProperties', () => ({
+  usePropertyQuery: jest.fn(),
+  useRevealContactMutation: jest.fn(),
+}));
 jest.mock('@/api/hooks/useFavorites', () => ({
   useFavoriteCheckQuery: jest.fn(),
   useAddFavoriteMutation: jest.fn(),
@@ -25,6 +29,13 @@ jest.mock('@/api/hooks/useStats', () => ({
 jest.mock('@/components/common/AsyncBoundary', () => {
   const { View } = require('react-native');
   return ({ children }: any) => <View>{children}</View>;
+});
+jest.mock('react-native-safe-area-context', () => {
+  const actual = jest.requireActual('react-native-safe-area-context');
+  return {
+    ...actual,
+    useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+  };
 });
 
 const mockLinking = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as any);
@@ -62,6 +73,7 @@ const setupMocks = (propertyOverrides: object = {}) => {
   (useAddFavoriteMutation as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
   (useRemoveFavoriteMutation as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
   (useRealtorProfileQuery as jest.Mock).mockReturnValue({ data: undefined });
+  (useRevealContactMutation as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
   (usePropertyQuery as jest.Mock).mockReturnValue({
     data: { ...BASE_PROPERTY, ...propertyOverrides },
     isLoading: false,

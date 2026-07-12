@@ -14,6 +14,7 @@ import EditListingScreen from '@/screens/realtor/EditListingScreen';
 import PropertyImagesScreen from '@/screens/realtor/PropertyImagesScreen';
 import CreateListingScreen from '@/screens/realtor/CreateListingScreen';
 import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
+import ContactAgentScreen from '@/screens/property/ContactAgentScreen';
 import RealtorProfileScreen from '@/screens/realtor/RealtorProfileScreen';
 import ReceivedInquiriesScreen from '@/screens/inquiry/ReceivedInquiriesScreen';
 import ProfileStackNavigator from './ProfileStackNavigator';
@@ -41,6 +42,10 @@ const MyListingsStackScreen = () => (
     <ListingsStack.Screen name="EditListing" component={EditListingWrapped} />
     <ListingsStack.Screen name="PropertyImages" component={PropertyImagesWrapped} />
     <ListingsStack.Screen name="RealtorProfile" component={RealtorProfileWrapped} />
+    {/* NN-4: realtors can now message other realtors' listings (Send Enquiry -> ContactAgent).
+        Without this, PropertyDetailScreen's navigate('ContactAgent', ...) would hit React
+        Navigation's unhandled-action path — same class of bug as Bug 13's RealtorProfile gap. */}
+    <ListingsStack.Screen name="ContactAgent" component={ContactAgentScreen} />
   </ListingsStack.Navigator>
 );
 

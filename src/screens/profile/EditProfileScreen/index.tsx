@@ -213,10 +213,9 @@ const EditProfileScreen = ({ navigation }: any) => {
   };
 
   return (
-    // KAV active for Android; iOS uses automaticallyAdjustKeyboardInsets on ScrollView
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'android' ? 'height' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}

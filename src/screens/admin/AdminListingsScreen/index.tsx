@@ -169,7 +169,12 @@ export const PropertyCard = ({
   onToggleFeatured,
   onToggleVerified,
   onPress,
-  isPending,
+  approvePending,
+  rejectPending,
+  approveDeletionPending,
+  rejectDeletionPending,
+  featuredPending,
+  verifiedPending,
 }: {
   property: PropertyDTO;
   onApprove: () => void;
@@ -179,7 +184,12 @@ export const PropertyCard = ({
   onToggleFeatured: () => void;
   onToggleVerified: () => void;
   onPress?: () => void;
-  isPending: boolean;
+  approvePending: boolean;
+  rejectPending: boolean;
+  approveDeletionPending: boolean;
+  rejectDeletionPending: boolean;
+  featuredPending: boolean;
+  verifiedPending: boolean;
 }) => {
   const isPendingStatus = property.status === 'PENDING_APPROVAL';
   const isDeletionRequested = property.status === 'DELETION_REQUESTED';
@@ -235,9 +245,9 @@ export const PropertyCard = ({
               <TouchableOpacity
                 style={[cardStyles.actionBtn, cardStyles.approveBtn]}
                 onPress={onApprove}
-                disabled={isPending}
+                disabled={approvePending}
               >
-                {isPending ? (
+                {approvePending ? (
                   <ActivityIndicator size="small" color={colors.white} />
                 ) : (
                   <>
@@ -249,7 +259,7 @@ export const PropertyCard = ({
               <TouchableOpacity
                 style={[cardStyles.actionBtn, cardStyles.rejectBtn]}
                 onPress={onReject}
-                disabled={isPending}
+                disabled={rejectPending}
               >
                 <Ionicons name="close" size={14} color={colors.error} />
                 <Text style={cardStyles.rejectBtnText}>Reject</Text>
@@ -262,7 +272,7 @@ export const PropertyCard = ({
               <TouchableOpacity
                 style={[cardStyles.actionBtn, cardStyles.approveBtn]}
                 onPress={onApproveDeletion}
-                disabled={isPending}
+                disabled={approveDeletionPending}
               >
                 <Ionicons name="trash" size={14} color={colors.white} />
                 <Text style={cardStyles.approveBtnText}>Approve Del.</Text>
@@ -270,7 +280,7 @@ export const PropertyCard = ({
               <TouchableOpacity
                 style={[cardStyles.actionBtn, cardStyles.rejectBtn]}
                 onPress={onRejectDeletion}
-                disabled={isPending}
+                disabled={rejectDeletionPending}
               >
                 <Ionicons name="refresh-outline" size={14} color={colors.error} />
                 <Text style={cardStyles.rejectBtnText}>Restore</Text>
@@ -281,30 +291,38 @@ export const PropertyCard = ({
           <TouchableOpacity
             style={[cardStyles.iconBtn, property.isFeatured && cardStyles.iconBtnActive]}
             onPress={onToggleFeatured}
-            disabled={isPending}
+            disabled={featuredPending}
             accessibilityRole="button"
             accessibilityLabel="Toggle featured"
-            accessibilityState={{ disabled: isPending, selected: property.isFeatured }}
+            accessibilityState={{ disabled: featuredPending, selected: property.isFeatured }}
           >
-            <Ionicons
-              name={property.isFeatured ? 'star' : 'star-outline'}
-              size={16}
-              color={property.isFeatured ? colors.warning : colors.textSecondary}
-            />
+            {featuredPending ? (
+              <ActivityIndicator size="small" color={colors.warning} />
+            ) : (
+              <Ionicons
+                name={property.isFeatured ? 'star' : 'star-outline'}
+                size={16}
+                color={property.isFeatured ? colors.warning : colors.textSecondary}
+              />
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={[cardStyles.iconBtn, property.isVerified && cardStyles.iconBtnActiveGreen]}
             onPress={onToggleVerified}
-            disabled={isPending}
+            disabled={verifiedPending}
             accessibilityRole="button"
             accessibilityLabel="Toggle verified"
-            accessibilityState={{ disabled: isPending, selected: property.isVerified }}
+            accessibilityState={{ disabled: verifiedPending, selected: property.isVerified }}
           >
-            <Ionicons
-              name={property.isVerified ? 'shield-checkmark' : 'shield-outline'}
-              size={16}
-              color={property.isVerified ? colors.success : colors.textSecondary}
-            />
+            {verifiedPending ? (
+              <ActivityIndicator size="small" color={colors.success} />
+            ) : (
+              <Ionicons
+                name={property.isVerified ? 'shield-checkmark' : 'shield-outline'}
+                size={16}
+                color={property.isVerified ? colors.success : colors.textSecondary}
+              />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -499,13 +517,19 @@ const AdminListingsScreen = ({ route }: any) => {
   const totalElements = data?.totalElements ?? 0;
   const totalPages = data?.totalPages ?? 1;
 
-  const isMutating =
-    approveMutation.isPending ||
-    rejectMutation.isPending ||
-    approveDeletionMutation.isPending ||
-    rejectDeletionMutation.isPending ||
-    featuredMutation.isPending ||
-    verifiedMutation.isPending;
+  // Bug 1 fix: each mutation's pending state must only affect the specific row/action it was
+  // fired for. Matching on the mutation's own `variables` (the id it was called with) keeps
+  // e.g. toggling "featured" on one row from lighting up the Approve spinner on every row.
+  const isPendingForId = (
+    mutation: { isPending: boolean; variables: number | { id: number; reason: string } | undefined },
+    id: number
+  ) => {
+    if (!mutation.isPending) return false;
+    const variables = mutation.variables;
+    return typeof variables === 'object' && variables !== null
+      ? variables.id === id
+      : variables === id;
+  };
 
   const handleTabChange = (key: TabKey) => {
     setActiveTab(key);
@@ -609,7 +633,12 @@ const AdminListingsScreen = ({ route }: any) => {
               onToggleFeatured={() => featuredMutation.mutate(item.id)}
               onToggleVerified={() => verifiedMutation.mutate(item.id)}
               onPress={() => (navigation as any).navigate('PropertyDetail', { id: item.id })}
-              isPending={isMutating}
+              approvePending={isPendingForId(approveMutation, item.id)}
+              rejectPending={isPendingForId(rejectMutation, item.id)}
+              approveDeletionPending={isPendingForId(approveDeletionMutation, item.id)}
+              rejectDeletionPending={isPendingForId(rejectDeletionMutation, item.id)}
+              featuredPending={isPendingForId(featuredMutation, item.id)}
+              verifiedPending={isPendingForId(verifiedMutation, item.id)}
             />
           )}
           refreshControl={
