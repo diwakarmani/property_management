@@ -59,11 +59,20 @@ export const AdminService = {
   updatePropertyType: (id: number, dto: { name: string; description?: string; isActive?: boolean }) =>
     axiosClient.put<ApiResponse<PropertyTypeDTO>>(`/api/admin/property-config/types/${id}`, dto, { skipErrorToast: true } as any),
 
+  deletePropertyType: (id: number) =>
+    axiosClient.delete<ApiResponse<void>>(`/api/admin/property-config/types/${id}`, { skipErrorToast: true } as any),
+
   createSubType: (dto: { name: string; description?: string; propertyTypeId: number; isActive?: boolean }) =>
     axiosClient.post<ApiResponse<PropertySubTypeDTO>>('/api/admin/property-config/sub-types', dto, { skipErrorToast: true } as any),
 
   createAmenity: (dto: { name: string; category?: string; iconClass?: string; isActive?: boolean }) =>
     axiosClient.post<ApiResponse<PropertyAmenityDTO>>('/api/admin/property-config/amenities', dto, { skipErrorToast: true } as any),
+
+  updateAmenity: (id: number, dto: { name: string; category?: string; iconClass?: string; isActive?: boolean }) =>
+    axiosClient.put<ApiResponse<PropertyAmenityDTO>>(`/api/admin/property-config/amenities/${id}`, dto, { skipErrorToast: true } as any),
+
+  deleteAmenity: (id: number) =>
+    axiosClient.delete<ApiResponse<void>>(`/api/admin/property-config/amenities/${id}`, { skipErrorToast: true } as any),
 
   getAdminCountries: () =>
     axiosClient.get<AdminCountryDTO[]>('/api/admin/locations/countries'),

@@ -50,6 +50,7 @@ const PropertyConfigScreen = () => {
   const [savingSubType, setSavingSubType] = useState(false);
 
   const [amenityModal, setAmenityModal] = useState(false);
+  const [editingAmenity, setEditingAmenity] = useState<PropertyAmenityDTO | null>(null);
   const [amenityForm, setAmenityForm] = useState<AmenityForm>(EMPTY_AMENITY);
   const [savingAmenity, setSavingAmenity] = useState(false);
 
@@ -105,6 +106,25 @@ const PropertyConfigScreen = () => {
       .finally(() => setSavingType(false));
   };
 
+  const deleteType = (type: PropertyTypeDTO) => {
+    Alert.alert(
+      'Delete Property Type',
+      `Delete "${type.name}"? It will be removed from public listings but existing properties using it are unaffected.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            AdminService.deletePropertyType(type.id)
+              .then(() => setTypes(prev => prev.map(t => t.id === type.id ? { ...t, isActive: false } : t)))
+              .catch(err => Alert.alert('Error', err?.response?.data?.message ?? 'Failed to delete'));
+          },
+        },
+      ]
+    );
+  };
+
   const openAddSubType = (typeId: number) => {
     setParentTypeId(typeId);
     setSubTypeForm(EMPTY_SUBTYPE);
@@ -112,8 +132,39 @@ const PropertyConfigScreen = () => {
   };
 
   const openAddAmenity = () => {
+    setEditingAmenity(null);
     setAmenityForm({ ...EMPTY_AMENITY });
     setAmenityModal(true);
+  };
+
+  const openEditAmenity = (amenity: PropertyAmenityDTO) => {
+    setEditingAmenity(amenity);
+    setAmenityForm({
+      name: amenity.name,
+      category: amenity.category ?? '',
+      iconClass: amenity.iconClass ?? '',
+      isActive: amenity.isActive ?? true,
+    });
+    setAmenityModal(true);
+  };
+
+  const deleteAmenity = (amenity: PropertyAmenityDTO) => {
+    Alert.alert(
+      'Delete Amenity',
+      `Delete "${amenity.name}"? It will be removed from public listings.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            AdminService.deleteAmenity(amenity.id)
+              .then(() => setAmenities(prev => prev.map(a => a.id === amenity.id ? { ...a, isActive: false } : a)))
+              .catch(err => Alert.alert('Error', err?.response?.data?.message ?? 'Failed to delete'));
+          },
+        },
+      ]
+    );
   };
 
   const submitSubType = () => {
@@ -141,14 +192,23 @@ const PropertyConfigScreen = () => {
   const submitAmenity = () => {
     if (!amenityForm.name.trim()) { Alert.alert('Validation', 'Name is required'); return; }
     setSavingAmenity(true);
-    AdminService.createAmenity({
+    const dto = {
       name: amenityForm.name.trim(),
       category: amenityForm.category.trim() || undefined,
       iconClass: amenityForm.iconClass.trim() || undefined,
       isActive: amenityForm.isActive,
-    })
+    };
+    const call = editingAmenity
+      ? AdminService.updateAmenity(editingAmenity.id, dto)
+      : AdminService.createAmenity(dto);
+    call
       .then(res => {
-        setAmenities(prev => [...prev, res.data.data]);
+        const updated = res.data.data;
+        setAmenities(prev =>
+          editingAmenity
+            ? prev.map(a => a.id === editingAmenity.id ? { ...a, ...updated } : a)
+            : [...prev, updated]
+        );
         setAmenityForm({ ...EMPTY_AMENITY });
         setAmenityModal(false);
       })
@@ -209,6 +269,14 @@ const PropertyConfigScreen = () => {
             >
               <Ionicons name="add-circle-outline" size={18} color={colors.success} />
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => deleteType(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${item.name}`}
+            >
+              <Ionicons name="trash-outline" size={18} color={colors.error} />
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
 
@@ -253,6 +321,22 @@ const PropertyConfigScreen = () => {
           {item.isActive !== false ? 'Active' : 'Inactive'}
         </Text>
       </View>
+      <TouchableOpacity
+        style={styles.iconBtn}
+        onPress={() => openEditAmenity(item)}
+        accessibilityRole="button"
+        accessibilityLabel={`Edit ${item.name}`}
+      >
+        <Ionicons name="create-outline" size={18} color={colors.primary} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.iconBtn}
+        onPress={() => deleteAmenity(item)}
+        accessibilityRole="button"
+        accessibilityLabel={`Delete ${item.name}`}
+      >
+        <Ionicons name="trash-outline" size={18} color={colors.error} />
+      </TouchableOpacity>
     </View>
   );
 
@@ -439,7 +523,7 @@ const PropertyConfigScreen = () => {
             >
               <View style={styles.sheetHandle} />
               <View style={styles.sheetHeader}>
-                <Text style={styles.sheetTitle}>Add Amenity</Text>
+                <Text style={styles.sheetTitle}>{editingAmenity ? 'Edit Amenity' : 'Add Amenity'}</Text>
                 <TouchableOpacity onPress={() => setAmenityModal(false)}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>

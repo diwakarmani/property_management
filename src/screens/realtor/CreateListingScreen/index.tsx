@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { colors, typography, spacing } from '@/theme';
 import { PropertyService } from '@/api/services/property.service';
@@ -139,6 +140,23 @@ const CreateListingScreen = ({ navigation }: any) => {
       state: selectedCity.stateName,
     }));
   }, [selectedCity?.id]);
+
+  // Bug F: this screen is a bottom-tab route, so React Navigation keeps it mounted (not
+  // unmounted) when the user switches tabs. The form previously only reset to INITIAL_FORM
+  // inside handleSubmit's success handler — if a user typed data into a draft and then
+  // navigated away without submitting, that stale data was silently still there next time
+  // they opened the Create tab, and submitting it as-is created a listing carrying leftover
+  // data from an earlier session. Resetting on every focus makes each visit start clean.
+  useFocusEffect(
+    useCallback(() => {
+      setForm({
+        ...INITIAL_FORM,
+        city: selectedCity?.name ?? '',
+        state: selectedCity?.stateName ?? '',
+      });
+      setStep(1);
+    }, [selectedCity])
+  );
 
   const set = (key: keyof FormData) => (val: string) =>
     setForm(prev => ({ ...prev, [key]: val }));

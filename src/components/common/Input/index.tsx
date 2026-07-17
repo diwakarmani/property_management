@@ -37,11 +37,18 @@ const Input = forwardRef<TextInput, InputProps>(({
   const [isSecure, setIsSecure] = useState(secureTextEntry);
   const [isFocused, setIsFocused] = useState(false);
   const toggleInProgressRef = useRef(false);
+  const toggleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleToggleSecure = () => {
     toggleInProgressRef.current = true;
     setIsSecure(v => !v);
-    setTimeout(() => { toggleInProgressRef.current = false; }, 100);
+    // Cancel any still-pending timeout from a previous toggle before arming a new one — two
+    // toggles in quick succession (e.g. a fast double-tap on the eye icon) previously raced:
+    // the FIRST toggle's timer could fire and clear the flag before the SECOND toggle's own
+    // window should have closed, reopening a gap where a spurious native onChangeText('') could
+    // slip through unsuppressed and wipe out what the user had typed.
+    if (toggleTimeoutRef.current) clearTimeout(toggleTimeoutRef.current);
+    toggleTimeoutRef.current = setTimeout(() => { toggleInProgressRef.current = false; }, 100);
   };
 
   const handleChangeText = (text: string) => {

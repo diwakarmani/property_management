@@ -8,6 +8,8 @@ import { LocationService } from '@/api/services/location.service';
 
 jest.mock('react-redux', () => ({ useSelector: jest.fn() }));
 
+jest.mock('@react-navigation/native', () => ({ useFocusEffect: jest.fn() }));
+
 jest.mock('@/api/services/property.service', () => ({
   PropertyService: { getPropertyTypes: jest.fn(), createProperty: jest.fn() },
 }));
