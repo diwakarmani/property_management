@@ -21,7 +21,7 @@ jest.mock('@/api/services/property.service', () => ({
 }));
 
 jest.mock('@/api/services/location.service', () => ({
-  LocationService: { getLocalities: jest.fn() },
+  LocationService: { getLocalities: jest.fn(), getCities: jest.fn() },
 }));
 
 const SELECTED_CITY = { id: 1, name: 'Austin', stateName: 'TX' };
@@ -41,6 +41,7 @@ describe('CreateListingScreen stale draft reset (Bug F)', () => {
     focusCallback = undefined;
     (PropertyService.getPropertyTypes as jest.Mock).mockResolvedValue({ data: { data: [PROPERTY_TYPE] } });
     (LocationService.getLocalities as jest.Mock).mockResolvedValue({ data: { data: [] } });
+    (LocationService.getCities as jest.Mock).mockResolvedValue({ data: { data: [] } });
   });
 
   it('clears an abandoned draft when the screen regains focus (e.g. after switching tabs away and back)', async () => {
@@ -79,9 +80,10 @@ describe('CreateListingScreen stale draft reset (Bug F)', () => {
     fireEvent.press(await screen.findByText('Apartment'));
     fireEvent.press(screen.getByText('Next Step'));
 
-    const cityInput = await screen.findByDisplayValue('Austin');
+    // City is now a picker button (not a TextInput) so it renders the name as text, not a value.
+    const cityButtonText = await screen.findByText('Austin');
     const stateInput = await screen.findByDisplayValue('TX');
-    expect(cityInput).toBeTruthy();
+    expect(cityButtonText).toBeTruthy();
     expect(stateInput).toBeTruthy();
   });
 });

@@ -15,7 +15,7 @@ jest.mock('@/api/services/property.service', () => ({
 }));
 
 jest.mock('@/api/services/location.service', () => ({
-  LocationService: { getLocalities: jest.fn() },
+  LocationService: { getLocalities: jest.fn(), getCities: jest.fn() },
 }));
 
 const SELECTED_CITY = { id: 1, name: 'Austin', stateName: 'TX' };
@@ -56,6 +56,7 @@ describe('CreateListingScreen submit guard (Bug 9)', () => {
     jest.clearAllMocks();
     (PropertyService.getPropertyTypes as jest.Mock).mockResolvedValue({ data: { data: [PROPERTY_TYPE] } });
     (LocationService.getLocalities as jest.Mock).mockResolvedValue({ data: { data: [LOCALITY] } });
+    (LocationService.getCities as jest.Mock).mockResolvedValue({ data: { data: [] } });
   });
 
   it('calls createProperty exactly once even when the submit button is pressed twice before the response resolves', async () => {

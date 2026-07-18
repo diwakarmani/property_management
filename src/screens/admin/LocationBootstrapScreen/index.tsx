@@ -166,12 +166,16 @@ const LocationBootstrapScreen = () => {
 
         <View style={styles.importCard}>
           <Text style={styles.importTitle}>Import Country from OSM</Text>
+          <Text style={styles.importHint}>
+            Use the country's OpenStreetMap name (e.g. "United States", "India") — abbreviations
+            like "USA" won't match.
+          </Text>
           <View style={styles.importRow}>
             <TextInput
               style={styles.importInput}
               value={countryName}
               onChangeText={setCountryName}
-              placeholder="Country name (e.g. USA)"
+              placeholder="Country name (e.g. United States, India)"
               autoCapitalize="words"
             />
             <TouchableOpacity
@@ -394,6 +398,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   importTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.text },
+  importHint: { fontSize: typography.fontSize.xs, color: colors.textSecondary, marginTop: 2, marginBottom: spacing.xs },
   importRow: { flexDirection: 'row', gap: spacing.sm },
   importInput: {
     flex: 1,

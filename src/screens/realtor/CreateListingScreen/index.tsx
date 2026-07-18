@@ -8,8 +8,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Modal,
-  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -17,8 +15,9 @@ import { useSelector } from 'react-redux';
 import { colors, typography, spacing } from '@/theme';
 import { PropertyService } from '@/api/services/property.service';
 import { LocationService } from '@/api/services/location.service';
+import SearchablePickerModal from './SearchablePickerModal';
 import type { PropertyTypeDTO } from '@/api/types/property.types';
-import type { Locality } from '@/api/types/location.type';
+import type { City, Locality } from '@/api/types/location.type';
 import type { RootState } from '@/store';
 
 interface FormData {
@@ -120,8 +119,16 @@ const CreateListingScreen = ({ navigation }: any) => {
   const [localities, setLocalities] = useState<Locality[]>([]);
   const [localitySearch, setLocalitySearch] = useState('');
   const [localityModal, setLocalityModal] = useState(false);
+  const [cities, setCities] = useState<City[]>([]);
+  const [citySearch, setCitySearch] = useState('');
+  const [cityModal, setCityModal] = useState(false);
+  // A seller may not have gone through the buyer-only LocationSelectionScreen, so Redux's
+  // selectedCity is often null for them. This local pick lets them choose (and override) the
+  // property's city directly in this screen, independent of the buyer's global browsing city.
+  const [pickedCityId, setPickedCityId] = useState<number | null>(null);
 
   const selectedCity = useSelector((state: RootState) => state.location.selectedCity);
+  const effectiveCityId = pickedCityId ?? selectedCity?.id ?? null;
 
   useEffect(() => {
     PropertyService.getPropertyTypes()
@@ -130,16 +137,46 @@ const CreateListingScreen = ({ navigation }: any) => {
   }, []);
 
   useEffect(() => {
-    if (!selectedCity?.id) return;
-    LocationService.getLocalities(selectedCity.id)
-      .then(res => setLocalities(res.data.data ?? []))
+    LocationService.getCities()
+      .then(res => setCities(res.data.data ?? []))
       .catch(() => {});
+  }, []);
+
+  // Seed city/state from the buyer's globally-selected city as a convenience default, but only
+  // until the user makes an explicit local pick (below), which always takes priority. Checked
+  // against `null` explicitly (not truthiness) so a city id of 0 is still treated as "picked".
+  useEffect(() => {
+    if (!selectedCity?.id || pickedCityId !== null) return;
     setForm(prev => ({
       ...prev,
       city: selectedCity.name,
       state: selectedCity.stateName,
     }));
-  }, [selectedCity?.id]);
+  }, [selectedCity?.id, pickedCityId]);
+
+  useEffect(() => {
+    if (effectiveCityId === null) return;
+    // Guards against a stale response overwriting a newer one: if the user switches cities
+    // again before this request resolves, `cancelled` is set on the earlier effect instance by
+    // its own cleanup, so its `.then` becomes a no-op instead of clobbering the newer city's list.
+    let cancelled = false;
+    LocationService.getLocalities(effectiveCityId)
+      .then(res => { if (!cancelled) setLocalities(res.data.data ?? []); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [effectiveCityId]);
+
+  const handleCitySelect = (city: City) => {
+    setPickedCityId(city.id);
+    setForm(prev => ({
+      ...prev,
+      city: city.name,
+      state: city.stateName,
+      locality: '',
+      localityId: null,
+    }));
+    setCityModal(false);
+  };
 
   // Bug F: this screen is a bottom-tab route, so React Navigation keeps it mounted (not
   // unmounted) when the user switches tabs. The form previously only reset to INITIAL_FORM
@@ -155,6 +192,7 @@ const CreateListingScreen = ({ navigation }: any) => {
         state: selectedCity?.stateName ?? '',
       });
       setStep(1);
+      setPickedCityId(null);
     }, [selectedCity])
   );
 
@@ -375,23 +413,24 @@ const CreateListingScreen = ({ navigation }: any) => {
       <View style={styles.row2}>
         <View style={{ flex: 1 }}>
           <Text style={styles.label}>City *</Text>
-          <TextInput
-            style={[styles.input, !!selectedCity && styles.inputReadOnly]}
-            value={form.city}
-            editable={!selectedCity}
-            onChangeText={!selectedCity ? set('city') : undefined}
-            placeholder={selectedCity ? '' : 'e.g. Austin'}
-            placeholderTextColor={colors.textLight}
-          />
+          <TouchableOpacity
+            style={[styles.input, styles.pickerBtn]}
+            onPress={() => { setCitySearch(''); setCityModal(true); }}
+          >
+            <Text style={form.city ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
+              {form.city || 'Select city'}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={colors.textLight} />
+          </TouchableOpacity>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.label}>State *</Text>
           <TextInput
-            style={[styles.input, !!selectedCity && styles.inputReadOnly]}
+            style={[styles.input, effectiveCityId !== null && styles.inputReadOnly]}
             value={form.state}
-            editable={!selectedCity}
-            onChangeText={!selectedCity ? set('state') : undefined}
-            placeholder={selectedCity ? '' : 'e.g. TX'}
+            editable={effectiveCityId === null}
+            onChangeText={effectiveCityId === null ? set('state') : undefined}
+            placeholder={effectiveCityId !== null ? '' : 'e.g. TX'}
             placeholderTextColor={colors.textLight}
           />
         </View>
@@ -658,62 +697,41 @@ const CreateListingScreen = ({ navigation }: any) => {
       {step === 2 && renderStep2()}
       {step === 3 && renderStep3()}
       {step === 4 && renderStep4()}
-<Modal visible={localityModal} animationType="slide" transparent onRequestClose={() => setLocalityModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Neighbourhood</Text>
-              <TouchableOpacity onPress={() => setLocalityModal(false)}>
-                <Ionicons name="close" size={22} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              style={styles.modalSearch}
-              placeholder="Search neighbourhoods…"
-              placeholderTextColor={colors.textLight}
-              value={localitySearch}
-              onChangeText={setLocalitySearch}
-              autoFocus
-            />
-            {localities.length === 0 ? (
-              <View style={styles.modalEmpty}>
-                <Text style={styles.modalEmptyText}>
-                  {selectedCity ? 'No neighbourhoods found for this city.' : 'Select a city from the header first.'}
-                </Text>
-              </View>
-            ) : (
-              <FlatList
-                data={localities.filter(l =>
-                  !localitySearch || l.name.toLowerCase().includes(localitySearch.toLowerCase())
-                )}
-                keyExtractor={l => l.id.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[styles.modalItem, form.localityId === item.id && styles.modalItemSelected]}
-                    onPress={() => {
-                      setForm(prev => ({
-                        ...prev,
-                        locality: item.name,
-                        localityId: item.id,
-                        city: selectedCity?.name ?? prev.city,
-                        state: selectedCity?.stateName ?? prev.state,
-                      }));
-                      setLocalityModal(false);
-                    }}
-                  >
-                    <Ionicons name="location-outline" size={16} color={colors.primary} />
-                    <Text style={styles.modalItemText}>{item.name}</Text>
-                    {form.localityId === item.id && (
-                      <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                )}
-                keyboardShouldPersistTaps="handled"
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
+<SearchablePickerModal
+        visible={localityModal}
+        title="Select Neighbourhood"
+        searchPlaceholder="Search neighbourhoods…"
+        searchValue={localitySearch}
+        onSearchChange={setLocalitySearch}
+        onClose={() => setLocalityModal(false)}
+        data={localities}
+        keyExtractor={l => l.id.toString()}
+        getLabel={l => l.name}
+        matchesSearch={(l, search) => l.name.toLowerCase().includes(search.toLowerCase())}
+        isSelected={l => form.localityId === l.id}
+        icon="location-outline"
+        emptyText={effectiveCityId !== null ? 'No neighbourhoods found for this city.' : 'Select a city first.'}
+        onSelect={item => {
+          setForm(prev => ({ ...prev, locality: item.name, localityId: item.id }));
+          setLocalityModal(false);
+        }}
+      />
+      <SearchablePickerModal
+        visible={cityModal}
+        title="Select City"
+        searchPlaceholder="Search cities…"
+        searchValue={citySearch}
+        onSearchChange={setCitySearch}
+        onClose={() => setCityModal(false)}
+        data={cities}
+        keyExtractor={c => c.id.toString()}
+        getLabel={c => c.name}
+        matchesSearch={(c, search) => c.name.toLowerCase().includes(search.toLowerCase())}
+        isSelected={c => effectiveCityId === c.id}
+        icon="business-outline"
+        emptyText="No cities available."
+        onSelect={handleCitySelect}
+      />
 <View style={styles.footer}>
         {step < TOTAL_STEPS ? (
           <TouchableOpacity style={styles.primaryBtn} onPress={handleNext}>
@@ -847,32 +865,6 @@ const styles = StyleSheet.create({
   pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   pickerBtnText: { color: colors.text, fontSize: typography.fontSize.md, flex: 1 },
   pickerBtnPlaceholder: { color: colors.textLight, fontSize: typography.fontSize.md, flex: 1 },
-
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  modalSheet: {
-    backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '75%', paddingBottom: 32,
-  },
-  modalHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
-    borderBottomWidth: 1, borderBottomColor: colors.borderLight,
-  },
-  modalTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.text },
-  modalSearch: {
-    margin: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: 10,
-    paddingHorizontal: spacing.md, paddingVertical: 10,
-    fontSize: typography.fontSize.md, color: colors.text, backgroundColor: colors.background,
-  },
-  modalEmpty: { alignItems: 'center', padding: spacing.xl },
-  modalEmptyText: { color: colors.textSecondary, fontSize: typography.fontSize.sm, textAlign: 'center' },
-  modalItem: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    paddingHorizontal: spacing.md, paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderLight,
-  },
-  modalItemSelected: { backgroundColor: colors.primarySurface },
-  modalItemText: { flex: 1, fontSize: typography.fontSize.md, color: colors.text },
 });
 
 export default CreateListingScreen;

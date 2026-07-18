@@ -19,6 +19,9 @@ interface InputProps extends TextInputProps {
   leftIcon?: keyof typeof Ionicons.glyphMap;
   rightIcon?: keyof typeof Ionicons.glyphMap;
   onRightIconPress?: () => void;
+  // Only meaningful when secureTextEntry is set — labels the eye icon for screen readers.
+  // Optional and additive: omitting it preserves every existing consumer's current behavior.
+  toggleAccessibilityLabel?: string;
 }
 
 const Input = forwardRef<TextInput, InputProps>(({
@@ -29,6 +32,7 @@ const Input = forwardRef<TextInput, InputProps>(({
   leftIcon,
   rightIcon,
   onRightIconPress,
+  toggleAccessibilityLabel,
   onChangeText,
   style: externalStyle,
   multiline,
@@ -106,6 +110,7 @@ const Input = forwardRef<TextInput, InputProps>(({
           <TouchableOpacity
             style={styles.rightIconBtn}
             onPress={handleToggleSecure}
+            accessibilityLabel={toggleAccessibilityLabel}
           >
             <Ionicons
               name={isSecure ? 'eye-off-outline' : 'eye-outline'}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, forwardRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,78 +14,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '@/theme';
 import { UserService } from '@/api/services/user.service';
-
-interface PasswordFieldProps {
-  label: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  show: boolean;
-  onToggle: () => void;
-  placeholder: string;
-  returnKeyType?: 'next' | 'done';
-  onSubmitEditing?: () => void;
-  blurOnSubmit?: boolean;
-}
-
-const PasswordField = forwardRef<TextInput, PasswordFieldProps>(({
-  label, value, onChangeText, show, onToggle, placeholder,
-  returnKeyType = 'next', onSubmitEditing, blurOnSubmit = false,
-}, ref) => {
-  // iOS fires a spurious onChangeText('') right after secureTextEntry toggles on a controlled
-  // TextInput, which would otherwise wipe the field. Suppress that one empty-string call.
-  const toggleInProgressRef = useRef(false);
-  const isFirstRender = useRef(true);
-
-  useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
-    toggleInProgressRef.current = true;
-    const timer = setTimeout(() => { toggleInProgressRef.current = false; }, 100);
-    return () => clearTimeout(timer);
-  }, [show]);
-
-  const handleChangeText = (text: string) => {
-    if (Platform.OS === 'ios' && toggleInProgressRef.current && text === '') return;
-    onChangeText(text);
-  };
-
-  return (
-    <>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.passwordRow}>
-        <TextInput
-          ref={ref}
-          style={styles.passwordInput}
-          value={value}
-          onChangeText={handleChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.textLight}
-          secureTextEntry={!show}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType={returnKeyType}
-          onSubmitEditing={onSubmitEditing}
-          blurOnSubmit={blurOnSubmit}
-        />
-        <TouchableOpacity
-          onPress={onToggle}
-          style={styles.eyeBtn}
-          hitSlop={8}
-          accessibilityLabel={`Toggle ${label} visibility`}
-        >
-          <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
-    </>
-  );
-});
+import Input from '@/components/common/Input';
 
 const ChangePasswordScreen = ({ navigation }: any) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const currentRef = useRef<TextInput>(null);
@@ -138,40 +72,46 @@ const ChangePasswordScreen = ({ navigation }: any) => {
           <Text style={styles.infoText}>Password must be at least 8 characters.</Text>
         </View>
 
-        <PasswordField
+        <Input
           ref={currentRef}
           label="Current Password"
           value={currentPassword}
           onChangeText={setCurrentPassword}
-          show={showCurrent}
-          onToggle={() => setShowCurrent(v => !v)}
+          secureTextEntry
+          toggleAccessibilityLabel="Toggle Current Password visibility"
           placeholder="Enter current password"
+          autoCapitalize="none"
+          autoCorrect={false}
           returnKeyType="next"
           onSubmitEditing={() => newPasswordRef.current?.focus()}
           blurOnSubmit={false}
         />
 
-        <PasswordField
+        <Input
           ref={newPasswordRef}
           label="New Password"
           value={newPassword}
           onChangeText={setNewPassword}
-          show={showNew}
-          onToggle={() => setShowNew(v => !v)}
+          secureTextEntry
+          toggleAccessibilityLabel="Toggle New Password visibility"
           placeholder="Min 8 characters"
+          autoCapitalize="none"
+          autoCorrect={false}
           returnKeyType="next"
           onSubmitEditing={() => confirmRef.current?.focus()}
           blurOnSubmit={false}
         />
 
-        <PasswordField
+        <Input
           ref={confirmRef}
           label="Confirm New Password"
           value={confirmPassword}
           onChangeText={setConfirmPassword}
-          show={showConfirm}
-          onToggle={() => setShowConfirm(v => !v)}
+          secureTextEntry
+          toggleAccessibilityLabel="Toggle Confirm New Password visibility"
           placeholder="Re-enter new password"
+          autoCapitalize="none"
+          autoCorrect={false}
           returnKeyType="done"
           onSubmitEditing={handleSubmit}
           blurOnSubmit
@@ -224,24 +164,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   infoText: { fontSize: typography.fontSize.sm, color: colors.primary, flex: 1 },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textSecondary,
-    marginBottom: 6,
-    marginTop: spacing.lg,
-    letterSpacing: 0.2,
-  },
-  passwordRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.background,
-    borderWidth: 1.5, borderColor: colors.border, borderRadius: 12,
-  },
-  passwordInput: {
-    flex: 1, paddingHorizontal: spacing.md, height: 52,
-    fontSize: typography.fontSize.md, color: colors.text,
-  },
-  eyeBtn: { padding: spacing.md },
   primaryBtn: {
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
     height: 52, borderRadius: 14, marginTop: spacing.xl,
