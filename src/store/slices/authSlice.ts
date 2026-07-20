@@ -1,9 +1,14 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthService } from '@/api/services/auth.service';
-import { saveTokens, clearTokens, getAccessToken, saveActiveRole, getActiveRole, clearActiveRole, remove } from '@/utils/helpers/storage';
+import {
+  saveTokens, clearTokens, getAccessToken, saveActiveRole, getActiveRole, clearActiveRole, remove,
+  getBiometricEnabled, setBiometricEnabled, getBiometricPromptShown, setBiometricPromptShown, clearBiometricPreference,
+} from '@/utils/helpers/storage';
 import { queryClient } from '@/api/queryClient';
 import type { LoginRequest, RegisterRequest, OtpSendRequest, OtpVerifyRequest } from '@/api/types/auth.types';
 import { getAvailableRoles, pickRoleKey, isRoleValid, type RoleKey } from '@/utils/roleUtils';
+import * as biometricService from '@/utils/biometric/biometricService';
+import type { BiometricType } from '@/utils/biometric/biometricService';
 
 interface User {
   id?: number;
@@ -33,6 +38,25 @@ interface AuthState {
   bootstrapFailed: boolean;
 
   activeRole: RoleKey | null;
+
+  // Biometric unlock — a local device gate in front of an already-authenticated
+  // session. `biometricSupported`/`biometricTypes` are device facts (hardware +
+  // enrollment); `biometricEnabled`/`biometricPromptShown` are per-account
+  // preferences that get wiped on logout so a different user on the same
+  // device never inherits them. `locked` is intentionally never persisted —
+  // it's recomputed from `biometricEnabled` every time `bootstrapSession` runs.
+  //
+  // `biometricTypes` is a list, not a single value: on iOS it can only ever
+  // hold one entry (a device can't physically have both Face ID and Touch
+  // ID), but Android devices can genuinely report fingerprint AND face
+  // hardware at once — collapsing that to "the preferred one" would silently
+  // hide a method the user has actually enrolled.
+  biometricSupported: boolean | null;
+  biometricTypes: BiometricType[];
+  biometricEnabled: boolean;
+  biometricPromptShown: boolean;
+  locked: boolean;
+  biometricError: string | null;
 }
 
 const initialState: AuthState = {
@@ -45,6 +69,13 @@ const initialState: AuthState = {
   bootstrapped: false,
   bootstrapFailed: false,
   activeRole: null,
+
+  biometricSupported: null,
+  biometricTypes: [],
+  biometricEnabled: false,
+  biometricPromptShown: false,
+  locked: false,
+  biometricError: null,
 };
 
 const toUser = (payload: any): User => {
@@ -115,7 +146,11 @@ export const bootstrapSession = createAsyncThunk(
       try {
         const response = await AuthService.getCurrentUser();
         const storedRole = await getActiveRole();
-        return { authenticated: true as const, user: response.data.data, storedRole };
+        // Read inline (not via a separately-dispatched loadBiometricState) so
+        // `locked` can be computed deterministically in the same reducer that
+        // sets `isAuthenticated`, with no race between two concurrent thunks.
+        const biometricEnabled = await getBiometricEnabled();
+        return { authenticated: true as const, user: response.data.data, storedRole, biometricEnabled };
       } catch (error: any) {
         const status = error?.response?.status;
         const tokenStillPresent = await getAccessToken();
@@ -187,9 +222,81 @@ export const clearActiveRoleAndReselect = createAsyncThunk(
   }
 );
 
+// Device-capability probe, independent of auth state — dispatched once at boot
+// alongside bootstrapSession. Never touches `locked` (bootstrapSession alone
+// owns that, see above) so the two thunks can't race each other.
+export const loadBiometricState = createAsyncThunk(
+  'auth/loadBiometricState',
+  async () => {
+    const [hardwareOk, enrolled, biometricTypes, promptShown] = await Promise.all([
+      biometricService.isHardwareAvailable(),
+      biometricService.isEnrolled(),
+      biometricService.getSupportedTypes(),
+      getBiometricPromptShown(),
+    ]);
+    return {
+      biometricSupported: hardwareOk && enrolled,
+      biometricTypes,
+      biometricPromptShown: promptShown,
+    };
+  }
+);
+
+// Requires one real successful scan before the preference is persisted — never
+// flips the flag from a bare button tap.
+export const enableBiometric = createAsyncThunk(
+  'auth/enableBiometric',
+  async (_, { rejectWithValue }) => {
+    const result = await biometricService.authenticate('Enable biometric unlock for PropertyApp');
+    await setBiometricPromptShown(true);
+    if (!result.success) {
+      return rejectWithValue(result.error || 'Authentication failed');
+    }
+    await setBiometricEnabled(true);
+    return true;
+  }
+);
+
+export const declineBiometricPrompt = createAsyncThunk(
+  'auth/declineBiometricPrompt',
+  async () => {
+    await setBiometricPromptShown(true);
+  }
+);
+
+export const disableBiometric = createAsyncThunk(
+  'auth/disableBiometric',
+  async () => {
+    await setBiometricEnabled(false);
+  }
+);
+
+export const unlockWithBiometrics = createAsyncThunk(
+  'auth/unlockWithBiometrics',
+  async (_, { rejectWithValue }) => {
+    const [hardwareOk, enrolled] = await Promise.all([
+      biometricService.isHardwareAvailable(),
+      biometricService.isEnrolled(),
+    ]);
+    if (!hardwareOk || !enrolled) {
+      // Fail-open: biometrics were turned off at the OS level after being
+      // enabled in-app. There's no in-app fallback credential, so unlock
+      // rather than trap the user, and stop offering biometrics on this device.
+      await setBiometricEnabled(false);
+      return { autoDisabled: true };
+    }
+    const result = await biometricService.authenticate('Unlock PropertyApp');
+    if (!result.success) {
+      return rejectWithValue(result.error || 'Authentication failed');
+    }
+    return { autoDisabled: false };
+  }
+);
+
 export const logout = createAsyncThunk('auth/logout', async () => {
   await clearTokens();
   await clearActiveRole();
+  await clearBiometricPreference();
   // Bug 14: `selectedLocation` is a single, non-user-scoped key. Without clearing it here, a
   // previous account's confirmed location silently carries over to the next login on this
   // device, making the buyer location-selection gate never show for that new session.
@@ -231,10 +338,14 @@ const authSlice = createSlice({
           } else {
             state.activeRole = resolveActiveRole(state.user?.roles ?? []);
           }
+
+          state.biometricEnabled = action.payload.biometricEnabled ?? false;
+          state.locked = state.biometricEnabled;
         } else {
           state.user = null;
           state.isAuthenticated = false;
           state.activeRole = null;
+          state.locked = false;
         }
       })
       .addCase(bootstrapSession.rejected, (state) => {
@@ -243,6 +354,7 @@ const authSlice = createSlice({
         state.bootstrapFailed = true;
         state.isAuthenticated = false;
         state.activeRole = null;
+        state.locked = false;
       })
 
       .addCase(fetchUser.pending, (state) => { state.loading = true; state.error = null; })
@@ -308,12 +420,51 @@ const authSlice = createSlice({
         state.activeRole = null;
       })
 
+      .addCase(loadBiometricState.fulfilled, (state, action) => {
+        state.biometricSupported = action.payload.biometricSupported;
+        state.biometricTypes = action.payload.biometricTypes;
+        state.biometricPromptShown = action.payload.biometricPromptShown;
+      })
+
+      .addCase(enableBiometric.fulfilled, (state) => {
+        state.biometricEnabled = true;
+        state.biometricPromptShown = true;
+        state.biometricError = null;
+      })
+      .addCase(enableBiometric.rejected, (state, action) => {
+        state.biometricPromptShown = true;
+        state.biometricError = action.payload as string;
+      })
+
+      .addCase(declineBiometricPrompt.fulfilled, (state) => {
+        state.biometricPromptShown = true;
+      })
+
+      .addCase(disableBiometric.fulfilled, (state) => {
+        state.biometricEnabled = false;
+        state.locked = false;
+      })
+
+      .addCase(unlockWithBiometrics.fulfilled, (state, action) => {
+        state.locked = false;
+        state.biometricError = null;
+        if (action.payload.autoDisabled) {
+          state.biometricEnabled = false;
+        }
+      })
+      .addCase(unlockWithBiometrics.rejected, (state, action) => {
+        state.biometricError = action.payload as string;
+      })
+
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.isAuthenticated = false;
         state.error = null;
         state.bootstrapFailed = false;
         state.activeRole = null;
+        state.biometricEnabled = false;
+        state.biometricPromptShown = false;
+        state.locked = false;
       });
   },
 });

@@ -54,3 +54,29 @@ export const remove = async (key: string) => {
 export const clear = async () => {
   await AsyncStorage.clear();
 };
+
+// Biometric unlock preference/flags — non-sensitive booleans, so AsyncStorage
+// (not SecureStore) is correct here. The actual session secrets stay solely in
+// the token keys above; biometrics never introduces a second credential store.
+const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
+const BIOMETRIC_PROMPT_SHOWN_KEY = 'biometric_prompt_shown';
+
+export const getBiometricEnabled = async (): Promise<boolean> => {
+  return (await AsyncStorage.getItem(BIOMETRIC_ENABLED_KEY)) === 'true';
+};
+
+export const setBiometricEnabled = async (enabled: boolean): Promise<void> => {
+  await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, enabled ? 'true' : 'false');
+};
+
+export const getBiometricPromptShown = async (): Promise<boolean> => {
+  return (await AsyncStorage.getItem(BIOMETRIC_PROMPT_SHOWN_KEY)) === 'true';
+};
+
+export const setBiometricPromptShown = async (shown: boolean): Promise<void> => {
+  await AsyncStorage.setItem(BIOMETRIC_PROMPT_SHOWN_KEY, shown ? 'true' : 'false');
+};
+
+export const clearBiometricPreference = async (): Promise<void> => {
+  await AsyncStorage.multiRemove([BIOMETRIC_ENABLED_KEY, BIOMETRIC_PROMPT_SHOWN_KEY]);
+};

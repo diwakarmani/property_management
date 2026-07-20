@@ -12,6 +12,8 @@ export type AuthStackParamList = {
 export type RootStackParamList = {
   Boot: undefined;
   Auth: NavigatorScreenParams<AuthStackParamList>;
+  BiometricLock: undefined;
+  BiometricEnroll: undefined;
   RoleSelection: undefined;
   LocationSetup: undefined;
   LocationSelection: undefined;

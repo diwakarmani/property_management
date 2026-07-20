@@ -39,6 +39,12 @@
         {
           "locationWhenInUsePermission": "PropertyApp uses your location to show properties near you."
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "PropertyApp uses Face ID to quickly and securely unlock the app for your already-signed-in account."
+        }
       ]
     ],
     "experiments": {

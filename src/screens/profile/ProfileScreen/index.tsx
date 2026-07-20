@@ -1,11 +1,12 @@
 import React, { useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking, Switch } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
-import { logout, clearActiveRoleAndReselect, fetchUser } from '@/store/slices/authSlice';
+import { logout, clearActiveRoleAndReselect, fetchUser, enableBiometric, disableBiometric } from '@/store/slices/authSlice';
 import { getAvailableRoles } from '@/utils/roleUtils';
+import { formatBiometricLabel } from '@/utils/biometric/biometricService';
 import { colors, typography, spacing } from '@/theme';
 import type { AppDispatch, RootState } from '@/store';
 
@@ -47,7 +48,7 @@ const PROFILE_STALE_MS = 30_000;
 
 const ProfileScreen = ({ navigation }: any) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, biometricSupported, biometricEnabled, biometricTypes } = useSelector((state: RootState) => state.auth);
   const lastFetchRef = useRef<number>(0);
 
   // Refresh from DB on screen focus so edits in ChangeContactScreen / EditProfileScreen
@@ -111,6 +112,14 @@ const ProfileScreen = ({ navigation }: any) => {
     );
   };
 
+  const handleToggleBiometric = (value: boolean) => {
+    if (value) {
+      dispatch(enableBiometric());
+    } else {
+      dispatch(disableBiometric());
+    }
+  };
+
   const MENU_SECTIONS = [
     {
       title: 'Account',
@@ -126,6 +135,17 @@ const ProfileScreen = ({ navigation }: any) => {
     {
       title: 'Preferences',
       items: [
+        // Only shown on devices with enrolled biometric hardware. Toggling on
+        // requires a real successful scan (enableBiometric.rejected leaves
+        // biometricEnabled false), so a bare tap can't silently flip it on.
+        ...(biometricSupported ? [{
+          icon: 'finger-print-outline',
+          label: `${formatBiometricLabel(biometricTypes)} Unlock`,
+          color: '#16A34A',
+          toggle: true,
+          value: biometricEnabled,
+          onToggle: handleToggleBiometric,
+        }] : []),
         { icon: 'notifications-outline', label: 'Notifications', onPress: openNotifications, color: '#F39C12' },
         { icon: 'help-circle-outline',   label: 'Help & Support', onPress: handleHelpSupport,                         color: '#27AE60' },
       ],
@@ -174,18 +194,26 @@ const ProfileScreen = ({ navigation }: any) => {
         <View key={section.title} style={styles.section}>
           <Text style={styles.sectionLabel}>{section.title}</Text>
           <View style={styles.card}>
-            {section.items.map((item, i) => (
+            {section.items.map((item: any, i) => (
               <TouchableOpacity
                 key={item.label}
                 style={[styles.menuItem, i === section.items.length - 1 && styles.menuItemLast]}
-                onPress={item.onPress}
+                onPress={item.toggle ? () => item.onToggle(!item.value) : item.onPress}
                 activeOpacity={0.7}
               >
                 <View style={[styles.menuIcon, { backgroundColor: item.color + '18' }]}>
                   <Ionicons name={item.icon as any} size={18} color={item.color} />
                 </View>
                 <Text style={styles.menuText}>{item.label}</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textLight} />
+                {item.toggle ? (
+                  <Switch
+                    value={item.value}
+                    onValueChange={item.onToggle}
+                    trackColor={{ true: colors.primary }}
+                  />
+                ) : (
+                  <Ionicons name="chevron-forward" size={16} color={colors.textLight} />
+                )}
               </TouchableOpacity>
             ))}
           </View>

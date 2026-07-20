@@ -23,7 +23,10 @@ const MUTATING = new Set(['post', 'put', 'patch', 'delete']);
 const axiosClient = axios.create({
   baseURL: ENV.API_URL,
   timeout: 30_000,
-  headers: { 'Content-Type': 'application/json' },
+  // X-Client-Type tells the backend this is the mobile app so it can issue a
+  // long-lived refresh token; a future web client omitting this header keeps
+  // today's shorter server-default lifetime unchanged.
+  headers: { 'Content-Type': 'application/json', 'X-Client-Type': 'MOBILE' },
 });
 
 const MAX_RETRIES = 1;

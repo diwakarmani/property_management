@@ -4,9 +4,12 @@ import authReducer, {
   bootstrapSession,
   login,
   logout,
+  enableBiometric,
+  unlockWithBiometrics,
 } from '../authSlice';
 import { queryClient } from '@/api/queryClient';
-import { remove } from '@/utils/helpers/storage';
+import { remove, clearBiometricPreference } from '@/utils/helpers/storage';
+import * as biometricService from '@/utils/biometric/biometricService';
 
 jest.mock('@/api/queryClient', () => ({
   queryClient: { clear: jest.fn() },
@@ -22,6 +25,18 @@ jest.mock('@/utils/helpers/storage', () => ({
   getActiveRole: jest.fn().mockResolvedValue(null),
   saveActiveRole: jest.fn().mockResolvedValue(undefined),
   remove: jest.fn().mockResolvedValue(undefined),
+  getBiometricEnabled: jest.fn().mockResolvedValue(false),
+  setBiometricEnabled: jest.fn().mockResolvedValue(undefined),
+  getBiometricPromptShown: jest.fn().mockResolvedValue(false),
+  setBiometricPromptShown: jest.fn().mockResolvedValue(undefined),
+  clearBiometricPreference: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@/utils/biometric/biometricService', () => ({
+  isHardwareAvailable: jest.fn().mockResolvedValue(false),
+  isEnrolled: jest.fn().mockResolvedValue(false),
+  getSupportedTypes: jest.fn().mockResolvedValue([]),
+  authenticate: jest.fn().mockResolvedValue({ success: false, error: 'not mocked' }),
 }));
 
 describe('authSlice', () => {
@@ -154,6 +169,106 @@ describe('authSlice', () => {
       await store.dispatch(logout());
 
       expect(remove).toHaveBeenCalledWith('selectedLocation');
+    });
+
+    it('clears the biometric preference when the logout thunk executes, so a different user on this device gets their own enroll prompt', async () => {
+      const store = configureStore({ reducer: { auth: authReducer } });
+
+      await store.dispatch(logout());
+
+      expect(clearBiometricPreference).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('biometric unlock', () => {
+    it('locks the session on bootstrapSession.fulfilled when the stored preference is enabled', () => {
+      const state = authReducer(
+        initialState,
+        bootstrapSession.fulfilled(
+          {
+            authenticated: true,
+            user: { email: 'a@b.com', firstName: 'A', lastName: 'B', roles: ['BUYER'] },
+            storedRole: null,
+            biometricEnabled: true,
+          } as any,
+          'req',
+          undefined
+        )
+      );
+      expect(state.isAuthenticated).toBe(true);
+      expect(state.biometricEnabled).toBe(true);
+      expect(state.locked).toBe(true);
+    });
+
+    it('does not lock the session when no biometric preference is stored', () => {
+      const state = authReducer(
+        initialState,
+        bootstrapSession.fulfilled(
+          {
+            authenticated: true,
+            user: { email: 'a@b.com', firstName: 'A', lastName: 'B', roles: ['BUYER'] },
+            storedRole: null,
+            biometricEnabled: false,
+          } as any,
+          'req',
+          undefined
+        )
+      );
+      expect(state.locked).toBe(false);
+    });
+
+    it('unlocks on unlockWithBiometrics.fulfilled', () => {
+      const locked = { ...initialState, isAuthenticated: true, locked: true, biometricEnabled: true };
+      const state = authReducer(
+        locked,
+        unlockWithBiometrics.fulfilled({ autoDisabled: false } as any, 'req', undefined)
+      );
+      expect(state.locked).toBe(false);
+      expect(state.biometricEnabled).toBe(true);
+    });
+
+    it('fails open (unlocks and disables the preference) when hardware/enrollment was revoked at the OS level', () => {
+      const locked = { ...initialState, isAuthenticated: true, locked: true, biometricEnabled: true };
+      const state = authReducer(
+        locked,
+        unlockWithBiometrics.fulfilled({ autoDisabled: true } as any, 'req', undefined)
+      );
+      expect(state.locked).toBe(false);
+      expect(state.biometricEnabled).toBe(false);
+    });
+
+    it('stays locked and records the error on unlockWithBiometrics.rejected', () => {
+      const locked = { ...initialState, isAuthenticated: true, locked: true, biometricEnabled: true };
+      const state = authReducer(
+        locked,
+        { type: unlockWithBiometrics.rejected.type, payload: 'user_cancel' } as any
+      );
+      expect(state.locked).toBe(true);
+      expect(state.biometricError).toBe('user_cancel');
+    });
+
+    it('only persists the enabled preference after a real successful scan (enableBiometric.fulfilled)', () => {
+      const state = authReducer(initialState, enableBiometric.fulfilled(true as any, 'req', undefined));
+      expect(state.biometricEnabled).toBe(true);
+      expect(state.biometricPromptShown).toBe(true);
+    });
+
+    it('does not enable the preference when the confirm scan fails (enableBiometric.rejected)', () => {
+      const state = authReducer(
+        initialState,
+        { type: enableBiometric.rejected.type, payload: 'user_cancel' } as any
+      );
+      expect(state.biometricEnabled).toBe(false);
+      expect(state.biometricPromptShown).toBe(true);
+    });
+
+    it('never flips the preference on a bare enableBiometric() dispatch without a successful authenticate() call', async () => {
+      (biometricService.authenticate as jest.Mock).mockResolvedValueOnce({ success: false, error: 'user_cancel' });
+      const store = configureStore({ reducer: { auth: authReducer } });
+
+      await store.dispatch(enableBiometric());
+
+      expect(store.getState().auth.biometricEnabled).toBe(false);
     });
   });
 });

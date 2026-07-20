@@ -3,8 +3,10 @@ import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useSelector, useDispatch } from 'react-redux';
 import { loadSavedLocation } from '@/store/slices/locationSlice';
-import { bootstrapSession } from '@/store/slices/authSlice';
+import { bootstrapSession, loadBiometricState } from '@/store/slices/authSlice';
 import AuthNavigator from './AuthNavigator';
+import BiometricLockScreen from '@/screens/auth/BiometricLockScreen';
+import BiometricEnrollScreen from '@/screens/auth/BiometricEnrollScreen';
 import LocationSelectionScreen from '@/screens/location/LocationSelectionScreen';
 import NotificationsScreen from '@/screens/profile/NotificationsScreen';
 import PropertyDetailScreen from '@/screens/property/PropertyDetailsScreen';
@@ -87,9 +89,8 @@ const MainAppScreen = () => {
 
 const AppNavigator = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated, bootstrapped, activeRole } = useSelector(
-    (state: RootState) => state.auth
-  );
+  const { isAuthenticated, bootstrapped, activeRole, locked, biometricSupported, biometricPromptShown } =
+    useSelector((state: RootState) => state.auth);
   const user            = useSelector((state: RootState) => state.auth.user);
   const { hasSelected } = useSelector((state: RootState) => state.location);
 
@@ -104,9 +105,20 @@ const AppNavigator = () => {
     activeRole === 'buyer' &&
     !hasSelected;
 
+  // One-time opt-in, only offered once role/location are settled and only on
+  // devices that actually have biometric hardware enrolled.
+  const needsBiometricPrompt =
+    isAuthenticated &&
+    !locked &&
+    !needsRoleSelection &&
+    !shouldChooseLocation &&
+    biometricSupported === true &&
+    !biometricPromptShown;
+
   useEffect(() => {
     dispatch(loadSavedLocation());
     dispatch(bootstrapSession());
+    dispatch(loadBiometricState());
   }, [dispatch]);
 
   return (
@@ -116,6 +128,8 @@ const AppNavigator = () => {
           <Stack.Screen name="Boot" component={BootScreen} />
         ) : !isAuthenticated ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
+        ) : locked ? (
+          <Stack.Screen name="BiometricLock" component={BiometricLockScreen} />
         ) : needsRoleSelection ? (
           <Stack.Screen
             name="RoleSelection"
@@ -127,6 +141,8 @@ const AppNavigator = () => {
           />
         ) : shouldChooseLocation ? (
           <Stack.Screen name="LocationSetup" component={LocationSelectionScreen} />
+        ) : needsBiometricPrompt ? (
+          <Stack.Screen name="BiometricEnroll" component={BiometricEnrollScreen} />
         ) : (
           <>
             <Stack.Screen name="MainApp" component={MainAppScreen} />
