@@ -15,13 +15,16 @@
 #      --add-opens flags on both the Gradle daemon and the separate Kotlin compile
 #      daemon. NOTE: if a Gradle/Kotlin daemon from before this script ran is still
 #      alive, it won't pick up the new args — this script stops daemons for you.
+#   4. The wrapper's own Java downloader can fail with "Connect timed out" on some
+#      networks even though curl reaches services.gradle.org fine — pre-seed the
+#      Gradle distribution zip into the wrapper cache with curl so it never downloads.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 WRAPPER_PROPS="android/gradle/wrapper/gradle-wrapper.properties"
 GRADLE_PROPS="android/gradle.properties"
-JDK17_HOME="/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home"
+JDK17_HOME="$(/usr/libexec/java_home -v 17 2>/dev/null || echo /Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home)"
 
 if [ ! -d "android" ]; then
   echo "No android/ directory — run 'npx expo prebuild --platform android' first." >&2
@@ -51,6 +54,17 @@ sed -i '' "s|^org\.gradle\.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m\$|org.gra
   echo "kotlin.daemon.jvmargs=$KAPT_OPENS"
 } >> "$GRADLE_PROPS.tmp"
 mv "$GRADLE_PROPS.tmp" "$GRADLE_PROPS"
+
+# 4. Pre-seed the Gradle distribution (skipped when already cached). The cache folder
+# name is a hash of the distribution URL, so it is the same on every machine.
+GRADLE_DIST_DIR="$HOME/.gradle/wrapper/dists/gradle-8.3-all/6en3ugtfdg5xnpx44z4qbwgas"
+if [ ! -f "$GRADLE_DIST_DIR/gradle-8.3-all.zip.ok" ] && [ ! -f "$GRADLE_DIST_DIR/gradle-8.3-all.zip" ]; then
+  echo "Pre-downloading gradle-8.3-all.zip with curl..."
+  mkdir -p "$GRADLE_DIST_DIR"
+  rm -f "$GRADLE_DIST_DIR"/gradle-8.3-all.zip.part "$GRADLE_DIST_DIR"/gradle-8.3-all.zip.lck
+  curl -L --fail --retry 3 -o "$GRADLE_DIST_DIR/gradle-8.3-all.zip" \
+    https://services.gradle.org/distributions/gradle-8.3-all.zip
+fi
 
 # Stale daemons started before these properties existed won't pick them up —
 # force a clean restart.
